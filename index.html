@@ -1309,8 +1309,8 @@ database.ref('onlineUsers').on('value', (snapshot) => {
         
         container.innerHTML = recentItems.map(item => `
         <div class="timeline-item" style="border-left: 3px solid ${item.color}; padding-left: 8px; margin-bottom: 10px; position: relative;">
-            <button onclick="deleteHistory('${item.firebaseKey}')" style="position: absolute; top: 5px; right: 5px; background: #e74c3c; color: white; border: none; border-radius: 3px; padding: 2px 6px; font-size: 9px; cursor: pointer; font-weight: 600;" title="Delete">🗑</button>
-            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 3px;">
+                <button onclick="deleteHistory('${item.firebaseKey}')" style="position: absolute; top: 25px; right: 5px; background: #e74c3c; color: white; border: none; border-radius: 3px; padding: 2px 6px; font-size: 9px; cursor: pointer; font-weight: 600;" title="Delete">🗑</button>
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 3px;">
                 <strong style="font-size: 10px; color: #2c3e50;">${new Date(item.timestamp).toLocaleString()}</strong>
                 <span style="font-size: 8px; background: ${item.color}; color: white; padding: 1px 4px; border-radius: 8px;">${item.category}</span>
             </div>
