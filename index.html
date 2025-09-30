@@ -1190,10 +1190,8 @@ database.ref('onlineUsers').on('value', (snapshot) => {
                     <small style="font-size: 8px; margin-left: 3px;">${item.progress}%</small>
                 </td>
                 <td style="white-space: nowrap; text-align: center;">
-                    <div style="display: flex; flex-direction: column; gap: 4px; align-items: center;">
-                        <button class="action-btn primary" onclick="openUpdateModal('${item.firebaseKey}')" style="font-size: 9px; padding: 4px 8px; width: 60px;">Update</button>
-                        <button class="btn-delete" onclick="deleteItem('${item.firebaseKey}')" title="Delete" style="font-size: 10px; padding: 4px 8px; line-height: 1; width: 60px;">🗑 Del</button>
-                    </div>
+                    <button class="action-btn primary" onclick="openUpdateModal('${item.firebaseKey}')" style="font-size: 9px; padding: 4px 8px;">Update</button>
+                    <button class="btn-delete" onclick="deleteItem('${item.firebaseKey}')" title="Delete" style="font-size: 12px; padding: 4px 7px; line-height: 1;">🗑</button>
                 </td>
             `;
             tableBody.appendChild(row);
