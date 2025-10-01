@@ -1531,6 +1531,24 @@ database.ref('onlineUsers').on('value', (snapshot) => {
         if (currentEditId) {
             // Update existing item
             const item = projectData.find(p => p.firebaseKey === currentEditId);
+            
+            // Detect changes
+            let changes = [];
+            if (item.equipment !== taskData.equipment) changes.push(`Equipment: "${item.equipment}" → "${taskData.equipment}"`);
+            if (item.vendor !== taskData.vendor) changes.push(`Vendor: "${item.vendor}" → "${taskData.vendor}"`);
+            if (item.priority !== taskData.priority) changes.push(`Priority: ${item.priority} → ${taskData.priority}`);
+            if (item.task !== taskData.task) changes.push(`Task: ${item.task} → ${taskData.task}`);
+            if (item.status !== taskData.status) changes.push(`Status: ${item.status} → ${taskData.status}`);
+            if (item.contract !== taskData.contract) changes.push(`Contract: ${item.contract} → ${taskData.contract}`);
+            if (item.visa !== taskData.visa) changes.push(`VISA: ${item.visa} → ${taskData.visa}`);
+            if (item.targetDate !== taskData.targetDate) changes.push(`Target Date: ${item.targetDate || 'N/A'} → ${taskData.targetDate || 'N/A'}`);
+            if (item.mobDate !== taskData.mobDate) changes.push(`MOB Date: ${item.mobDate} → ${taskData.mobDate}`);
+            if (item.progress !== taskData.progress) changes.push(`Progress: ${item.progress}% → ${taskData.progress}%`);
+            
+            const changeDescription = changes.length > 0 ? changes.join(', ') : 'No changes detected';
+            const userNotes = document.getElementById('modalNotes').value;
+            const detailedNotes = userNotes ? `${userNotes} | Changes: ${changeDescription}` : `Changes: ${changeDescription}`;
+            
             projectDataRef.child(currentEditId).update(taskData).then(() => {
                 // Add to history
                 activityHistoryRef.push({
@@ -1541,9 +1559,9 @@ database.ref('onlineUsers').on('value', (snapshot) => {
                     equipmentId: item.id,
                     equipment: equipment,
                     vendor: vendor,
-                    description: 'Task updated',
-                    notes: document.getElementById('modalNotes').value || 'Task information updated',
-                    user:  prompt('Enter your name:') || 'Anonymous',
+                    description: `${changes.length} field(s) updated`,
+                    notes: detailedNotes,
+                    user: prompt('Enter your name:') || 'Anonymous',
                     icon: '📝',
                     color: '#27ae60'
                 });
