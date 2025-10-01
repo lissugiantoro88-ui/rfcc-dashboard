@@ -316,7 +316,7 @@
         .sidebar {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 22px;
         }
 
         .sidebar-section {
@@ -701,6 +701,21 @@
                 </div>
             </div>
 
+		<!-- Pagination Controls -->
+                <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                    <div style="font-size: 12px; color: #7f8c8d;">
+                        Showing <span id="tablePageInfo">0</span> items
+                    </div>
+                    <div style="display: flex; gap: 5px; align-items: center;">
+                        <button onclick="changeTablePage(-1)" id="prevTablePageBtn" style="padding: 6px 12px; background: #34495e; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600;">Previous</button>
+                        <span id="tablePageNumbers" style="display: flex; gap: 5px;"></span>
+                        <button onclick="changeTablePage(1)" id="nextTablePageBtn" style="padding: 6px 12px; background: #34495e; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600;">Next</button>
+                    </div>
+                </div>
+            </div>
+
+
+
             <div class="sidebar">
                 <div class="sidebar-section">
                     <h3 class="sidebar-title">Recent Updates</h3>
@@ -942,6 +957,10 @@ database.ref('onlineUsers').on('value', (snapshot) => {
         let currentEditId = null;
         let currentFilter = 'all';
 
+	// Pagination
+        let currentTablePage = 1;
+	const itemsPerTablePage = 20;
+
         // Connection monitoring
         const connectedRef = database.ref('.info/connected');
         connectedRef.on('value', (snap) => {
@@ -1145,6 +1164,7 @@ database.ref('onlineUsers').on('value', (snapshot) => {
     // ===== FILTER AND SEARCH =====
     function filterByPriority(priority) {
         currentFilter = priority;
+        currentTablePage = 1; // Reset to page 1
         document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
         document.querySelector(`[data-filter="${priority}"]`).classList.add('active');
         populateTable();
@@ -1209,7 +1229,13 @@ database.ref('onlineUsers').on('value', (snapshot) => {
 
         let filteredData = currentFilter === 'all' ? projectData : projectData.filter(item => item.priority === currentFilter);
 
-        filteredData.forEach(item => {
+        // Calculate pagination
+        const totalPages = Math.ceil(filteredData.length / itemsPerTablePage);
+        const startIndex = (currentTablePage - 1) * itemsPerTablePage;
+        const endIndex = startIndex + itemsPerTablePage;
+        const pageData = filteredData.slice(startIndex, endIndex);
+
+        pageData.forEach(item => {
             const dateStatus = getDateStatus(item.targetDate, item.mobDate);
             const row = document.createElement('tr');
             row.className = `priority-${item.priority}`;
@@ -1239,8 +1265,54 @@ database.ref('onlineUsers').on('value', (snapshot) => {
             tableBody.appendChild(row);
         });
 
-	// Update upcoming mobilizations
-    	updateUpcomingMobilizations();
+        // Update pagination info
+        updateTablePagination(filteredData.length, totalPages);
+
+        // Update upcoming mobilizations
+        updateUpcomingMobilizations();
+    }
+
+function updateTablePagination(totalItems, totalPages) {
+        const startIndex = (currentTablePage - 1) * itemsPerTablePage;
+        const endIndex = Math.min(startIndex + itemsPerTablePage, totalItems);
+        
+        document.getElementById('tablePageInfo').textContent = `${startIndex + 1}-${endIndex} of ${totalItems}`;
+        
+        document.getElementById('prevTablePageBtn').disabled = currentTablePage === 1;
+        document.getElementById('nextTablePageBtn').disabled = currentTablePage === totalPages || totalPages === 0;
+        
+        renderTablePageNumbers(totalPages);
+    }
+
+    function renderTablePageNumbers(totalPages) {
+        const pageNumbersDiv = document.getElementById('tablePageNumbers');
+        let html = '';
+        
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || (i >= currentTablePage - 2 && i <= currentTablePage + 2)) {
+                html += `<button onclick="goToTablePage(${i})" style="padding: 6px 10px; background: ${i === currentTablePage ? '#3498db' : '#ecf0f1'}; color: ${i === currentTablePage ? 'white' : '#2c3e50'}; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; min-width: 30px;">${i}</button>`;
+            } else if (i === currentTablePage - 3 || i === currentTablePage + 3) {
+                html += '<span style="padding: 0 5px;">...</span>';
+            }
+        }
+        
+        pageNumbersDiv.innerHTML = html;
+    }
+
+    function changeTablePage(direction) {
+        const filteredData = currentFilter === 'all' ? projectData : projectData.filter(item => item.priority === currentFilter);
+        const totalPages = Math.ceil(filteredData.length / itemsPerTablePage);
+        const newPage = currentTablePage + direction;
+        
+        if (newPage >= 1 && newPage <= totalPages) {
+            currentTablePage = newPage;
+            populateTable();
+        }
+    }
+
+    function goToTablePage(page) {
+        currentTablePage = page;
+        populateTable();
     }
 
     function getStatusClass(status) {
@@ -2154,6 +2226,8 @@ function deleteHistory(firebaseKey) {
         window.clearIssueFilter = clearIssueFilter;
         window.filterEquipmentHistory = filterEquipmentHistory;
         window.saveUpdate = saveUpdate;
+	window.changeTablePage = changeTablePage;
+        window.goToTablePage = goToTablePage;
     </script>
 
     <!-- Footer -->
