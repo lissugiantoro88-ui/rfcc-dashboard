@@ -709,6 +709,11 @@
                         <select id="equipmentHistoryFilter" style="width: 100%; padding: 6px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 11px;" onchange="filterEquipmentHistory()">
                             <option value="all">All Equipment</option>
                         </select>
+                        <button id="viewProgressReportBtn" onclick="showProgressReport()" style="width: 100%; margin-top: 8px; padding: 8px; background: #3498db; color: white; border: none; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; display: none;">
+                            View Progress Report
+                        </button>
+                    </div>
+
                     </div>
                     <div id="historyContainer" style="max-height: 400px; overflow-y: auto;">
                     </div>
@@ -872,6 +877,24 @@
                     <span id="pageNumbers" style="display: flex; gap: 5px; align-items: center; font-size: 12px; color: #2c3e50;"></span>
                     <button onclick="changeHistoryPage(1)" id="nextPageBtn" style="padding: 6px 12px; background: #34495e; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">Next</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Progress Report Modal -->
+    <div id="progressReportModal" class="modal">
+        <div class="modal-content" style="width: 800px; max-width: 95%;">
+            <div class="modal-header">
+                <h3 class="modal-title">Equipment Progress Report</h3>
+                <span class="close" onclick="closeProgressReport()">&times;</span>
+            </div>
+            <div id="progressReportContent" style="padding: 10px;">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+            <div style="margin-top: 20px; text-align: center;">
+                <button onclick="exportProgressReportPDF()" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;">Export PDF Report</button>
+                <button onclick="closeProgressReport()" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; margin-left: 10px;">Close</button>
             </div>
         </div>
     </div>
@@ -1319,6 +1342,14 @@ database.ref('onlineUsers').on('value', (snapshot) => {
     function filterEquipmentHistory() {
         const filterValue = document.getElementById('equipmentHistoryFilter').value;
         const container = document.getElementById('historyContainer');
+	const progressBtn = document.getElementById('viewProgressReportBtn');
+
+// Show/hide progress report button
+        if (filterValue === 'all') {
+            progressBtn.style.display = 'none';
+        } else {
+            progressBtn.style.display = 'block';
+        }
         
         let filteredHistory = activityHistory;
         
@@ -1710,7 +1741,189 @@ function deleteHistory(firebaseKey) {
         if (searchInput) {
             searchInput.addEventListener('keyup', renderFullHistory);
         }
-    });
+});
+
+// ===== PROGRESS REPORT =====
+    let currentEquipmentReport = null;
+
+    function showProgressReport() {
+        const filterValue = document.getElementById('equipmentHistoryFilter').value;
+        
+        if (filterValue === 'all') {
+            showNotification('Please select an equipment first', 'error');
+            return;
+        }
+
+        const equipmentId = parseInt(filterValue);
+        const equipmentHistory = activityHistory.filter(item => item.equipmentId === equipmentId);
+        
+        if (equipmentHistory.length === 0) {
+            showNotification('No history found for this equipment', 'error');
+            return;
+        }
+
+        // Get current equipment data
+        const currentEquipment = projectData.find(item => item.id === equipmentId);
+        
+        if (!currentEquipment) {
+            showNotification('Equipment not found', 'error');
+            return;
+        }
+
+        currentEquipmentReport = {
+            equipment: currentEquipment,
+            history: equipmentHistory
+        };
+
+        renderProgressReport();
+        document.getElementById('progressReportModal').style.display = 'block';
+    }
+
+    function closeProgressReport() {
+        document.getElementById('progressReportModal').style.display = 'none';
+    }
+
+    function renderProgressReport() {
+        if (!currentEquipmentReport) return;
+
+        const { equipment, history } = currentEquipmentReport;
+        const sortedHistory = [...history].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        
+        const firstUpdate = sortedHistory[0];
+        const lastUpdate = sortedHistory[sortedHistory.length - 1];
+        const duration = Math.ceil((new Date(lastUpdate.timestamp) - new Date(firstUpdate.timestamp)) / (1000 * 60 * 60 * 24));
+
+        const progressChanges = sortedHistory.filter(item => item.notes && item.notes.includes('progress'));
+        const statusChanges = sortedHistory.filter(item => item.category === 'UPDATE');
+
+        const container = document.getElementById('progressReportContent');
+        
+        container.innerHTML = `
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <h2 style="margin: 0 0 10px 0; font-size: 18px;">${equipment.equipment}</h2>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; font-size: 12px;">
+                    <div><strong>Vendor:</strong> ${equipment.vendor}</div>
+                    <div><strong>Priority:</strong> <span style="background: rgba(255,255,255,0.3); padding: 2px 8px; border-radius: 10px;">${equipment.priority}</span></div>
+                    <div><strong>Current Status:</strong> ${equipment.status}</div>
+                    <div><strong>Progress:</strong> ${equipment.progress}%</div>
+                    <div><strong>Contract:</strong> ${equipment.contract}</div>
+                    <div><strong>VISA:</strong> ${equipment.visa}</div>
+                </div>
+                <div style="margin-top: 15px; background: rgba(255,255,255,0.2); border-radius: 4px; height: 8px; overflow: hidden;">
+                    <div style="background: #27ae60; height: 100%; width: ${equipment.progress}%; transition: width 0.3s;"></div>
+                </div>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <h3 style="margin: 0 0 15px 0; font-size: 14px; color: #2c3e50;">Summary Statistics</h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center;">
+                    <div style="background: white; padding: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="font-size: 24px; font-weight: bold; color: #3498db;">${history.length}</div>
+                        <div style="font-size: 11px; color: #7f8c8d; margin-top: 5px;">Total Updates</div>
+                    </div>
+                    <div style="background: white; padding: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="font-size: 24px; font-weight: bold; color: #e74c3c;">${duration}</div>
+                        <div style="font-size: 11px; color: #7f8c8d; margin-top: 5px;">Days Duration</div>
+                    </div>
+                    <div style="background: white; padding: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="font-size: 24px; font-weight: bold; color: #27ae60;">${statusChanges.length}</div>
+                        <div style="font-size: 11px; color: #7f8c8d; margin-top: 5px;">Status Changes</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: white; border: 1px solid #ecf0f1; border-radius: 8px; padding: 20px;">
+                <h3 style="margin: 0 0 20px 0; font-size: 14px; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px;">Timeline & Changes</h3>
+                <div style="position: relative; padding-left: 30px;">
+                    <div style="position: absolute; left: 10px; top: 0; bottom: 0; width: 2px; background: #ecf0f1;"></div>
+                    ${sortedHistory.map((item, index) => `
+                        <div style="position: relative; margin-bottom: 20px;">
+                            <div style="position: absolute; left: -24px; top: 0; width: 12px; height: 12px; background: ${item.color}; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 0 2px ${item.color};"></div>
+                            <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; border-left: 3px solid ${item.color};">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <strong style="font-size: 11px; color: #2c3e50;">${new Date(item.timestamp).toLocaleString()}</strong>
+                                    <span style="font-size: 9px; background: ${item.color}; color: white; padding: 2px 8px; border-radius: 10px;">${item.category}</span>
+                                </div>
+                                <div style="font-size: 12px; font-weight: 600; color: #2c3e50; margin-bottom: 3px;">${item.title}</div>
+                                <div style="font-size: 11px; color: #666; margin-bottom: 5px;">${item.description}</div>
+                                <div style="font-size: 10px; color: #999; background: white; padding: 6px 8px; border-radius: 4px;">${item.icon} ${item.notes}</div>
+                                <div style="font-size: 9px; color: #95a5a6; margin-top: 5px;">by ${item.user}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    function exportProgressReportPDF() {
+        if (!currentEquipmentReport) return;
+
+        const { equipment, history } = currentEquipmentReport;
+        const sortedHistory = [...history].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        
+        const printWindow = window.open('', '_blank');
+        const currentDate = new Date().toLocaleString();
+        
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Progress Report - ${equipment.equipment}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; font-size: 11px; }
+                    .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
+                    .header h1 { margin: 0; font-size: 18px; color: #333; }
+                    .info-box { background: #f8f9fa; padding: 15px; margin-bottom: 20px; border-radius: 6px; }
+                    .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+                    .timeline-item { margin-bottom: 15px; padding-left: 20px; border-left: 3px solid #3498db; page-break-inside: avoid; }
+                    .timestamp { font-weight: bold; font-size: 10px; }
+                    .title { font-weight: bold; margin: 3px 0; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>Equipment Progress Report</h1>
+                    <p>${equipment.equipment}</p>
+                    <p style="font-size: 10px;">Generated on: ${currentDate}</p>
+                </div>
+                
+                <div class="info-box">
+                    <div class="info-grid">
+                        <div><strong>Vendor:</strong> ${equipment.vendor}</div>
+                        <div><strong>Priority:</strong> ${equipment.priority}</div>
+                        <div><strong>Status:</strong> ${equipment.status}</div>
+                        <div><strong>Progress:</strong> ${equipment.progress}%</div>
+                        <div><strong>Contract:</strong> ${equipment.contract}</div>
+                        <div><strong>VISA:</strong> ${equipment.visa}</div>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 30px;">Activity Timeline:</h3>
+                ${sortedHistory.map(item => `
+                    <div class="timeline-item">
+                        <div class="timestamp">${new Date(item.timestamp).toLocaleString()}</div>
+                        <div class="title">${item.title}</div>
+                        <div>${item.description}</div>
+                        <div style="font-size: 9px; color: #666; margin-top: 3px;">${item.notes} - by ${item.user}</div>
+                    </div>
+                `).join('')}
+
+                <div style="margin-top: 30px; padding-top: 15px; border-top: 2px solid #333; text-align: center;">
+                    <p style="margin: 0; font-size: 10px; font-weight: bold;">Developed by TS-KPB</p>
+                    <p style="margin: 5px 0 0 0; font-size: 8px; color: #999;">© 2025 All Rights Reserved</p>
+                </div>
+            </body>
+            </html>
+        `;
+        
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        printWindow.onload = function() {
+            printWindow.print();
+        };
+    }
+   
 
     // ===== EXPORT =====
     function exportToPDF() {
@@ -1839,6 +2052,9 @@ function deleteHistory(firebaseKey) {
         window.exportHistoryPDF = exportHistoryPDF;
         window.changeHistoryPage = changeHistoryPage;
         window.goToHistoryPage = goToHistoryPage;
+        window.showProgressReport = showProgressReport;
+        window.closeProgressReport = closeProgressReport;
+        window.exportProgressReportPDF = exportProgressReportPDF;
         window.exportToPDF = exportToPDF;
         window.closeModal = closeModal;
         window.filterByIssueType = filterByIssueType;
