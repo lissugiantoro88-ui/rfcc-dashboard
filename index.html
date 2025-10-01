@@ -849,6 +849,33 @@
         </div>
     </div>
 
+<div id="historyModal" class="modal">
+        <div class="modal-content" style="width: 900px; max-width: 95%;">
+            <div class="modal-header">
+                <h3 class="modal-title">Complete Activity History</h3>
+                <span class="close" onclick="closeHistoryModal()">&times;</span>
+            </div>
+            <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="historySearch" placeholder="Search history..." style="flex: 1; padding: 8px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 12px;">
+                <button onclick="selectAllHistory()" style="padding: 8px 12px; background: #95a5a6; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">Select All</button>
+                <button onclick="deleteSelectedHistory()" style="padding: 8px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">Delete Selected</button>
+                <button onclick="exportHistoryPDF()" style="padding: 8px 12px; background: #3498db; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">Export PDF</button>
+            </div>
+            <div id="fullHistoryContainer" style="max-height: 500px; overflow-y: auto; border: 1px solid #ecf0f1; border-radius: 4px; padding: 10px;">
+            </div>
+            <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                <div style="font-size: 12px; color: #7f8c8d;">
+                    Showing <span id="historyPageInfo">0</span> items
+                </div>
+                <div style="display: flex; gap: 5px;">
+                    <button onclick="changeHistoryPage(-1)" id="prevPageBtn" style="padding: 6px 12px; background: #34495e; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">Previous</button>
+                    <span id="pageNumbers" style="display: flex; gap: 5px; align-items: center; font-size: 12px; color: #2c3e50;"></span>
+                    <button onclick="changeHistoryPage(1)" id="nextPageBtn" style="padding: 6px 12px; background: #34495e; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -1011,7 +1038,7 @@ database.ref('onlineUsers').on('value', (snapshot) => {
         
         if (addItemBtn) addItemBtn.addEventListener('click', openAddModal);
         if (exportBtn) exportBtn.addEventListener('click', exportToPDF);
-        if (showHistoryBtn) showHistoryBtn.addEventListener('click', () => showNotification('Full history modal coming soon!', 'success'));
+        if (showHistoryBtn) showHistoryBtn.addEventListener('click', showFullHistory);
         if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
         if (saveButton) saveButton.addEventListener('click', saveUpdate);
 
@@ -1493,6 +1520,198 @@ function deleteHistory(firebaseKey) {
         }
     }
 
+ let currentHistoryPage = 1;
+    const itemsPerPage = 20;
+    let filteredHistoryData = [];
+    let selectedHistoryItems = new Set();
+
+    function showFullHistory() {
+        document.getElementById('historyModal').style.display = 'block';
+        currentHistoryPage = 1;
+        selectedHistoryItems.clear();
+        filteredHistoryData = [...activityHistory];
+        renderFullHistory();
+    }
+
+    function closeHistoryModal() {
+        document.getElementById('historyModal').style.display = 'none';
+    }
+
+    function renderFullHistory() {
+        const searchTerm = document.getElementById('historySearch').value.toLowerCase();
+        
+        filteredHistoryData = activityHistory.filter(item => {
+            return item.title.toLowerCase().includes(searchTerm) ||
+                   item.equipment.toLowerCase().includes(searchTerm) ||
+                   item.vendor.toLowerCase().includes(searchTerm) ||
+                   item.description.toLowerCase().includes(searchTerm);
+        });
+
+        const totalPages = Math.ceil(filteredHistoryData.length / itemsPerPage);
+        const startIndex = (currentHistoryPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const pageItems = filteredHistoryData.slice(startIndex, endIndex);
+
+        const container = document.getElementById('fullHistoryContainer');
+        
+        if (pageItems.length === 0) {
+            container.innerHTML = '<div style="padding: 40px; text-align: center; color: #95a5a6;">No history found</div>';
+        } else {
+            container.innerHTML = pageItems.map(item => `
+                <div style="border: 1px solid #ecf0f1; border-radius: 4px; padding: 12px; margin-bottom: 10px; background: ${selectedHistoryItems.has(item.firebaseKey) ? '#e8f4f8' : 'white'};">
+                    <div style="display: flex; align-items: start; gap: 10px;">
+                        <input type="checkbox" ${selectedHistoryItems.has(item.firebaseKey) ? 'checked' : ''} onchange="toggleHistorySelection('${item.firebaseKey}')" style="margin-top: 3px; cursor: pointer;">
+                        <div style="flex: 1;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                <strong style="font-size: 11px; color: #2c3e50;">${new Date(item.timestamp).toLocaleString()}</strong>
+                                <span style="font-size: 9px; background: ${item.color}; color: white; padding: 2px 8px; border-radius: 10px;">${item.category}</span>
+                            </div>
+                            <div style="font-size: 12px; font-weight: 600; margin-bottom: 3px;">${item.title}</div>
+                            <div style="font-size: 11px; color: #666; margin-bottom: 3px;">${item.description}</div>
+                            <div style="font-size: 10px; color: #999; background: #f8f9fa; padding: 4px 8px; border-radius: 3px; display: inline-block;">${item.icon} ${item.notes}</div>
+                            <div style="font-size: 9px; color: #95a5a6; margin-top: 5px;">by ${item.user}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('historyPageInfo').textContent = `${startIndex + 1}-${Math.min(endIndex, filteredHistoryData.length)} of ${filteredHistoryData.length}`;
+        
+        document.getElementById('prevPageBtn').disabled = currentHistoryPage === 1;
+        document.getElementById('nextPageBtn').disabled = currentHistoryPage === totalPages || totalPages === 0;
+
+        renderPageNumbers(totalPages);
+    }
+
+    function renderPageNumbers(totalPages) {
+        const pageNumbersDiv = document.getElementById('pageNumbers');
+        let html = '';
+        
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || (i >= currentHistoryPage - 2 && i <= currentHistoryPage + 2)) {
+                html += `<button onclick="goToHistoryPage(${i})" style="padding: 6px 10px; background: ${i === currentHistoryPage ? '#3498db' : '#ecf0f1'}; color: ${i === currentHistoryPage ? 'white' : '#2c3e50'}; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; min-width: 30px;">${i}</button>`;
+            } else if (i === currentHistoryPage - 3 || i === currentHistoryPage + 3) {
+                html += '<span style="padding: 0 5px;">...</span>';
+            }
+        }
+        
+        pageNumbersDiv.innerHTML = html;
+    }
+
+    function changeHistoryPage(direction) {
+        const totalPages = Math.ceil(filteredHistoryData.length / itemsPerPage);
+        const newPage = currentHistoryPage + direction;
+        
+        if (newPage >= 1 && newPage <= totalPages) {
+            currentHistoryPage = newPage;
+            renderFullHistory();
+        }
+    }
+
+    function goToHistoryPage(page) {
+        currentHistoryPage = page;
+        renderFullHistory();
+    }
+
+    function toggleHistorySelection(firebaseKey) {
+        if (selectedHistoryItems.has(firebaseKey)) {
+            selectedHistoryItems.delete(firebaseKey);
+        } else {
+            selectedHistoryItems.add(firebaseKey);
+        }
+        renderFullHistory();
+    }
+
+    function selectAllHistory() {
+        const pageItems = filteredHistoryData.slice((currentHistoryPage - 1) * itemsPerPage, currentHistoryPage * itemsPerPage);
+        pageItems.forEach(item => selectedHistoryItems.add(item.firebaseKey));
+        renderFullHistory();
+    }
+
+    function deleteSelectedHistory() {
+        if (selectedHistoryItems.size === 0) {
+            showNotification('No items selected', 'error');
+            return;
+        }
+
+        if (confirm(`Delete ${selectedHistoryItems.size} selected history items?`)) {
+            const promises = Array.from(selectedHistoryItems).map(key => 
+                activityHistoryRef.child(key).remove()
+            );
+
+            Promise.all(promises).then(() => {
+                showNotification(`${selectedHistoryItems.size} items deleted`, 'success');
+                selectedHistoryItems.clear();
+                renderFullHistory();
+            }).catch((error) => {
+                showNotification('Error deleting items: ' + error.message, 'error');
+            });
+        }
+    }
+
+    function exportHistoryPDF() {
+        const printWindow = window.open('', '_blank');
+        const currentDate = new Date().toLocaleString();
+        
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Activity History Report</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; font-size: 11px; }
+                    .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
+                    .header h1 { margin: 0; font-size: 20px; color: #333; }
+                    .history-item { border: 1px solid #ddd; padding: 12px; margin-bottom: 10px; page-break-inside: avoid; }
+                    .timestamp { font-weight: bold; color: #2c3e50; font-size: 10px; }
+                    .category { background: #3498db; color: white; padding: 2px 8px; border-radius: 10px; font-size: 9px; display: inline-block; }
+                    .title { font-weight: bold; margin: 5px 0; font-size: 12px; }
+                    .description { color: #666; margin: 3px 0; }
+                    .notes { background: #f8f9fa; padding: 4px 8px; margin: 5px 0; border-radius: 3px; font-size: 10px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>Activity History Report</h1>
+                    <p>Generated on: ${currentDate}</p>
+                    <p>Total Records: ${filteredHistoryData.length}</p>
+                </div>
+                ${filteredHistoryData.map(item => `
+                    <div class="history-item">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span class="timestamp">${new Date(item.timestamp).toLocaleString()}</span>
+                            <span class="category">${item.category}</span>
+                        </div>
+                        <div class="title">${item.title}</div>
+                        <div class="description">${item.description}</div>
+                        <div class="notes">${item.icon} ${item.notes}</div>
+                        <div style="font-size: 9px; color: #999; margin-top: 5px;">by ${item.user}</div>
+                    </div>
+                `).join('')}
+                <div style="margin-top: 20px; padding-top: 15px; border-top: 2px solid #333; text-align: center;">
+                    <p style="margin: 0; font-size: 10px; font-weight: bold;">Developed by TS-KPB</p>
+                    <p style="margin: 5px 0 0 0; font-size: 8px; color: #999;">© 2025 All Rights Reserved</p>
+                </div>
+            </body>
+            </html>
+        `;
+        
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        printWindow.onload = function() {
+            printWindow.print();
+        };
+    }
+
+    // Search history on input
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('historySearch');
+        if (searchInput) {
+            searchInput.addEventListener('keyup', renderFullHistory);
+        }
+    });
+
     // ===== EXPORT =====
     function exportToPDF() {
         const printWindow = window.open('', '_blank');
@@ -1613,6 +1832,13 @@ function deleteHistory(firebaseKey) {
         window.openUpdateModal = openUpdateModal;
         window.deleteItem = deleteItem;
 	window.deleteHistory = deleteHistory;
+        window.closeHistoryModal = closeHistoryModal;
+        window.toggleHistorySelection = toggleHistorySelection;
+        window.selectAllHistory = selectAllHistory;
+        window.deleteSelectedHistory = deleteSelectedHistory;
+        window.exportHistoryPDF = exportHistoryPDF;
+        window.changeHistoryPage = changeHistoryPage;
+        window.goToHistoryPage = goToHistoryPage;
         window.exportToPDF = exportToPDF;
         window.closeModal = closeModal;
         window.filterByIssueType = filterByIssueType;
