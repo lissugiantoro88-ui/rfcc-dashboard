@@ -723,22 +723,14 @@
                 </div>
 
                 <div class="sidebar-section">
-                    <h3 class="sidebar-title">Upcoming Mobilizations</h3>
-                    <div class="timeline-item">
-                        <strong>Sep 30, 2025</strong><br>
-                        Payment target for multiple vendors
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 class="sidebar-title" style="margin-bottom: 0;">Upcoming Mobilizations</h3>
+                        <span id="upcomingCount" style="background: #3498db; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">0</span>
                     </div>
-                    <div class="timeline-item">
-                        <strong>Oct 1, 2025</strong><br>
-                        Baker Hughes STD Compressor mobilization
-                    </div>
-                    <div class="timeline-item">
-                        <strong>Oct 6, 2025</strong><br>
-                        EETC-RSA UPS SAT
-                    </div>
-                    <div class="timeline-item">
-                        <strong>Oct 7, 2025</strong><br>
-                        BELCO Flue Gas Scrubber mobilization
+                    <div id="upcomingContainer" style="max-height: 400px; overflow-y: auto;">
+                        <div style="padding: 20px; text-align: center; color: #95a5a6; font-size: 11px;">
+                            Loading upcoming mobilizations...
+                        </div>
                     </div>
                 </div>
 
@@ -1246,6 +1238,9 @@ database.ref('onlineUsers').on('value', (snapshot) => {
             `;
             tableBody.appendChild(row);
         });
+
+	// Update upcoming mobilizations
+    	updateUpcomingMobilizations();
     }
 
     function getStatusClass(status) {
@@ -1306,6 +1301,86 @@ database.ref('onlineUsers').on('value', (snapshot) => {
         document.getElementById('criticalContract').textContent = contractIssues;
         document.getElementById('criticalVisa').textContent = visaProcessing;
         document.getElementById('criticalPayment').textContent = paymentIssues;
+        document.getElementById('criticalContract').textContent = contractIssues;
+        document.getElementById('criticalVisa').textContent = visaProcessing;
+        document.getElementById('criticalPayment').textContent = paymentIssues;
+
+	// Update upcoming mobilizations
+        updateUpcomingMobilizations();
+    }
+
+// ===== UPCOMING MOBILIZATIONS =====
+    function updateUpcomingMobilizations() {
+        const container = document.getElementById('upcomingContainer');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Filter items dengan target date dalam 30 hari ke depan
+        const upcomingItems = projectData.filter(item => {
+            if (!item.targetDate) return false;
+            const targetDate = new Date(item.targetDate);
+            const daysUntil = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
+            return daysUntil >= 0 && daysUntil <= 30;
+        }).sort((a, b) => {
+            return new Date(a.targetDate) - new Date(b.targetDate);
+        });
+
+        document.getElementById('upcomingCount').textContent = upcomingItems.length;
+
+        if (upcomingItems.length === 0) {
+            container.innerHTML = '<div style="padding: 20px; text-align: center; color: #95a5a6; font-size: 11px;">No upcoming mobilizations in next 30 days</div>';
+            return;
+        }
+
+        container.innerHTML = upcomingItems.map(item => {
+            const targetDate = new Date(item.targetDate);
+            const daysUntil = Math.ceil((targetDate - targetDate.setHours(0,0,0,0) - today) / (1000 * 60 * 60 * 24));
+            
+            // Determine urgency
+            let urgencyColor, urgencyText, urgencyIcon;
+            if (daysUntil <= 2) {
+                urgencyColor = '#e74c3c';
+                urgencyText = 'URGENT';
+                urgencyIcon = '🔴';
+            } else if (daysUntil <= 7) {
+                urgencyColor = '#f39c12';
+                urgencyText = 'HIGH';
+                urgencyIcon = '🟡';
+            } else {
+                urgencyColor = '#27ae60';
+                urgencyText = 'NORMAL';
+                urgencyIcon = '🟢';
+            }
+
+            // Get blockers
+            let blockers = [];
+            if (item.status.includes('Payment Issue') || item.contract === 'Waiting AP') {
+                blockers.push('Payment pending');
+            }
+            if (item.status.includes('Contract Issue') || item.contract === 'Quotation') {
+                blockers.push('Contract pending');
+            }
+            if (item.status.includes('VISA Processing') || item.visa === 'Processing') {
+                blockers.push('VISA processing');
+            }
+
+            const blockerText = blockers.length > 0 ? `⚠️ ${blockers.join(', ')}` : '✓ All Clear - Ready to mobilize';
+            const blockerColor = blockers.length > 0 ? '#e74c3c' : '#27ae60';
+
+            return `
+                <div style="border: 2px solid ${urgencyColor}; border-radius: 6px; padding: 10px; margin-bottom: 10px; background: white;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <span style="font-size: 9px; background: ${urgencyColor}; color: white; padding: 2px 6px; border-radius: 3px; font-weight: 600;">${urgencyIcon} ${urgencyText}</span>
+                        <span style="font-size: 10px; color: #7f8c8d; font-weight: 600;">${daysUntil} day${daysUntil !== 1 ? 's' : ''} left</span>
+                    </div>
+                    <div style="font-size: 11px; font-weight: 600; color: #2c3e50; margin-bottom: 3px;">${formatDateForDisplay(item.targetDate)}</div>
+                    <div style="font-size: 10px; color: #34495e; margin-bottom: 5px;">${item.equipment}</div>
+                    <div style="font-size: 10px; color: #7f8c8d; margin-bottom: 5px;"><strong>${item.vendor}</strong></div>
+                    <div style="font-size: 9px; color: ${blockerColor}; background: ${blockers.length > 0 ? '#fff3cd' : '#d4edda'}; padding: 4px 6px; border-radius: 3px;">${blockerText}</div>
+                    <button onclick="openUpdateModal('${item.firebaseKey}')" style="width: 100%; margin-top: 6px; padding: 4px; background: #3498db; color: white; border: none; border-radius: 3px; font-size: 9px; cursor: pointer; font-weight: 600;">Quick Update</button>
+                </div>
+            `;
+        }).join('');
     }
 
     // ===== HISTORY =====
