@@ -623,9 +623,10 @@
                     <h3 class="sidebar-title">Recent Updates</h3>
                     <div style="margin-bottom: 10px;">
                         <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 5px; color: #2c3e50;">Filter by Equipment:</label>
-                        <select id="equipmentHistoryFilter" style="width: 100%; padding: 6px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 11px;" onchange="filterEquipmentHistory()">
-                            <option value="all">All Equipment</option>
-                        </select>
+<input type="text" id="equipmentSearch" placeholder="Search equipment..." style="width: 100%; padding: 6px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 11px; margin-bottom: 5px;" oninput="searchEquipment()">
+<select id="equipmentHistoryFilter" size="5" style="width: 100%; padding: 6px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 11px; max-height: 150px; overflow-y: auto;" onchange="filterEquipmentHistory()">
+    <option value="all">All Equipment</option>
+</select>
                         <button id="viewProgressReportBtn" onclick="showProgressReport()" style="width: 100%; margin-top: 8px; padding: 8px; background: #3498db; color: white; border: none; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; display: none;">
                             View Progress Report
                         </button>
@@ -1359,8 +1360,9 @@ const daysUntil = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
 
     // ===== HISTORY =====
     function populateEquipmentHistoryFilter() {
-        const filterSelect = document.getElementById('equipmentHistoryFilter');
-        const currentValue = filterSelect.value;
+         const filterSelect = document.getElementById('equipmentHistoryFilter');
+    const searchInput = document.getElementById('equipmentSearch');
+    const currentValue = filterSelect.value;
         
         filterSelect.innerHTML = '<option value="all">All Equipment</option>';
         
@@ -1382,11 +1384,49 @@ const daysUntil = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
             const option = document.createElement('option');
             option.value = eq.id;
             option.textContent = `${eq.name} (${eq.vendor})`;
+	option.setAttribute('data-equipment', eq.name.toLowerCase());
+        option.setAttribute('data-vendor', eq.vendor.toLowerCase());
             filterSelect.appendChild(option);
         });
         
         filterSelect.value = currentValue;
+if (searchInput) {
+        searchInput.value = '';
     }
+    }
+
+// NEW FUNCTION: Search Equipment
+function searchEquipment() {
+    const searchInput = document.getElementById('equipmentSearch');
+    const filterSelect = document.getElementById('equipmentHistoryFilter');
+    const searchTerm = searchInput.value.toLowerCase();
+    
+    const options = filterSelect.querySelectorAll('option');
+    
+    options.forEach(option => {
+        if (option.value === 'all') {
+            option.style.display = ''; // Always show "All Equipment"
+            return;
+        }
+        
+        const searchableText = option.getAttribute('data-searchable') || option.textContent.toLowerCase();
+        
+        if (searchableText.includes(searchTerm)) {
+            option.style.display = '';
+        } else {
+            option.style.display = 'none';
+        }
+    });
+    
+    // Auto-select first visible option if search is active
+    if (searchTerm) {
+        const firstVisible = Array.from(options).find(opt => opt.style.display !== 'none' && opt.value !== 'all');
+        if (firstVisible) {
+            filterSelect.value = firstVisible.value;
+            filterEquipmentHistory();
+        }
+    }
+}
 
     function filterEquipmentHistory() {
         const filterValue = document.getElementById('equipmentHistoryFilter').value;
