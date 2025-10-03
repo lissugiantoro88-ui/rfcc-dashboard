@@ -1296,7 +1296,14 @@ function updateTablePagination(totalItems, totalPages) {
 
     // ===== STATISTICS =====
     function updateStats() {
-        let filteredData = currentFilter === 'all' ? projectData : projectData.filter(item => item.priority === currentFilter);
+    let filteredData;
+    if (currentFilter === 'highlighted') {
+        filteredData = projectData.filter(item => item.highlighted);
+    } else if (currentFilter === 'all') {
+        filteredData = projectData;
+    } else {
+        filteredData = projectData.filter(item => item.priority === currentFilter);
+    }
 
         const total = filteredData.length;
         const belumOnsite = filteredData.filter(item => !item.status.includes('Completed') && !item.status.includes('Onsite')).length;
