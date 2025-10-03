@@ -300,6 +300,40 @@
     .priority-3rd { background: #198754; }
     .priority-OSBL { background: #0d6efd; }
 
+.data-table tr.highlighted {
+    background: linear-gradient(90deg, #fff5f5 0%, #ffffff 100%) !important;
+    border-left: 4px solid #e74c3c !important;
+    position: relative;
+}
+
+.data-table tr.highlighted::before {
+    content: "⚠️";
+    position: absolute;
+    left: -18px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    animation: warningPulse 2s ease-in-out infinite;
+}
+
+@keyframes warningPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.warning-badge {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: white;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 9px;
+    font-weight: 700;
+    display: inline-block;
+    margin-left: 5px;
+    box-shadow: 0 2px 4px rgba(231, 76, 60, 0.3);
+    text-transform: uppercase;
+}
+
     .sidebar {
         display: flex;
         flex-direction: column;
@@ -537,6 +571,7 @@
                         <button class="filter-btn" data-filter="2nd">2nd</button>
                         <button class="filter-btn" data-filter="3rd">3rd</button>
                         <button class="filter-btn" data-filter="OSBL">OSBL</button>
+<button class="filter-btn" data-filter="highlighted" style="background: #e74c3c; color: white; border-color: #e74c3c;">⚠️ Critical</button>
                     </div>
                 </div>
 
@@ -751,6 +786,16 @@
                     <label class="form-label">Progress (%):</label>
                     <input type="number" id="modalProgress" class="form-control" min="0" max="100">
                 </div>
+<div class="form-group">
+    <label class="form-label">
+        <input type="checkbox" id="modalHighlight" style="margin-right: 8px; width: auto; cursor: pointer;">
+        <span style="color: #e74c3c; font-weight: 700;">⚠️ Mark as Critical/Priority Item</span>
+    </label>
+    <small style="display: block; margin-top: 5px; color: #7f8c8d; font-size: 12px;">
+        This item will be highlighted with a warning indicator
+    </small>
+</div>
+
                 <div class="form-group">
                     <label class="form-label">Notes:</label>
                     <textarea id="modalNotes" class="form-control" rows="3" placeholder="Add notes about this task..."></textarea>
@@ -1129,7 +1174,14 @@ database.ref('onlineUsers').on('value', (snapshot) => {
         const tableBody = document.getElementById('tableBody');
         tableBody.innerHTML = '';
 
-        let filteredData = currentFilter === 'all' ? projectData : projectData.filter(item => item.priority === currentFilter);
+let filteredData;
+if (currentFilter === 'highlighted') {
+    filteredData = projectData.filter(item => item.highlighted);
+} else if (currentFilter === 'all') {
+    filteredData = projectData;
+} else {
+    filteredData = projectData.filter(item => item.priority === currentFilter);
+}
 
         // Calculate pagination
         const totalPages = Math.ceil(filteredData.length / itemsPerTablePage);
@@ -1140,11 +1192,18 @@ database.ref('onlineUsers').on('value', (snapshot) => {
         pageData.forEach(item => {
             const dateStatus = getDateStatus(item.targetDate, item.mobDate);
             const row = document.createElement('tr');
-            row.className = `priority-${item.priority}`;
-            row.innerHTML = `
-                <td>${item.no}</td>
+
+// Add highlight class if item is highlighted
+let rowClasses = `priority-${item.priority}`;
+if (item.highlighted) {
+    rowClasses += ' highlighted';
+}
+row.className = rowClasses;
+
+row.innerHTML = `
+    <td>${item.no}${item.highlighted ? '<span class="warning-badge">⚠ Critical</span>' : ''}</td>
                 <td><span class="priority-badge priority-${item.priority}">${item.priority}</span></td>
-                <td style="font-weight: 500; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.equipment}">${item.equipment}</td>
+                <td style="font-weight: ${item.highlighted ? '700' : '500'}; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.equipment}">${item.equipment}</td>
                 <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.vendor}"><strong>${item.vendor}</strong></td>
                 <td><span class="status-badge">${item.task}</span></td>
                 <td><span class="status-badge ${getStatusClass(item.status)}">${item.status}</span></td>
@@ -1493,6 +1552,7 @@ function searchEquipment() {
         document.getElementById('modalTargetDate').value = item.targetDate || '';
         document.getElementById('modalMobDate').value = formatDateForInput(item.mobDate);
         document.getElementById('modalProgress').value = item.progress;
+document.getElementById('modalHighlight').checked = item.highlighted || false;
         document.getElementById('modalNotes').value = '';
         document.getElementById('updateModal').style.display = 'block';
     }
@@ -1508,6 +1568,7 @@ function searchEquipment() {
         document.getElementById('modalTargetDate').value = '';
         document.getElementById('modalMobDate').value = '';
         document.getElementById('modalProgress').value = '0';
+document.getElementById('modalHighlight').checked = false;
         document.getElementById('modalNotes').value = '';
     }
 
@@ -1539,7 +1600,8 @@ function searchEquipment() {
             visa: document.getElementById('modalVisa').value,
             targetDate: document.getElementById('modalTargetDate').value,
             mobDate: mobDateFormatted,
-            progress: parseInt(document.getElementById('modalProgress').value) || 0
+            progress: parseInt(document.getElementById('modalProgress').value) || 0,
+highlighted: document.getElementById('modalHighlight').checked
         };
 
         if (currentEditId) {
