@@ -301,20 +301,12 @@
     .priority-OSBL { background: #0d6efd; }
 
 .data-table tr.highlighted {
-    background: linear-gradient(90deg, #fff5f5 0%, #ffffff 100%) !important;
-    border-left: 4px solid #e74c3c !important;
+    background: linear-gradient(90deg, #ffe5e5 0%, #fff8f8 100%) !important;
+    border-left: 5px solid #dc3545 !important;
     position: relative;
+    box-shadow: inset 0 0 0 1px rgba(220, 53, 69, 0.1);
 }
 
-.data-table tr.highlighted::before {
-    content: "⚠️";
-    position: absolute;
-    left: -18px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 18px;
-    animation: warningPulse 2s ease-in-out infinite;
-}
 
 @keyframes warningPulse {
     0%, 100% { opacity: 1; }
@@ -324,14 +316,16 @@
 .warning-badge {
     background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
     color: white;
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 9px;
+    padding: 3px 7px;
+    border-radius: 10px;
+    font-size: 10px;
     font-weight: 700;
     display: inline-block;
-    margin-left: 5px;
-    box-shadow: 0 2px 4px rgba(231, 76, 60, 0.3);
+    margin-right: 5px;
+    box-shadow: 0 2px 6px rgba(231, 76, 60, 0.5);
     text-transform: uppercase;
+    vertical-align: middle;
+    white-space: nowrap;
 }
 
     .sidebar {
@@ -1203,7 +1197,9 @@ row.className = rowClasses;
 row.innerHTML = `
     <td>${item.no}</td>
 <td><span class="priority-badge priority-${item.priority}">${item.priority}</span></td>
-<td style="font-weight: ${item.highlighted ? '700' : '500'}; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.equipment}">${item.highlighted ? '<span class="warning-badge">⚠</span> ' : ''}${item.equipment}</td>
+<td style="font-weight: ${item.highlighted ? '700' : '500'}; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 8px;" title="${item.equipment}">
+    ${item.highlighted ? '<span class="warning-badge">⚠</span>' : ''}${item.equipment}
+</td>
                 <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.vendor}"><strong>${item.vendor}</strong></td>
                 <td><span class="status-badge">${item.task}</span></td>
                 <td><span class="status-badge ${getStatusClass(item.status)}">${item.status}</span></td>
