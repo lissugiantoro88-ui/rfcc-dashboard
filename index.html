@@ -1201,9 +1201,9 @@ if (item.highlighted) {
 row.className = rowClasses;
 
 row.innerHTML = `
-    <td>${item.no}${item.highlighted ? '<span class="warning-badge">⚠ Critical</span>' : ''}</td>
-                <td><span class="priority-badge priority-${item.priority}">${item.priority}</span></td>
-                <td style="font-weight: ${item.highlighted ? '700' : '500'}; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.equipment}">${item.equipment}</td>
+    <td>${item.no}</td>
+<td><span class="priority-badge priority-${item.priority}">${item.priority}</span></td>
+<td style="font-weight: ${item.highlighted ? '700' : '500'}; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.equipment}">${item.highlighted ? '<span class="warning-badge">⚠</span> ' : ''}${item.equipment}</td>
                 <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.vendor}"><strong>${item.vendor}</strong></td>
                 <td><span class="status-badge">${item.task}</span></td>
                 <td><span class="status-badge ${getStatusClass(item.status)}">${item.status}</span></td>
