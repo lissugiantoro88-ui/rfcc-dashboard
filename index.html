@@ -1525,7 +1525,7 @@ function searchEquipment() {
             </div>
             <div style="font-size: 11px; font-weight: 500; margin-bottom: 2px;">${item.title}</div>
             <div style="font-size: 10px; color: #666; margin-bottom: 3px;">${item.description}</div>
-            <div style="font-size: 9px; color: #999; background: #f8f9fa; padding: 3px 6px; border-radius: 3px;">${item.icon} ${item.notes}</div>
+            <div style="font-size: 9px; color: #999; background: #f8f9fa; padding: 3px 6px; border-radius: 3px; word-wrap: break-word; white-space: normal; line-height: 1.4;">${item.icon} ${item.notes}</div>
             <div style="font-size: 8px; color: #95a5a6; margin-top: 3px;">by ${item.user}</div>
         </div>
     `).join('');
@@ -1771,7 +1771,7 @@ function deleteHistory(firebaseKey) {
                             </div>
                             <div style="font-size: 12px; font-weight: 600; margin-bottom: 3px;">${item.title}</div>
                             <div style="font-size: 11px; color: #666; margin-bottom: 3px;">${item.description}</div>
-                            <div style="font-size: 10px; color: #999; background: #f8f9fa; padding: 4px 8px; border-radius: 3px; display: inline-block;">${item.icon} ${item.notes}</div>
+                            <div style="font-size: 10px; color: #999; background: #f8f9fa; padding: 4px 8px; border-radius: 3px; word-wrap: break-word; white-space: normal; line-height: 1.4; max-width: 100%;">${item.icon} ${item.notes}</div>
                             <div style="font-size: 9px; color: #95a5a6; margin-top: 5px;">by ${item.user}</div>
                         </div>
                     </div>
@@ -1871,7 +1871,7 @@ function deleteHistory(firebaseKey) {
                     .category { background: #3498db; color: white; padding: 2px 8px; border-radius: 10px; font-size: 9px; display: inline-block; }
                     .title { font-weight: bold; margin: 5px 0; font-size: 12px; }
                     .description { color: #666; margin: 3px 0; }
-                    .notes { background: #f8f9fa; padding: 4px 8px; margin: 5px 0; border-radius: 3px; font-size: 10px; }
+                    .notes { background: #f8f9fa; padding: 4px 8px; margin: 5px 0; border-radius: 3px; font-size: 10px; word-wrap: break-word; white-space: normal; line-height: 1.5; }
                 </style>
             </head>
             <body>
@@ -2018,7 +2018,7 @@ function deleteHistory(firebaseKey) {
                                 </div>
                                 <div style="font-size: 12px; font-weight: 600; color: #2c3e50; margin-bottom: 3px;">${item.title}</div>
                                 <div style="font-size: 11px; color: #666; margin-bottom: 5px;">${item.description}</div>
-                                <div style="font-size: 10px; color: #999; background: white; padding: 6px 8px; border-radius: 4px;">${item.icon} ${item.notes}</div>
+                                <div style="font-size: 10px; color: #999; background: white; padding: 6px 8px; border-radius: 4px; word-wrap: break-word; white-space: normal; line-height: 1.5;">${item.icon} ${item.notes}</div>
                                 <div style="font-size: 9px; color: #95a5a6; margin-top: 5px;">by ${item.user}</div>
                             </div>
                         </div>
