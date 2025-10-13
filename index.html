@@ -554,15 +554,17 @@
     </div>
 
     <div class="dashboard-container">
-        <div class="header">
-    <h1>RFCC VENDOR MOBILIZATION TRACKING</h1>
-    <div style="display: flex; justify-content: center; align-items: center; position: relative;">
-        <div class="subtitle">Real-time Multi-User Dashboard</div>
-        <div style="position: absolute; right: 20px; font-size: 12px; background: rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 20px;">
-            👥 Online Users: <span id="onlineCount" style="font-weight: bold;">0</span>
+      <div class="header">
+            <h1>RFCC VENDOR MOBILIZATION & PROGRESS TRACKING</h1>
+            <div style="display: flex; justify-content: center; align-items: center; position: relative;">
+                <div class="subtitle" style="font-size: 13px; opacity: 0.85;">
+                    📅 Updated: <span id="currentDate"></span>
+                </div>
+                <div style="position: absolute; right: 20px; font-size: 11px; background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 15px;">
+                    👥 <span id="onlineCount" style="font-weight: bold;">0</span> online
+                </div>
+            </div>
         </div>
-    </div>
-</div>
 
         <div class="stats-overview">
             <div class="stats-grid">
@@ -862,6 +864,22 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <script>
+// Update current date automatically
+        function updateCurrentDate() {
+            const options = { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric'
+            };
+            const currentDate = new Date().toLocaleDateString('en-US', options);
+            const dateElement = document.getElementById('currentDate');
+            if (dateElement) {
+                dateElement.textContent = currentDate;
+            }
+        }
+        
+        // Run on page load
+        updateCurrentDate();
         // ===== FIREBASE CONFIGURATION =====
         // IMPORTANT: Replace with your own Firebase config
         const firebaseConfig = {
@@ -1326,9 +1344,10 @@ row.innerHTML = `
                     <small style="font-size: 8px; margin-left: 3px;">${item.progress}%</small>
                 </td>
                 <td style="white-space: nowrap; text-align: center;">
-                    <button class="action-btn primary" onclick="openUpdateModal('${item.firebaseKey}')" style="font-size: 9px; padding: 4px 8px;">Update</button>
-                    <button class="btn-delete" onclick="deleteItem('${item.firebaseKey}')" title="Delete" style="font-size: 12px; padding: 4px 7px; line-height: 1;">🗑</button>
-                </td>
+    <button class="action-btn primary" onclick="openUpdateModal('${item.firebaseKey}')" style="font-size: 9px; padding: 4px 8px;">Update</button>
+    <button class="action-btn success" onclick="showProgressReportById('${item.firebaseKey}')" title="View Progress Report" style="background: #27ae60; font-size: 9px; padding: 4px 8px; margin-left: 3px;">📊 Progress</button>
+    <button class="btn-delete" onclick="deleteItem('${item.firebaseKey}')" title="Delete" style="font-size: 12px; padding: 4px 7px; line-height: 1; margin-left: 3px;">🗑️</button>
+</td>
             `;
             tableBody.appendChild(row);
         });
@@ -2062,6 +2081,32 @@ function deleteHistory(firebaseKey) {
         document.getElementById('progressReportModal').style.display = 'block';
     }
 
+// NEW FUNCTION: Show Progress Report by Firebase Key (from table button)
+function showProgressReportById(firebaseKey) {
+    const item = projectData.find(p => p.firebaseKey === firebaseKey);
+    
+    if (!item) {
+        showNotification('Equipment not found', 'error');
+        return;
+    }
+
+    const equipmentId = item.id;
+    const equipmentHistory = activityHistory.filter(h => h.equipmentId === equipmentId);
+    
+    if (equipmentHistory.length === 0) {
+        showNotification('No history found for this equipment', 'error');
+        return;
+    }
+
+    currentEquipmentReport = {
+        equipment: item,
+        history: equipmentHistory
+    };
+
+    renderProgressReport();
+    document.getElementById('progressReportModal').style.display = 'block';
+}
+
     function closeProgressReport() {
         document.getElementById('progressReportModal').style.display = 'none';
     }
@@ -2353,6 +2398,7 @@ window.clearAllFilters = clearAllFilters;
         window.changeHistoryPage = changeHistoryPage;
         window.goToHistoryPage = goToHistoryPage;
         window.showProgressReport = showProgressReport;
+window.showProgressReportById = showProgressReportById;
         window.closeProgressReport = closeProgressReport;
         window.exportProgressReportPDF = exportProgressReportPDF;
         window.exportToPDF = exportToPDF;
