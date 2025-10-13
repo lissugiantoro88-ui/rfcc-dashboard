@@ -2048,9 +2048,23 @@ function deleteHistory(firebaseKey) {
                     .header h1 { margin: 0; font-size: 18px; color: #333; }
                     .info-box { background: #f8f9fa; padding: 15px; margin-bottom: 20px; border-radius: 6px; }
                     .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-                    .timeline-item { margin-bottom: 15px; padding-left: 20px; border-left: 3px solid #3498db; page-break-inside: avoid; }
-                    .timestamp { font-weight: bold; font-size: 10px; }
-                    .title { font-weight: bold; margin: 3px 0; }
+                    .timeline-item { margin-bottom: 20px; padding: 12px; padding-left: 20px; border-left: 3px solid #3498db; page-break-inside: avoid; background: #f8f9fa; }
+                    .timestamp { font-weight: bold; font-size: 10px; margin-bottom: 5px; }
+                    .title { font-weight: bold; margin: 5px 0; font-size: 11px; }
+                    .description { margin: 5px 0; font-size: 10px; color: #666; }
+                    .notes { 
+                        background: white; 
+                        padding: 8px 10px; 
+                        margin: 8px 0; 
+                        border-radius: 4px; 
+                        font-size: 10px; 
+                        color: #666; 
+                        white-space: pre-wrap;
+                        word-wrap: break-word;
+                        line-height: 1.6;
+                        border: 1px solid #e0e0e0;
+                    }
+                    .user-info { font-size: 9px; color: #999; margin-top: 5px; }
                 </style>
             </head>
             <body>
@@ -2075,9 +2089,10 @@ function deleteHistory(firebaseKey) {
                 ${sortedHistory.map(item => `
                     <div class="timeline-item">
                         <div class="timestamp">${new Date(item.timestamp).toLocaleString()}</div>
-                        <div class="title">${item.title}</div>
-                        <div>${item.description}</div>
-                        <div style="font-size: 9px; color: #666; margin-top: 3px;">${item.notes} - by ${item.user}</div>
+                        <div class="title">${item.icon} ${item.title}</div>
+                        <div class="description">${item.description}</div>
+                        <div class="notes">${item.notes}</div>
+                        <div class="user-info">by ${item.user}</div>
                     </div>
                 `).join('')}
 
