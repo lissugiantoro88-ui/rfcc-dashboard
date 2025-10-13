@@ -74,7 +74,17 @@
     .stat-card:hover {
         transform: translateY(-2px);
     }
+.stat-card:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
 
+.stat-breakdown div:hover {
+    background: rgba(52, 152, 219, 0.1);
+    padding: 2px 4px;
+    border-radius: 3px;
+    margin: -2px -4px;
+}
     .stat-card.total { border-top-color: #3498db; }
     .stat-card.belum-onsite { border-top-color: #e74c3c; }
     .stat-card.sudah-onsite { border-top-color: #27ae60; }
@@ -556,9 +566,9 @@
 
         <div class="stats-overview">
             <div class="stats-grid">
-                <div class="stat-card total">
-                    <div class="stat-number" id="totalCount">0</div>
-                    <div class="stat-label">Total Items</div>
+                <div class="stat-card total" onclick="filterByStatus('all')" style="cursor: pointer;">
+    <div class="stat-number" id="totalCount">0</div>
+    <div class="stat-label">Total Items</div>
                     <div class="filter-controls">
                         <button class="filter-btn active" data-filter="all">All</button>
                         <button class="filter-btn" data-filter="1st">1st</button>
@@ -569,32 +579,32 @@
                     </div>
                 </div>
 
-                <div class="stat-card belum-onsite">
-                    <div class="stat-number" id="belumOnsiteCount">0</div>
-                    <div class="stat-label">Not Onsite</div>
-                    <div class="stat-breakdown">
-                        <div style="cursor: pointer;" onclick="filterByIssueType('contract')">
-                            Contract Issues: <span id="contractIssueCount">0</span>
-                        </div>
-                        <div style="cursor: pointer;" onclick="filterByIssueType('payment')">
-                            Payment Issues: <span id="paymentIssueCount">0</span>
-                        </div>
-                        <div style="cursor: pointer;" onclick="filterByIssueType('visa')">
-                            VISA Processing: <span id="visaProcessingCount">0</span>
-                        </div>
-                    </div>
-                </div>
+                <div class="stat-card belum-onsite" onclick="filterByStatus('notonsite')" style="cursor: pointer;">
+    <div class="stat-number" id="belumOnsiteCount">0</div>
+    <div class="stat-label">Not Yet Onsite</div>
+    <div class="stat-breakdown">
+        <div style="cursor: pointer;" onclick="event.stopPropagation(); filterByIssueType('contract')">
+            Contract Issues: <span id="contractIssueCount">0</span>
+        </div>
+        <div style="cursor: pointer;" onclick="event.stopPropagation(); filterByIssueType('payment')">
+            Payment Issues: <span id="paymentIssueCount">0</span>
+        </div>
+        <div style="cursor: pointer;" onclick="event.stopPropagation(); filterByIssueType('visa')">
+            VISA Processing: <span id="visaProcessingCount">0</span>
+        </div>
+    </div>
+</div>
 
-                <div class="stat-card sudah-onsite">
-                    <div class="stat-number" id="sudahOnsiteCount">0</div>
-                    <div class="stat-label">Already Onsite</div>
-                    <div class="stat-breakdown">
-                        <div>In Progress: <span id="inProgressCount">0</span></div>
-                        <div>Completed: <span id="completedCount">0</span></div>
-                        <div style="color: #27ae60;">On Time: <span id="onTimeCount">0</span></div>
-                        <div style="color: #e74c3c;">Delayed: <span id="delayedCount">0</span></div>
-                    </div>
-                </div>
+                <div class="stat-card sudah-onsite" onclick="filterByStatus('onsite')" style="cursor: pointer;">
+    <div class="stat-number" id="sudahOnsiteCount">0</div>
+    <div class="stat-label">Already Onsite</div>
+    <div class="stat-breakdown">
+        <div style="cursor: pointer;" onclick="event.stopPropagation(); filterByStatus('inprogress');">In Progress: <span id="inProgressCount">0</span></div>
+        <div style="cursor: pointer;" onclick="event.stopPropagation(); filterByStatus('completed');">Completed: <span id="completedCount">0</span></div>
+        <div style="color: #27ae60; cursor: pointer;" onclick="event.stopPropagation(); filterByStatus('ontime');">On Time: <span id="onTimeCount">0</span></div>
+        <div style="color: #e74c3c; cursor: pointer;" onclick="event.stopPropagation(); filterByStatus('delayed');">Delayed: <span id="delayedCount">0</span></div>
+    </div>
+</div>
             </div>
         </div>
 
@@ -1120,31 +1130,23 @@ database.ref('onlineUsers').on('value', (snapshot) => {
     }
 
     function filterByIssueType(issueType) {
+        // Reset search box
         document.getElementById('searchBox').value = '';
-        const rows = document.querySelectorAll('#tableBody tr');
         
-        rows.forEach(row => {
-            const cells = row.querySelectorAll('td');
-            if (cells.length === 0) return;
-            
-            const statusCell = cells[5];
-            const contractCell = cells[6];
-            const visaCell = cells[7];
-            let shouldShow = false;
-            
-            if (issueType === 'contract') {
-                shouldShow = statusCell.textContent.includes('Contract Issue') || statusCell.textContent.includes('Contract Review') || contractCell.textContent.includes('Quotation') || contractCell.textContent.includes('Under Review') || contractCell.textContent.includes('Reviewing');
-            } else if (issueType === 'payment') {
-                shouldShow = statusCell.textContent.includes('Payment Issue') || contractCell.textContent.includes('Waiting AP');
-            } else if (issueType === 'visa') {
-                shouldShow = statusCell.textContent.includes('VISA Processing') || visaCell.textContent.includes('Processing') || visaCell.textContent.includes('Ongoing');
-            }
-            
-            row.style.display = shouldShow ? '' : 'none';
-        });
+        // Reset to page 1
+        currentTablePage = 1;
         
-        document.querySelector('.table-title').textContent = `Detailed Task List - ${issueType.charAt(0).toUpperCase() + issueType.slice(1)} Issues Only`;
+        // Set temporary filter
+        window.tempIssueFilter = issueType;
         
+        // Repopulate table with filter
+        populateTable();
+        
+        // Update title
+        const issueTypeText = issueType.charAt(0).toUpperCase() + issueType.slice(1);
+        document.querySelector('.table-title').textContent = `Detailed Task List - ${issueTypeText} Issues Only`;
+        
+        // Add clear filter button if not exists
         if (!document.getElementById('clearFilterBtn')) {
             const clearBtn = document.createElement('button');
             clearBtn.id = 'clearFilterBtn';
@@ -1156,9 +1158,70 @@ database.ref('onlineUsers').on('value', (snapshot) => {
         }
     }
 
+function filterByStatus(statusType) {
+        // Reset search box
+        document.getElementById('searchBox').value = '';
+        
+        // Reset to page 1
+        currentTablePage = 1;
+        
+        // Set temporary status filter
+        window.tempStatusFilter = statusType;
+        
+        // Repopulate table with filter
+        populateTable();
+        
+        // Update title based on filter type
+        let titleText = 'Detailed Task List';
+        if (statusType === 'all') {
+            titleText = 'Detailed Task List - All Items';
+        } else if (statusType === 'onsite') {
+            titleText = 'Detailed Task List - Already Onsite';
+        } else if (statusType === 'notonsite') {
+            titleText = 'Detailed Task List - Not Onsite Yet';
+        } else if (statusType === 'inprogress') {
+            titleText = 'Detailed Task List - Onsite In Progress';
+        } else if (statusType === 'completed') {
+            titleText = 'Detailed Task List - Completed Tasks';
+        } else if (statusType === 'ontime') {
+            titleText = 'Detailed Task List - On Time Mobilizations';
+        } else if (statusType === 'delayed') {
+            titleText = 'Detailed Task List - Delayed Mobilizations';
+        }
+        
+        document.querySelector('.table-title').textContent = titleText;
+        
+        // Add clear filter button if not exists
+        if (!document.getElementById('clearFilterBtn')) {
+            const clearBtn = document.createElement('button');
+            clearBtn.id = 'clearFilterBtn';
+            clearBtn.className = 'btn-export';
+            clearBtn.style.background = '#95a5a6';
+            clearBtn.textContent = 'Clear Filter';
+            clearBtn.onclick = clearAllFilters;
+            document.querySelector('.add-item-container').appendChild(clearBtn);
+        }
+    }
+
     function clearIssueFilter() {
-        document.querySelectorAll('#tableBody tr').forEach(row => row.style.display = '');
+        clearAllFilters();
+    }
+
+    function clearAllFilters() {
+        // Remove all temporary filters
+        window.tempIssueFilter = null;
+        window.tempStatusFilter = null;
+        
+        // Reset to page 1
+        currentTablePage = 1;
+        
+        // Repopulate table without filter
+        populateTable();
+        
+        // Reset title
         document.querySelector('.table-title').textContent = 'Detailed Task List';
+        
+        // Remove clear button
         const clearBtn = document.getElementById('clearFilterBtn');
         if (clearBtn) clearBtn.remove();
     }
@@ -1175,6 +1238,54 @@ if (currentFilter === 'highlighted') {
     filteredData = projectData;
 } else {
     filteredData = projectData.filter(item => item.priority === currentFilter);
+}
+
+// Apply issue filter if exists
+// Apply issue filter if exists
+if (window.tempIssueFilter) {
+    const issueType = window.tempIssueFilter;
+    filteredData = filteredData.filter(item => {
+        if (issueType === 'contract') {
+            return item.status.includes('Contract Issue') || 
+                   item.status.includes('Contract Review') || 
+                   item.contract === 'Quotation' || 
+                   item.contract === 'Under Review' || 
+                   item.contract === 'Reviewing';
+        } else if (issueType === 'payment') {
+            return item.status.includes('Payment Issue') || 
+                   item.contract === 'Waiting AP';
+        } else if (issueType === 'visa') {
+            return item.status.includes('VISA Processing') || 
+                   item.visa === 'Processing' || 
+                   item.visa === 'Ongoing';
+        }
+        return false;
+    });
+}
+
+// Apply status filter if exists
+if (window.tempStatusFilter) {
+    const statusType = window.tempStatusFilter;
+    filteredData = filteredData.filter(item => {
+        if (statusType === 'all') {
+            return true;
+        } else if (statusType === 'onsite') {
+            return item.status.includes('Onsite') || item.status.includes('Completed');
+        } else if (statusType === 'notonsite') {
+            return !item.status.includes('Onsite') && !item.status.includes('Completed');
+        } else if (statusType === 'inprogress') {
+            return item.status.includes('Onsite') && !item.status.includes('Completed');
+        } else if (statusType === 'completed') {
+            return item.status.includes('Completed');
+        } else if (statusType === 'ontime') {
+            const dateStatus = getDateStatus(item.targetDate, item.mobDate);
+            return dateStatus.status === 'ON TIME';
+        } else if (statusType === 'delayed') {
+            const dateStatus = getDateStatus(item.targetDate, item.mobDate);
+            return dateStatus.status.includes('DELAYED');
+        }
+        return false;
+    });
 }
 
         // Calculate pagination
@@ -2231,6 +2342,8 @@ function deleteHistory(firebaseKey) {
         // Make functions globally accessible
         window.openUpdateModal = openUpdateModal;
         window.deleteItem = deleteItem;
+window.filterByStatus = filterByStatus;
+window.clearAllFilters = clearAllFilters;
 	window.deleteHistory = deleteHistory;
         window.closeHistoryModal = closeHistoryModal;
         window.toggleHistorySelection = toggleHistorySelection;
