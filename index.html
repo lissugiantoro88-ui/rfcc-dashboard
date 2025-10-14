@@ -597,14 +597,14 @@
     </div>
 </div>
 
-                <div class="stat-card sudah-onsite" onclick="filterByStatus('onsite')" style="cursor: pointer;">
-    <div class="stat-number" id="sudahOnsiteCount">0</div>
-    <div class="stat-label">Already Onsite</div>
+                <div class="stat-card sudah-onsite" style="cursor: pointer;">
+    <div class="stat-number" id="sudahOnsiteCount" onclick="filterByStatus('onsite')">0</div>
+    <div class="stat-label" onclick="filterByStatus('onsite')">Already Onsite</div>
     <div class="stat-breakdown">
-        <div style="cursor: pointer;" onclick="event.stopPropagation(); filterByStatus('inprogress');">In Progress: <span id="inProgressCount">0</span></div>
-        <div style="cursor: pointer;" onclick="event.stopPropagation(); filterByStatus('completed');">Completed: <span id="completedCount">0</span></div>
-        <div style="color: #27ae60; cursor: pointer;" onclick="event.stopPropagation(); filterByStatus('ontime');">On Time: <span id="onTimeCount">0</span></div>
-        <div style="color: #e74c3c; cursor: pointer;" onclick="event.stopPropagation(); filterByStatus('delayed');">Delayed: <span id="delayedCount">0</span></div>
+        <div style="cursor: pointer;" onclick="filterByStatus('inprogress')">In Progress: <span id="inProgressCount">0</span></div>
+        <div style="cursor: pointer;" onclick="filterByStatus('completed')">Completed: <span id="completedCount">0</span></div>
+        <div style="color: #27ae60; cursor: pointer;" onclick="filterByStatus('ontime')">On Time: <span id="onTimeCount">0</span></div>
+        <div style="color: #e74c3c; cursor: pointer;" onclick="filterByStatus('delayed')">Delayed: <span id="delayedCount">0</span></div>
     </div>
 </div>
             </div>
@@ -1177,49 +1177,49 @@ database.ref('onlineUsers').on('value', (snapshot) => {
     }
 
 function filterByStatus(statusType) {
-        // Reset search box
-        document.getElementById('searchBox').value = '';
-        
-        // Reset to page 1
-        currentTablePage = 1;
-        
-        // Set temporary status filter
-        window.tempStatusFilter = statusType;
-        
-        // Repopulate table with filter
-        populateTable();
-        
-        // Update title based on filter type
-        let titleText = 'Detailed Task List';
-        if (statusType === 'all') {
-            titleText = 'Detailed Task List - All Items';
-        } else if (statusType === 'onsite') {
-            titleText = 'Detailed Task List - Already Onsite';
-        } else if (statusType === 'notonsite') {
-            titleText = 'Detailed Task List - Not Onsite Yet';
-        } else if (statusType === 'inprogress') {
-            titleText = 'Detailed Task List - Onsite In Progress';
-        } else if (statusType === 'completed') {
-            titleText = 'Detailed Task List - Completed Tasks';
-        } else if (statusType === 'ontime') {
-            titleText = 'Detailed Task List - On Time Mobilizations';
-        } else if (statusType === 'delayed') {
-            titleText = 'Detailed Task List - Delayed Mobilizations';
-        }
-        
-        document.querySelector('.table-title').textContent = titleText;
-        
-        // Add clear filter button if not exists
-        if (!document.getElementById('clearFilterBtn')) {
-            const clearBtn = document.createElement('button');
-            clearBtn.id = 'clearFilterBtn';
-            clearBtn.className = 'btn-export';
-            clearBtn.style.background = '#95a5a6';
-            clearBtn.textContent = 'Clear Filter';
-            clearBtn.onclick = clearAllFilters;
-            document.querySelector('.add-item-container').appendChild(clearBtn);
-        }
+    // Reset search box
+    document.getElementById('searchBox').value = '';
+    
+    // Reset to page 1
+    currentTablePage = 1;
+    
+    // Set temporary status filter
+    window.tempStatusFilter = statusType;
+    
+    // Repopulate table with filter
+    populateTable();
+    
+    // Update title based on filter type
+    let titleText = 'Detailed Task List';
+    if (statusType === 'all') {
+        titleText = 'Detailed Task List - All Items';
+    } else if (statusType === 'onsite') {
+        titleText = 'Detailed Task List - Already Onsite';
+    } else if (statusType === 'notonsite') {
+        titleText = 'Detailed Task List - Not Onsite Yet';
+    } else if (statusType === 'inprogress') {
+        titleText = 'Detailed Task List - Onsite In Progress';
+    } else if (statusType === 'completed') {
+        titleText = 'Detailed Task List - Completed Tasks';
+    } else if (statusType === 'ontime') {
+        titleText = 'Detailed Task List - On Time Mobilizations';
+    } else if (statusType === 'delayed') {
+        titleText = 'Detailed Task List - Delayed Mobilizations';
     }
+    
+    document.querySelector('.table-title').textContent = titleText;
+    
+    // Add clear filter button if not exists
+    if (!document.getElementById('clearFilterBtn')) {
+        const clearBtn = document.createElement('button');
+        clearBtn.id = 'clearFilterBtn';
+        clearBtn.className = 'btn-export';
+        clearBtn.style.background = '#95a5a6';
+        clearBtn.textContent = 'Clear Filter';
+        clearBtn.onclick = clearAllFilters;
+        document.querySelector('.add-item-container').appendChild(clearBtn);
+    }
+}
 
     function clearIssueFilter() {
         clearAllFilters();
@@ -1312,9 +1312,10 @@ if (window.tempStatusFilter) {
         const endIndex = startIndex + itemsPerTablePage;
         const pageData = filteredData.slice(startIndex, endIndex);
 
-        pageData.forEach(item => {
-            const dateStatus = getDateStatus(item.targetDate, item.mobDate);
-            const row = document.createElement('tr');
+        pageData.forEach((item, index) => {
+    const rowNumber = startIndex + index + 1;  // Tambahkan ini untuk nomor urut dinamis
+    const dateStatus = getDateStatus(item.targetDate, item.mobDate);
+    const row = document.createElement('tr');
 
 // Add highlight class if item is highlighted
 let rowClasses = `priority-${item.priority}`;
@@ -1324,8 +1325,8 @@ if (item.highlighted) {
 row.className = rowClasses;
 
 row.innerHTML = `
-    <td>${item.no}</td>
-<td><span class="priority-badge priority-${item.priority}">${item.priority}</span></td>
+    <td>${rowNumber}</td>
+    <td><span class="priority-badge priority-${item.priority}">${item.priority}</span></td>
 <td style="font-weight: ${item.highlighted ? '700' : '500'}; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 8px;" title="${item.equipment}">
     ${item.highlighted ? '<span class="warning-badge">⚠</span>' : ''}${item.equipment}
 </td>
