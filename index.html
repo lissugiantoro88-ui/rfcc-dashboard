@@ -547,13 +547,140 @@
     }
 
 /* Gantt Chart Styles */
+/* ========================================
+   GANTT CHART PRINT/PDF OPTIMIZATION
+   ======================================== */
+
+/* Force white background for Gantt */
+.gantt-container,
+.gantt,
+.gantt svg,
+#gantt-chart,
+#gantt-chart svg {
+    background: white !important;
+    background-color: white !important;
+}
+
+/* Ensure SVG background is white */
+.gantt svg rect:first-child {
+    fill: white !important;
+}
+
+/* Print-specific styles */
+@media print {
+    body {
+        background: white !important;
+    }
+    
+    .gantt-container {
+        background: white !important;
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+        page-break-inside: avoid !important;
+    }
+    
+    .gantt,
+    .gantt svg {
+        background: white !important;
+    }
+    
+    /* Force all backgrounds to white */
+    .gantt .grid-background,
+    .gantt .grid-header,
+    .gantt .grid-row {
+        fill: white !important;
+        background: white !important;
+    }
+    
+    /* Ensure text is visible */
+    .gantt text {
+        fill: #2c3e50 !important;
+        color: #2c3e50 !important;
+    }
+    
+    /* Grid lines visible */
+    .gantt .grid-line {
+        stroke: #e0e0e0 !important;
+    }
+    
+    /* Header styling for print */
+    .gantt .grid-header .grid-cell {
+        fill: #f8f9fa !important;
+        stroke: #34495e !important;
+    }
+    
+    /* Hide unnecessary elements in print */
+    .modal-header,
+    .gantt-controls,
+    button {
+        display: none !important;
+    }
+}
 .gantt-container {
     background: white;
     border-radius: 8px;
     padding: 20px;
     margin-top: 20px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    overflow-x: auto;
+    position: relative;
+    max-height: 70vh;
+    overflow: auto;
+}
+
+/* Sticky Gantt Header - TAMBAHKAN INI */
+.gantt .grid-header,
+.gantt .gantt_table_header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 100 !important;
+    background: white !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+}
+
+.gantt .upper-text,
+.gantt .lower-text {
+    background: white !important;
+    font-weight: 700 !important;
+    color: #2c3e50 !important;
+}
+
+/* Freeze task list column */
+.gantt .grid-row {
+    position: relative;
+}
+
+.gantt .grid-row .grid-cell:first-child {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 50 !important;
+    background: white !important;
+    box-shadow: 2px 0 4px rgba(0,0,0,0.05) !important;
+}
+
+/* Enhance header visibility */
+.gantt-container::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+.gantt-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.gantt-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.gantt-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Today line enhancement */
+.gantt .today-highlight {
+    background: rgba(52, 152, 219, 0.1) !important;
+    border-left: 2px solid #3498db !important;
 }
 
 .gantt-header {
@@ -740,6 +867,24 @@
     border-top: 1px solid #f39c12;
     font-size: 10px;
     color: #999;
+}
+
+
+/* Force SVG white background */
+.gantt svg {
+    background-color: white !important;
+}
+
+.gantt .grid-background {
+    fill: white !important;
+}
+
+.gantt .grid-header .grid-cell {
+    fill: #f8f9fa !important;
+}
+
+.gantt .grid-row {
+    fill: white !important;
 }
 
 </style>
@@ -1099,23 +1244,41 @@
                     <p style="margin: 5px 0 0 0; font-size: 12px; color: #7f8c8d;">Visual representation of all tasks and their schedules</p>
                 </div>
                 <div class="gantt-controls">
-    <label style="font-size: 12px; color: #2c3e50; font-weight: 600; margin-right: 10px;">Jump to Date:</label>
-    <input type="date" id="ganttDatePicker" style="padding: 8px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 12px; margin-right: 20px;" onchange="jumpToGanttDate()">
+    <!-- Search Equipment/Vendor -->
+    <div style="display: flex; align-items: center; margin-right: 20px;">
+        <label style="font-size: 12px; color: #2c3e50; font-weight: 600; margin-right: 8px;">🔍 Search:</label>
+        <input type="text" id="ganttSearchBox" placeholder="Equipment or vendor..." style="padding: 8px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 12px; width: 200px;" oninput="searchGanttChart()">
+        <button onclick="clearGanttSearch()" style="margin-left: 5px; padding: 8px 12px; background: #95a5a6; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600;">Clear</button>
+    </div>
     
-    <label style="font-size: 12px; color: #2c3e50; font-weight: 600; margin-right: 5px;">Filter:</label>
-<select id="ganttFilterPriority" style="padding: 8px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 12px; margin-right: 20px;" onchange="filterGanttChart()">
-    <option value="all">All Items</option>
-    <option value="1st">1st Priority</option>
-    <option value="2nd">2nd Priority</option>
-    <option value="3rd">3rd Priority</option>
-    <option value="OSBL">OSBL</option>
-    <option value="critical">⚠️ Critical Only</option>
-</select>
+    <!-- Date Range Filter -->
+    <div style="display: flex; align-items: center; margin-right: 20px; border-left: 2px solid #bdc3c7; padding-left: 20px;">
+        <label style="font-size: 12px; color: #2c3e50; font-weight: 600; margin-right: 8px;">📅 Date Range:</label>
+        <input type="date" id="ganttDateFrom" placeholder="From" style="padding: 8px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 12px; width: 140px;" onchange="filterGanttByDateRange()">
+        <span style="margin: 0 8px; color: #7f8c8d;">to</span>
+        <input type="date" id="ganttDateTo" placeholder="To" style="padding: 8px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 12px; width: 140px;" onchange="filterGanttByDateRange()">
+    </div>
+    
+    <!-- Priority Filter -->
+    <div style="display: flex; align-items: center; margin-right: 20px; border-left: 2px solid #bdc3c7; padding-left: 20px;">
+        <label style="font-size: 12px; color: #2c3e50; font-weight: 600; margin-right: 5px;">Filter:</label>
+        <select id="ganttFilterPriority" style="padding: 8px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 12px;" onchange="filterGanttChart()">
+            <option value="all">All Items</option>
+            <option value="1st">1st Priority</option>
+            <option value="2nd">2nd Priority</option>
+            <option value="3rd">3rd Priority</option>
+            <option value="OSBL">OSBL</option>
+            <option value="critical">⚠️ Critical Only</option>
+        </select>
+    </div>
 
-<label style="font-size: 12px; color: #2c3e50; font-weight: 600;">View Mode:</label>
-<button class="gantt-view-btn active" onclick="changeGanttView('Day')">Day</button>
-<button class="gantt-view-btn" onclick="changeGanttView('Week')">Week</button>
-<button class="gantt-view-btn" onclick="changeGanttView('Month')">Month</button>
+    <!-- View Mode -->
+    <div style="display: flex; align-items: center; border-left: 2px solid #bdc3c7; padding-left: 20px;">
+        <label style="font-size: 12px; color: #2c3e50; font-weight: 600; margin-right: 8px;">View:</label>
+        <button class="gantt-view-btn active" onclick="changeGanttView('Day')">Day</button>
+        <button class="gantt-view-btn" onclick="changeGanttView('Week')">Week</button>
+        <button class="gantt-view-btn" onclick="changeGanttView('Month')">Month</button>
+    </div>
 </div>
             </div>
             
@@ -1146,7 +1309,8 @@
         </div>
         
         <div style="margin-top: 20px; text-align: center; padding-top: 15px; border-top: 1px solid #ecf0f1;">
-            <button onclick="exportGanttPDF()" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; margin-right: 10px;">📄 Export as PDF</button>
+            <button onclick="exportGanttPDFSafe()" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; margin-right: 10px;">📄 Export as PDF</button>
+<small id="exportStatus" style="display: block; margin-top: 8px; color: #7f8c8d; font-size: 10px;"></small>
 <button onclick="closeGanttModal()" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;">Close</button>
         </div>
     </div>
@@ -1352,9 +1516,20 @@ if (saveButton) saveButton.addEventListener('click', saveUpdate);
 // ===== GANTT CHART FUNCTIONS =====
 let ganttInstance = null;
 let currentGanttView = 'Week';
+let ganttSearchTerm = '';
+let ganttDateFrom = null;
+let ganttDateTo = null;
 
 function openGanttModal() {
     document.getElementById('ganttModal').style.display = 'block';
+    
+    // Reset filters
+    document.getElementById('ganttSearchBox').value = '';
+    document.getElementById('ganttDateFrom').value = '';
+    document.getElementById('ganttDateTo').value = '';
+    ganttSearchTerm = '';
+    ganttDateFrom = null;
+    ganttDateTo = null;
     
     // Wait for modal to be visible before rendering
     setTimeout(() => {
@@ -1372,12 +1547,51 @@ function closeGanttModal() {
 function prepareGanttData() {
     const ganttTasks = [];
     
-    // Apply filter
+    // Apply priority filter
     let filteredData = projectData;
     if (currentGanttFilter === 'critical') {
         filteredData = projectData.filter(item => item.highlighted);
     } else if (currentGanttFilter !== 'all') {
         filteredData = projectData.filter(item => item.priority === currentGanttFilter);
+    }
+    
+    // Apply search filter
+    if (ganttSearchTerm) {
+        const searchLower = ganttSearchTerm.toLowerCase();
+        filteredData = filteredData.filter(item => 
+            item.equipment.toLowerCase().includes(searchLower) ||
+            item.vendor.toLowerCase().includes(searchLower)
+        );
+    }
+    
+    // Apply date range filter
+    if (ganttDateFrom || ganttDateTo) {
+        filteredData = filteredData.filter(item => {
+            const itemStartDate = item.targetDate ? new Date(item.targetDate) : null;
+            const itemEndDate = item.targetCompDate || item.prognosaCompDate ? 
+                                new Date(item.targetCompDate || item.prognosaCompDate) : null;
+            
+            if (!itemStartDate) return false;
+            
+            let passFilter = true;
+            
+            // Check if item start date is within range
+            if (ganttDateFrom) {
+                const fromDate = new Date(ganttDateFrom);
+                passFilter = passFilter && itemStartDate >= fromDate;
+            }
+            
+            if (ganttDateTo) {
+                const toDate = new Date(ganttDateTo);
+                // Check if either start or end date is within range
+                passFilter = passFilter && (
+                    itemStartDate <= toDate || 
+                    (itemEndDate && itemEndDate <= toDate)
+                );
+            }
+            
+            return passFilter;
+        });
     }
     
     filteredData.forEach((item, index) => {
@@ -1485,20 +1699,53 @@ function renderGanttChart() {
 ganttInstance = new Gantt("#gantt-chart", tasks, {
     view_mode: currentGanttView,
     bar_height: 30,
+    header_height: 65,
+    column_width: 60,
+    step: 24,
+    view_modes: ['Day', 'Week', 'Month'],
+    bar_corner_radius: 3,
+    arrow_curve: 5,
+    padding: 20,
+    date_format: 'DD MMM',
+    language: 'en',
     on_click: function(task) {
-        // Show mitigation plan for work delayed tasks
         showMitigationTooltip(task);
     },
     on_view_change: function(mode) {
         currentGanttView = mode;
+    },
+    on_date_change: function(task, start, end) {
+        console.log('Date changed:', task, start, end);
     }
 });
 
-// Force apply colors after render
+// Force apply colors and white background after render
 setTimeout(function() {
     applyGanttColors();
-    attachGanttHoverEvents(); // Add hover events
+    attachGanttHoverEvents();
+    enhanceGanttHeader(); // Keep existing function
+    
+    // Force white background on SVG for PDF export
+    const svgElement = document.querySelector('#gantt-chart svg');
+    if (svgElement) {
+        svgElement.style.backgroundColor = 'white';
+        svgElement.style.background = 'white';
+        
+        // Add white background rect if not exists
+        const existingRect = svgElement.querySelector('rect[data-background="white"]');
+        if (!existingRect) {
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('width', '100%');
+            rect.setAttribute('height', '100%');
+            rect.setAttribute('fill', 'white');
+            rect.setAttribute('data-background', 'white');
+            svgElement.insertBefore(rect, svgElement.firstChild);
+        }
+    }
 }, 200);
+
+// Force apply colors after render
+
     }, 100);
 }
 
@@ -1614,6 +1861,46 @@ function attachGanttHoverEvents() {
     });
 }
 
+// NEW FUNCTION: Enhance Gantt Header with Better Styling
+function enhanceGanttHeader() {
+    // Add today marker
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    
+    // Style header cells
+    const headerCells = document.querySelectorAll('.gantt .grid-header .grid-cell');
+    headerCells.forEach(function(cell) {
+        cell.style.fontWeight = '700';
+        cell.style.fontSize = '11px';
+        cell.style.borderBottom = '2px solid #3498db';
+        cell.style.padding = '12px 8px';
+    });
+    
+    // Add visual separator for months
+    const upperTextCells = document.querySelectorAll('.gantt .upper-text');
+    upperTextCells.forEach(function(cell) {
+        cell.style.fontSize = '13px';
+        cell.style.borderBottom = '2px solid #34495e';
+        cell.style.padding = '10px';
+        cell.style.letterSpacing = '0.5px';
+    });
+    
+    // Highlight weekends if in day/week view
+    if (currentGanttView === 'Day' || currentGanttView === 'Week') {
+        const dateCells = document.querySelectorAll('.gantt .lower-text');
+        dateCells.forEach(function(cell) {
+            const dateText = cell.textContent;
+            // Simple weekend detection (you can enhance this)
+            if (dateText.includes('Sat') || dateText.includes('Sun')) {
+                cell.style.background = '#f8f9fa';
+                cell.style.color = '#95a5a6';
+            }
+        });
+    }
+    
+    console.log('Gantt header enhanced');
+}
+
 function changeGanttView(viewMode) {
     currentGanttView = viewMode;
     
@@ -1688,141 +1975,413 @@ function filterGanttChart() {
     renderGanttChart();
 }
 
+// NEW FUNCTION: Search Gantt Chart by Equipment/Vendor
+function searchGanttChart() {
+    ganttSearchTerm = document.getElementById('ganttSearchBox').value.trim();
+    renderGanttChart();
+    
+    if (ganttSearchTerm) {
+        const matchCount = prepareGanttData().length;
+        showNotification(`Found ${matchCount} item(s) matching "${ganttSearchTerm}"`, 'success');
+    }
+}
+
+// NEW FUNCTION: Clear Gantt Search
+function clearGanttSearch() {
+    document.getElementById('ganttSearchBox').value = '';
+    ganttSearchTerm = '';
+    renderGanttChart();
+    showNotification('Search cleared', 'success');
+}
+
+// NEW FUNCTION: Filter Gantt by Date Range
+function filterGanttByDateRange() {
+    ganttDateFrom = document.getElementById('ganttDateFrom').value;
+    ganttDateTo = document.getElementById('ganttDateTo').value;
+    
+    // Validate date range
+    if (ganttDateFrom && ganttDateTo && new Date(ganttDateFrom) > new Date(ganttDateTo)) {
+        showNotification('⚠️ "From" date cannot be later than "To" date', 'error');
+        document.getElementById('ganttDateTo').value = '';
+        ganttDateTo = null;
+        return;
+    }
+    
+    renderGanttChart();
+    
+    const matchCount = prepareGanttData().length;
+    if (ganttDateFrom || ganttDateTo) {
+        const fromStr = ganttDateFrom ? formatDateForDisplay(ganttDateFrom) : 'Start';
+        const toStr = ganttDateTo ? formatDateForDisplay(ganttDateTo) : 'End';
+        showNotification(`Showing ${matchCount} task(s) from ${fromStr} to ${toStr}`, 'success');
+    }
+}
+
 function exportGanttPDF() {
-    // Capture the current Gantt chart as image first
-    showNotification('Preparing timeline for export...', 'success');
+    showNotification('Preparing timeline report...', 'success');
     
     const printWindow = window.open('', '_blank');
     const currentDate = new Date().toLocaleString();
-    
     const tasks = prepareGanttData();
-    
-    // Get the Gantt SVG element
-    const ganttSVG = document.querySelector('#gantt-chart svg');
-    let svgData = '';
-    
-    if (ganttSVG) {
-        const serializer = new XMLSerializer();
-        svgData = serializer.serializeToString(ganttSVG);
-        // Encode to base64
-        svgData = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
-    }
     
     const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Project Timeline - Gantt Chart</title>
+        <title>Project Timeline Report</title>
+        <meta charset="UTF-8">
         <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            
             body { 
                 font-family: Arial, sans-serif; 
                 margin: 20px; 
                 font-size: 11px; 
-                background: white; /* Fix black preview */
-                color: #333; /* Ensure text is visible */
+                background: white;
+                color: #333;
             }
-                .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
-                .header h1 { margin: 0; font-size: 20px; color: #333; }
-                .gantt-image { width: 100%; max-width: 100%; margin: 20px 0; border: 1px solid #ddd; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; page-break-inside: avoid; }
-                th, td { border: 1px solid #333; padding: 8px; text-align: left; font-size: 10px; }
-                th { background: #2c3e50; color: white; }
-                tr:nth-child(even) { background: #f9f9f9; }
-                .legend { display: flex; gap: 15px; margin: 20px 0; font-size: 10px; justify-content: center; }
-                .legend-item { display: flex; align-items: center; gap: 5px; }
-                .legend-color { width: 15px; height: 15px; border-radius: 3px; }
-                @media print {
-                    body { margin: 10px; }
-                    .gantt-image { page-break-inside: avoid; }
-                    table { page-break-inside: avoid; }
+            
+            .header { 
+                text-align: center; 
+                margin-bottom: 30px; 
+                border-bottom: 3px solid #34495e; 
+                padding-bottom: 15px;
+            }
+            
+            .header h1 { 
+                margin: 0; 
+                font-size: 24px; 
+                color: #2c3e50;
+                font-weight: 700;
+            }
+            
+            .header p {
+                margin: 5px 0;
+                color: #7f8c8d;
+                font-size: 12px;
+            }
+            
+            .info-box {
+                background: #ecf0f1;
+                padding: 20px;
+                border-radius: 8px;
+                margin-bottom: 30px;
+            }
+            
+            .info-grid {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 20px;
+                text-align: center;
+            }
+            
+            .info-item {
+                background: white;
+                padding: 15px;
+                border-radius: 6px;
+                border-left: 4px solid #3498db;
+            }
+            
+            .info-number {
+                font-size: 32px;
+                font-weight: 700;
+                color: #2c3e50;
+            }
+            
+            .info-label {
+                font-size: 11px;
+                color: #7f8c8d;
+                margin-top: 5px;
+            }
+            
+            .legend { 
+                display: flex; 
+                gap: 20px; 
+                margin: 20px 0; 
+                font-size: 12px; 
+                justify-content: center;
+                flex-wrap: wrap;
+                background: #f8f9fa;
+                padding: 20px;
+                border: 1px solid #ecf0f1;
+                border-radius: 8px;
+            }
+            
+            .legend-item { 
+                display: flex; 
+                align-items: center; 
+                gap: 10px;
+            }
+            
+            .legend-color { 
+                width: 24px; 
+                height: 24px; 
+                border-radius: 4px;
+                border: 1px solid #ddd;
+            }
+            
+            table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                margin-top: 30px; 
+                background: white;
+            }
+            
+            th, td { 
+                border: 1px solid #34495e; 
+                padding: 12px 10px; 
+                text-align: left; 
+                font-size: 10px;
+            }
+            
+            th { 
+                background: #34495e; 
+                color: white;
+                font-weight: 700;
+            }
+            
+            tr:nth-child(even) { 
+                background: #f8f9fa;
+            }
+            
+            .priority-badge {
+                padding: 4px 8px;
+                border-radius: 3px;
+                font-size: 9px;
+                font-weight: 700;
+                color: white;
+                display: inline-block;
+            }
+            
+            .priority-1st { background: #dc3545; }
+            .priority-2nd { background: #fd7e14; }
+            .priority-3rd { background: #198754; }
+            .priority-OSBL { background: #0d6efd; }
+            
+            .status-indicator {
+                width: 100%;
+                height: 8px;
+                background: #ecf0f1;
+                border-radius: 4px;
+                overflow: hidden;
+                margin-top: 5px;
+            }
+            
+            .status-fill {
+                height: 100%;
+                transition: width 0.3s;
+            }
+            
+            .footer {
+                margin-top: 50px;
+                padding-top: 20px;
+                border-top: 2px solid #34495e;
+                text-align: center;
+            }
+            
+            @media print {
+                body {
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
                 }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <h1>📊 Project Timeline - Gantt Chart</h1>
-                <p>Vendor Mobilization Timeline</p>
-                <p style="font-size: 10px;">Generated on: ${currentDate}</p>
-                <p style="font-size: 10px;">Filter: ${currentGanttFilter === 'all' ? 'All Items' : currentGanttFilter} | Total Tasks: ${tasks.length}</p>
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>📊 PROJECT TIMELINE REPORT</h1>
+            <p style="font-size: 14px; font-weight: 600; margin-top: 10px;">RFCC Vendor Mobilization Timeline</p>
+            <p style="font-size: 11px; margin-top: 8px;">Generated on: ${currentDate}</p>
+            <p style="font-size: 11px;">Filter: ${currentGanttFilter === 'all' ? 'All Items' : currentGanttFilter + ' Priority'} | Total Tasks: ${tasks.length}</p>
+        </div>
+        
+        <div class="info-box">
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-number">${tasks.length}</div>
+                    <div class="info-label">Total Tasks</div>
+                </div>
+                <div class="info-item" style="border-left-color: #27ae60;">
+                    <div class="info-number" style="color: #27ae60;">${tasks.filter(t => t.custom_class === 'bar-inprogress').length}</div>
+                    <div class="info-label">In Progress</div>
+                </div>
+                <div class="info-item" style="border-left-color: #3498db;">
+                    <div class="info-number" style="color: #3498db;">${tasks.filter(t => t.custom_class === 'bar-completed').length}</div>
+                    <div class="info-label">Completed</div>
+                </div>
+                <div class="info-item" style="border-left-color: #e74c3c;">
+                    <div class="info-number" style="color: #e74c3c;">${tasks.filter(t => t.custom_class === 'bar-workdelayed').length}</div>
+                    <div class="info-label">Work Delayed</div>
+                </div>
             </div>
-            
-            <div class="legend">
-    <div class="legend-item">
-        <div class="legend-color" style="background: #95a5a6;"></div>
-        <span>Not Started</span>
-    </div>
-    <div class="legend-item">
-        <div class="legend-color" style="background: #27ae60;"></div>
-        <span>In Progress / On Track</span>
-    </div>
-    <div class="legend-item">
-        <div class="legend-color" style="background: #3498db;"></div>
-        <span>Completed</span>
-    </div>
-    <div class="legend-item">
-        <div class="legend-color" style="background: #f39c12;"></div>
-        <span>Delayed Mobilization</span>
-    </div>
-    <div class="legend-item">
-        <div class="legend-color" style="background: #e74c3c;"></div>
-        <span>Work Delayed (Prognosa â‰¥ Target)</span>
-    </div>
-</div>
-            
-            ${svgData ? '<img src="' + svgData + '" class="gantt-image" alt="Gantt Chart Timeline">' : '<p style="text-align: center; color: #e74c3c;">⚠️ Timeline visualization not available</p>'}
-            
-            <h2 style="margin-top: 30px; font-size: 14px; border-bottom: 2px solid #333; padding-bottom: 8px;">Task Details</h2>
-            
-            <table>
-                <thead>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #95a5a6;"></div>
+                <span><strong>Not Started</strong></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #27ae60;"></div>
+                <span><strong>In Progress / On Track</strong></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #3498db;"></div>
+                <span><strong>Completed</strong></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f39c12;"></div>
+                <span><strong>Delayed Mobilization</strong></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #e74c3c;"></div>
+                <span><strong>Work Delayed</strong></span>
+            </div>
+        </div>
+        
+        <h2 style="margin-top: 40px; font-size: 16px; border-bottom: 3px solid #34495e; padding-bottom: 10px; color: #2c3e50;">📋 Task Timeline Details</h2>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 4%;">No</th>
+                    <th style="width: 22%;">Equipment</th>
+                    <th style="width: 12%;">Vendor</th>
+                    <th style="width: 7%;">Priority</th>
+                    <th style="width: 10%;">Start Date</th>
+                    <th style="width: 10%;">End Date</th>
+                    <th style="width: 8%;">Duration</th>
+                    <th style="width: 12%;">Progress</th>
+                    <th style="width: 15%;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${tasks.map(function(task, index) {
+                    const item = projectData.find(function(p) { return p.firebaseKey === task.id; });
+                    if (!item) return '';
+                    
+                    const duration = Math.ceil((new Date(task.end) - new Date(task.start)) / (1000 * 60 * 60 * 24));
+                    
+                    let statusColor = '#95a5a6';
+                    let statusText = 'Not Started';
+                    
+                    if (task.custom_class === 'bar-completed') {
+                        statusColor = '#3498db';
+                        statusText = 'Completed';
+                    } else if (task.custom_class === 'bar-inprogress') {
+                        statusColor = '#27ae60';
+                        statusText = 'In Progress';
+                    } else if (task.custom_class === 'bar-workdelayed') {
+                        statusColor = '#e74c3c';
+                        statusText = 'Work Delayed';
+                    } else if (task.custom_class === 'bar-delayedmob') {
+                        statusColor = '#f39c12';
+                        statusText = 'Delayed MOB';
+                    }
+                    
+                    return `
                     <tr>
-                        <th>No</th>
-                        <th>Equipment</th>
-                        <th>Vendor</th>
-                        <th>Priority</th>
-                        <th>Start Date</th>
-                        <th>End Date</th>
-                        <th>Duration</th>
-                        <th>Progress</th>
-                        <th>Status</th>
+                        <td style="text-align: center;">${index + 1}</td>
+                        <td style="font-weight: 600;">${item.equipment}</td>
+                        <td><strong>${item.vendor}</strong></td>
+                        <td><span class="priority-badge priority-${item.priority}">${item.priority}</span></td>
+                        <td>${formatDateForDisplay(task.start)}</td>
+                        <td>${formatDateForDisplay(task.end)}</td>
+                        <td style="text-align: center;">${duration} days</td>
+                        <td>
+                            <strong style="font-size: 11px;">${task.progress}%</strong>
+                            <div class="status-indicator">
+                                <div class="status-fill" style="width: ${task.progress}%; background: ${statusColor};"></div>
+                            </div>
+                        </td>
+                        <td style="color: ${statusColor}; font-weight: 600;">${statusText}</td>
                     </tr>
-                </thead>
-                <tbody>
-                    ${tasks.map(function(task, index) {
-                        const item = projectData.find(function(p) { return p.firebaseKey === task.id; });
-                        const duration = Math.ceil((new Date(task.end) - new Date(task.start)) / (1000 * 60 * 60 * 24));
-                        return '<tr>' +
-                            '<td>' + (index + 1) + '</td>' +
-                            '<td>' + item.equipment + '</td>' +
-                            '<td>' + item.vendor + '</td>' +
-                            '<td>' + item.priority + '</td>' +
-                            '<td>' + formatDateForDisplay(task.start) + '</td>' +
-                            '<td>' + formatDateForDisplay(task.end) + '</td>' +
-                            '<td>' + duration + ' days</td>' +
-                            '<td>' + task.progress + '%</td>' +
-                            '<td>' + item.status + '</td>' +
-                            '</tr>';
-                    }).join('')}
-                </tbody>
-            </table>
-            
-            <div style="margin-top: 30px; padding-top: 15px; border-top: 2px solid #333; text-align: center;">
-                <p style="margin: 0; font-size: 10px; font-weight: bold;">Developed by TS-KPB</p>
-                <p style="margin: 5px 0 0 0; font-size: 8px; color: #999;">© 2025 All Rights Reserved</p>
-            </div>
-        </body>
-        </html>
+                    `;
+                }).join('')}
+            </tbody>
+        </table>
+        
+        <div style="margin-top: 40px; padding: 20px; background: #fff3cd; border-left: 4px solid #f39c12; border-radius: 6px;">
+            <h3 style="margin: 0 0 10px 0; font-size: 13px; color: #856404;">ℹ️ Note on Timeline Visualization</h3>
+            <p style="font-size: 11px; color: #856404; line-height: 1.6;">
+                This report contains detailed task information in table format. For visual Gantt chart representation, 
+                please view the timeline directly in the web application where interactive features are available.
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p style="font-size: 14px; font-weight: bold; color: #2c3e50;">Developed by TS-KPB</p>
+            <p style="font-size: 11px; color: #7f8c8d; margin-top: 5px;">© 2025 All Rights Reserved</p>
+            <p style="font-size: 10px; color: #95a5a6; margin-top: 10px;">RFCC Vendor Mobilization Tracking System</p>
+        </div>
+    </body>
+    </html>
     `;
     
     printWindow.document.write(htmlContent);
     printWindow.document.close();
+    
     printWindow.onload = function() {
         setTimeout(function() {
             printWindow.print();
-        }, 250);
+        }, 500);
     };
 }
-                
+
+function refreshGanttBeforeExport() {
+    showNotification('Refreshing timeline for export...', 'success');
+    
+    // Re-render Gantt
+    renderGanttChart();
+    
+    // Wait for render to complete, then export
+    setTimeout(function() {
+        const ganttSVG = document.querySelector('#gantt-chart svg');
+        
+        if (ganttSVG) {
+            showNotification('Timeline loaded. Starting export...', 'success');
+            setTimeout(function() {
+                exportGanttPDF();
+            }, 1000);
+        } else {
+            showNotification('❌ Timeline failed to load. Please try again.', 'error');
+        }
+    }, 2000);
+}
+
+
+     
+// Safe export function with loading check
+function exportGanttPDFSafe() {
+    const ganttSVG = document.querySelector('#gantt-chart svg');
+    const statusEl = document.getElementById('exportStatus');
+    
+    if (!ganttSVG) {
+        showNotification('⚠️ Timeline not loaded yet. Please wait...', 'error');
+        if (statusEl) statusEl.textContent = '⚠️ Timeline not loaded. Please wait a moment...';
+        return;
+    }
+    
+    // Check if SVG has content
+    const bbox = ganttSVG.getBoundingClientRect();
+    if (bbox.width < 100 || bbox.height < 100) {
+        showNotification('⚠️ Timeline still loading. Please wait...', 'error');
+        if (statusEl) statusEl.textContent = '⚠️ Timeline still rendering. Please wait...';
+        return;
+    }
+    
+    // SVG is ready, proceed with export
+    if (statusEl) statusEl.textContent = '✅ Timeline ready. Preparing export...';
+    showNotification('✅ Timeline ready. Exporting...', 'success');
+    
+    setTimeout(function() {
+        exportGanttPDF();
+    }, 500);
+}
 
     // ===== UTILITY FUNCTIONS =====
     function getDateStatus(targetDate, mobDate) {
@@ -3271,11 +3830,16 @@ window.openGanttModal = openGanttModal;
 window.closeGanttModal = closeGanttModal;
 window.changeGanttView = changeGanttView;
 window.exportGanttPDF = exportGanttPDF;
+window.exportGanttPDFSafe = exportGanttPDFSafe; // ADD THIS LINE
 window.applyGanttColors = applyGanttColors;
 window.jumpToGanttDate = jumpToGanttDate;
 window.filterGanttChart = filterGanttChart;
+window.searchGanttChart = searchGanttChart;
+window.clearGanttSearch = clearGanttSearch;
+window.filterGanttByDateRange = filterGanttByDateRange;
 window.showMitigationTooltip = showMitigationTooltip; // Add this
 window.attachGanttHoverEvents = attachGanttHoverEvents; // Add this
+window.enhanceGanttHeader = enhanceGanttHeader; // ADD THIS LINE
 function exportGanttImage() {
     if (!ganttInstance) {
         showNotification('Please open Gantt chart first', 'error');
