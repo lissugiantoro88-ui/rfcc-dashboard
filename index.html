@@ -567,6 +567,373 @@
 }
 
 /* Print-specific styles */
+/* ========================================
+   TASK TRACKER MODAL STYLES
+   ======================================== */
+
+.task-group {
+    margin-bottom: 20px;
+}
+
+.task-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: all 0.2s;
+}
+
+.task-group-header:hover {
+    background: #e9ecef;
+}
+
+.task-group-header.completed {
+    background: #d4edda;
+    border-left: 4px solid #28a745;
+}
+
+.task-group-header.inprogress {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+}
+
+.task-group-header.pending {
+    background: #e7f3ff;
+    border-left: 4px solid #6c757d;
+}
+
+.task-group-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.task-group-count {
+    font-size: 11px;
+    background: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    color: #7f8c8d;
+}
+
+.task-group-toggle {
+    font-size: 12px;
+    color: #7f8c8d;
+}
+
+.task-item {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 10px;
+    transition: all 0.2s;
+}
+
+.task-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.task-item.completed {
+    border-left: 4px solid #28a745;
+    background: #f8fff9;
+}
+
+.task-item.inprogress {
+    border-left: 4px solid #ffc107;
+    background: #fffef8;
+}
+
+.task-item.pending {
+    border-left: 4px solid #6c757d;
+    background: #f8f9fa;
+}
+
+.task-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 10px;
+}
+
+.task-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2c3e50;
+    flex: 1;
+}
+
+.task-status-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.task-status-badge.completed {
+    background: #28a745;
+    color: white;
+}
+
+.task-status-badge.inprogress {
+    background: #ffc107;
+    color: #000;
+}
+
+.task-status-badge.pending {
+    background: #6c757d;
+    color: white;
+}
+
+.task-meta {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    font-size: 11px;
+    color: #6c757d;
+    margin-bottom: 10px;
+}
+
+.task-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.task-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 10px 0;
+}
+
+.task-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #28a745, #20c997);
+    transition: width 0.3s ease;
+}
+
+.task-notes {
+    font-size: 11px;
+    color: #495057;
+    background: #f8f9fa;
+    padding: 8px 10px;
+    border-radius: 4px;
+    margin: 10px 0;
+    line-height: 1.5;
+}
+
+.task-actions {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.task-btn {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.task-btn-complete {
+    background: #28a745;
+    color: white;
+}
+
+.task-btn-update {
+    background: #17a2b8;
+    color: white;
+}
+
+.task-btn-edit {
+    background: #ffc107;
+    color: #000;
+}
+
+.task-btn-delete {
+    background: #dc3545;
+    color: white;
+}
+
+.task-btn-start {
+    background: #007bff;
+    color: white;
+}
+
+.task-btn:hover {
+    opacity: 0.8;
+    transform: translateY(-1px);
+}
+
+.task-analytics {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin: 20px 0;
+}
+
+.task-analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.task-analytics-item {
+    background: rgba(255,255,255,0.1);
+    padding: 12px;
+    border-radius: 6px;
+}
+
+.task-analytics-value {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.task-analytics-label {
+    font-size: 11px;
+    opacity: 0.9;
+}
+
+.task-prognosis {
+    background: white;
+    color: #2c3e50;
+    padding: 15px;
+    border-radius: 6px;
+    margin-top: 15px;
+}
+
+.task-prognosis-header {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.task-risk-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.task-risk-high {
+    background: #dc3545;
+    color: white;
+}
+
+.task-risk-medium {
+    background: #ffc107;
+    color: #000;
+}
+
+.task-risk-low {
+    background: #28a745;
+    color: white;
+}
+
+.task-recommendations {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 15px;
+    border-radius: 6px;
+    margin-top: 15px;
+}
+
+.task-recommendations-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #856404;
+    margin-bottom: 10px;
+}
+
+.task-recommendations-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.task-recommendations-list li {
+    font-size: 12px;
+    color: #856404;
+    padding: 5px 0;
+    padding-left: 20px;
+    position: relative;
+}
+
+.task-recommendations-list li:before {
+    content: "•";
+    position: absolute;
+    left: 5px;
+    font-weight: bold;
+}
+
+.task-overall-progress {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 2px solid #e9ecef;
+}
+
+.task-overall-bar {
+    width: 100%;
+    height: 20px;
+    background: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 10px 0;
+}
+
+.task-overall-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    transition: width 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+/* End of Task Tracker Styles */
+/* Dropdown Menu Styles */
+.dropdown-menu {
+    animation: fadeIn 0.15s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 @media print {
     body {
         background: white !important;
@@ -1228,6 +1595,85 @@
     </div>
 </div>
 
+<!-- ========================================
+     ONSITE TASK TRACKER MODAL
+     ======================================== -->
+<div id="taskTrackerModal" class="modal">
+    <div class="modal-content" style="width: 900px; max-width: 95%; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+            <h3 class="modal-title" id="taskTrackerTitle">📋 Onsite Task Tracker</h3>
+            <span class="close" onclick="closeTaskTracker()">&times;</span>
+        </div>
+        
+        <div id="taskTrackerContent">
+            <!-- Content will be populated by JavaScript -->
+        </div>
+        
+        <div style="margin-top: 20px; text-align: center; padding-top: 15px; border-top: 1px solid #ecf0f1;">
+            <button onclick="exportTaskReport()" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; margin-right: 10px;">📄 Export Report</button>
+            <button onclick="closeTaskTracker()" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================
+     ADD/EDIT TASK MODAL
+     ======================================== -->
+<div id="taskEditModal" class="modal">
+    <div class="modal-content" style="width: 600px; max-width: 90%;">
+        <div class="modal-header">
+            <h3 class="modal-title" id="taskEditTitle">Add New Task</h3>
+            <span class="close" onclick="closeTaskEditModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Task Name:</label>
+                <input type="text" id="taskNameInput" class="form-control" placeholder="e.g., Mechanical Installation & Alignment">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Description:</label>
+                <textarea id="taskDescInput" class="form-control" rows="2" placeholder="Brief description of the task..."></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Target Start Date:</label>
+                <input type="date" id="taskStartInput" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Target End Date:</label>
+                <input type="date" id="taskEndInput" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Estimated Duration (days):</label>
+                <input type="number" id="taskDurationInput" class="form-control" min="1" placeholder="e.g., 3">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Assigned To:</label>
+                <input type="text" id="taskAssignedInput" class="form-control" placeholder="e.g., Ahmad R.">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Status:</label>
+                <select id="taskStatusInput" class="form-control">
+                    <option value="pending">Pending</option>
+                    <option value="inprogress">In Progress</option>
+                    <option value="completed">Completed</option>
+                </select>
+            </div>
+            <div class="form-group" id="taskProgressGroup" style="display: none;">
+                <label class="form-label">Progress (%):</label>
+                <input type="number" id="taskProgressInput" class="form-control" min="0" max="100" value="0">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Notes:</label>
+                <textarea id="taskNotesInput" class="form-control" rows="3" placeholder="Additional notes..."></textarea>
+            </div>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-secondary" onclick="closeTaskEditModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveTask()">Save Task</button>
+        </div>
+    </div>
+</div>
+
 <!-- Gantt Chart Modal -->
 <div id="ganttModal" class="modal">
 
@@ -1384,6 +1830,10 @@ database.ref('onlineUsers').on('value', (snapshot) => {
         let activityHistory = [];
         let currentEditId = null;
         let currentFilter = 'all';
+// Task Tracker Variables
+let currentEquipmentTasks = null;
+let currentTaskEditId = null;
+let onsiteTasks = {}; // Store tasks per equipment
 
 	// Pagination
         let currentTablePage = 1;
@@ -1436,10 +1886,25 @@ database.ref('onlineUsers').on('value', (snapshot) => {
         filterEquipmentHistory();
     });
 
+
+// Listen for onsite tasks changes
+const onsiteTasksRef = database.ref('onsiteTasks');
+onsiteTasksRef.on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+        onsiteTasks = data;
+    } else {
+        onsiteTasks = {};
+    }
+});
+
     // ===== INITIALIZATION =====
    document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
-    
+
+// Initialize dropdowns
+    initDropdowns();  // ← TAMBAHKAN BARIS INI    
+
     projectDataRef.once('value').then((snapshot) => {
         if (!snapshot.exists()) {
             if (confirm('Database is empty. Would you like to initialize with sample data?')) {
@@ -1507,12 +1972,43 @@ if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
 if (saveButton) saveButton.addEventListener('click', saveUpdate);
 
         window.addEventListener('click', function(event) {
-            const modal = document.getElementById('updateModal');
-            if (event.target === modal) {
-                closeModal();
-            }
+    const updateModal = document.getElementById('updateModal');
+    const historyModal = document.getElementById('historyModal');
+    const taskTrackerModal = document.getElementById('taskTrackerModal');
+    const taskEditModal = document.getElementById('taskEditModal');
+    const ganttModal = document.getElementById('ganttModal');
+    const progressReportModal = document.getElementById('progressReportModal');
+    
+    if (event.target === updateModal) {
+        closeModal();
+    }
+    if (event.target === historyModal) {
+        closeHistoryModal();
+    }
+    if (event.target === taskTrackerModal) {
+        closeTaskTracker();
+    }
+    if (event.target === taskEditModal) {
+        closeTaskEditModal();
+    }
+    if (event.target === ganttModal) {
+        closeGanttModal();
+    }
+    if (event.target === progressReportModal) {
+        closeProgressReport();
+    }
+});
+    }
+
+// Close all dropdowns when clicking outside
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.action-btn')) {
+        document.querySelectorAll('.dropdown-menu').forEach(dropdown => {
+            dropdown.style.display = 'none';
         });
     }
+});
+
 // ===== GANTT CHART FUNCTIONS =====
 let ganttInstance = null;
 let currentGanttView = 'Week';
@@ -2182,7 +2678,24 @@ function exportGanttPDF() {
                 border-top: 2px solid #34495e;
                 text-align: center;
             }
-            
+            /* Action Dropdown Animation */
+.action-dropdown {
+    animation: dropdownFadeIn 0.2s ease-out;
+}
+
+@keyframes dropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* End of Dropdown Styles */
+
             @media print {
                 body {
                     -webkit-print-color-adjust: exact;
@@ -2694,14 +3207,32 @@ row.innerHTML = `
                         <div class="progress-fill" style="width: ${item.progress}%;"></div>
                     </div>
                     <small style="font-size: 8px; margin-left: 3px;">${item.progress}%</small>
-                </td>
                 <td style="white-space: nowrap; text-align: center;">
-    <button class="action-btn primary" onclick="openUpdateModal('${item.firebaseKey}')" style="font-size: 9px; padding: 4px 8px;">Update</button>
-    <button class="action-btn success" onclick="showProgressReportById('${item.firebaseKey}')" title="View Progress Report" style="background: #27ae60; font-size: 9px; padding: 4px 8px; margin-left: 3px;">📊 Progress</button>
-    <button class="btn-delete" onclick="deleteItem('${item.firebaseKey}')" title="Delete" style="font-size: 12px; padding: 4px 7px; line-height: 1; margin-left: 3px;">🗑️</button>
-</td>
-            `;
-            tableBody.appendChild(row);
+                    <button class="action-btn primary" onclick="openUpdateModal('${item.firebaseKey}')" style="font-size: 9px; padding: 4px 8px;">Update</button>
+                    ${item.status && (item.status.includes('Onsite') || item.status.includes('Completed')) ? `
+                        <div style="display: inline-block; position: relative; vertical-align: middle;">
+                            <button class="action-btn dropdown-trigger" data-dropdown="dropdown-${item.firebaseKey}" style="background: #9b59b6; color: white; font-size: 9px; padding: 4px 8px; margin-left: 3px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                                📋 More ▼
+                            </button>
+                            <div id="dropdown-${item.firebaseKey}" class="action-dropdown" style="display: none; position: absolute; background: white; border: 1px solid #ddd; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 150px; top: calc(100% + 2px); left: 0; overflow: hidden;">
+                                <button class="dropdown-item" data-action="tasks" data-key="${item.firebaseKey}" style="width: 100%; padding: 10px 15px; border: none; background: white; text-align: left; cursor: pointer; font-size: 11px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 14px;">📋</span>
+                                    <span>Onsite Tasks</span>
+                                </button>
+                                <button class="dropdown-item" data-action="progress" data-key="${item.firebaseKey}" style="width: 100%; padding: 10px 15px; border: none; background: white; text-align: left; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 14px;">📊</span>
+                                    <span>Progress Report</span>
+                                </button>
+                            </div>
+                        </div>
+                    ` : `
+                        <button class="action-btn success" onclick="showProgressReportById('${item.firebaseKey}')" title="View Progress Report" style="background: #27ae60; font-size: 9px; padding: 4px 8px; margin-left: 3px;">📊 Progress</button>
+                    `}
+                    <button class="btn-delete" onclick="deleteItem('${item.firebaseKey}')" title="Delete" style="font-size: 12px; padding: 4px 7px; line-height: 1; margin-left: 3px;">🗑️</button>
+                </td>
+        `;
+        
+        tableBody.appendChild(row);
         });
 
         // Update pagination info
@@ -3593,11 +4124,20 @@ function showProgressReportById(firebaseKey) {
                     </div>
                     <div style="font-size: 12px; font-weight: 600; margin-bottom: 3px;">${item.title}</div>
                     <div style="font-size: 11px; color: #666; margin-bottom: 5px;">${item.description}</div>
-                    <div style="font-size: 10px; color: #999; background: white; padding: 8px; border-radius: 4px;">${item.icon} ${item.notes}</div>
+                    <div style="font-size: 10px; color: #999; background: white; padding: 8px; border-radius: 4px; white-space: pre-wrap;">${item.icon} ${item.notes}</div>
                     <div style="font-size: 9px; color: #95a5a6; margin-top: 5px;">by ${item.user}</div>
                 </div>
             `).join('')}
         </div>
+
+        ${onsiteTasks[equipment.firebaseKey] && onsiteTasks[equipment.firebaseKey].length > 0 ? `
+        <div style="background: white; border: 1px solid #ecf0f1; border-radius: 8px; padding: 20px; margin-top: 20px;">
+            <h3 style="margin: 0 0 20px 0; font-size: 14px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
+                📋 Onsite Task Completion History
+            </h3>
+            ${renderTaskCompletionHistory(equipment.firebaseKey)}
+        </div>
+        ` : ''}
     `;
 }
 
@@ -3698,7 +4238,1030 @@ ${equipment.mitigationPlan ? `
             printWindow.print();
         };
     }
-   
+
+// ===== ONSITE TASK TRACKER FUNCTIONS =====
+
+function openTaskTracker(firebaseKey) {
+    const item = projectData.find(p => p.firebaseKey === firebaseKey);
+    if (!item) {
+        showNotification('Equipment not found', 'error');
+        return;
+    }
+
+    currentEquipmentTasks = {
+        equipment: item,
+        firebaseKey: firebaseKey
+    };
+
+    renderTaskTracker();
+    document.getElementById('taskTrackerModal').style.display = 'block';
+}
+
+function closeTaskTracker() {
+    document.getElementById('taskTrackerModal').style.display = 'none';
+    currentEquipmentTasks = null;
+}
+
+function renderTaskTracker() {
+    if (!currentEquipmentTasks) return;
+
+    const { equipment, firebaseKey } = currentEquipmentTasks;
+    const tasks = onsiteTasks[firebaseKey] || [];
+    
+    // Update modal title
+    document.getElementById('taskTrackerTitle').textContent = 
+        `📋 Onsite Task Tracker - ${equipment.equipment}`;
+
+    // Calculate statistics
+    const completedTasks = tasks.filter(t => t.status === 'completed');
+    const inProgressTasks = tasks.filter(t => t.status === 'inprogress');
+    const pendingTasks = tasks.filter(t => t.status === 'pending');
+    
+    const totalTasks = tasks.length;
+    const completedCount = completedTasks.length;
+    const overallProgress = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
+
+    // Calculate prognosis
+    const mobDate = equipment.mobDate ? new Date(parseDateString(equipment.mobDate)) : null;
+    const targetCompDate = equipment.targetCompDate ? new Date(equipment.targetCompDate) : null;
+    const today = new Date();
+    
+    let daysSinceMob = 0;
+    let daysToTarget = 0;
+    let prognosisDate = null;
+    let riskLevel = 'low';
+    
+    if (mobDate && targetCompDate) {
+        daysSinceMob = Math.ceil((today - mobDate) / (1000 * 60 * 60 * 24));
+        daysToTarget = Math.ceil((targetCompDate - today) / (1000 * 60 * 60 * 24));
+        
+        // Calculate average task completion time
+        const completedTasksWithDates = completedTasks.filter(t => t.startDate && t.completedDate);
+        let avgTaskDays = 0;
+        
+        if (completedTasksWithDates.length > 0) {
+            const totalDays = completedTasksWithDates.reduce((sum, t) => {
+                const start = new Date(t.startDate);
+                const end = new Date(t.completedDate);
+                return sum + Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+            }, 0);
+            avgTaskDays = totalDays / completedTasksWithDates.length;
+        } else {
+            avgTaskDays = 3; // default estimate
+        }
+        
+        // Calculate remaining work
+        const remainingTasks = totalTasks - completedCount;
+        const estimatedRemainingDays = remainingTasks * avgTaskDays;
+        
+        prognosisDate = new Date(today);
+        prognosisDate.setDate(prognosisDate.getDate() + estimatedRemainingDays);
+        
+        // Determine risk level
+        const delayDays = Math.ceil((prognosisDate - targetCompDate) / (1000 * 60 * 60 * 24));
+        if (delayDays > 5) {
+            riskLevel = 'high';
+        } else if (delayDays > 0) {
+            riskLevel = 'medium';
+        } else {
+            riskLevel = 'low';
+        }
+    }
+
+    const content = `
+        <!-- Overall Progress -->
+        <div class="task-overall-progress">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h4 style="margin: 0; font-size: 14px; color: #2c3e50;">Overall Progress</h4>
+                <span style="font-size: 12px; color: #7f8c8d;">${completedCount}/${totalTasks} tasks completed</span>
+            </div>
+            <div class="task-overall-bar">
+                <div class="task-overall-fill" style="width: ${overallProgress}%;">
+                    ${overallProgress}%
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics -->
+        <div class="task-analytics">
+            <h4 style="margin: 0 0 5px 0; font-size: 14px;">📊 Performance Analytics</h4>
+            <div style="font-size: 11px; opacity: 0.9; margin-bottom: 10px;">
+                ${equipment.vendor} | MOB: ${equipment.mobDate} | Target: ${targetCompDate ? formatDateForDisplay(equipment.targetCompDate) : 'N/A'}
+            </div>
+            
+            <div class="task-analytics-grid">
+                <div class="task-analytics-item">
+                    <div class="task-analytics-value">${daysSinceMob}</div>
+                    <div class="task-analytics-label">Days Since Mobilization</div>
+                </div>
+                <div class="task-analytics-item">
+                    <div class="task-analytics-value">${daysToTarget}</div>
+                    <div class="task-analytics-label">Days to Target</div>
+                </div>
+                <div class="task-analytics-item">
+                    <div class="task-analytics-value">${completedCount}/${totalTasks}</div>
+                    <div class="task-analytics-label">Tasks Completed</div>
+                </div>
+                <div class="task-analytics-item">
+                    <div class="task-analytics-value">${overallProgress}%</div>
+                    <div class="task-analytics-label">Work Completed</div>
+                </div>
+            </div>
+
+            ${prognosisDate ? `
+            <div class="task-prognosis">
+                <div class="task-prognosis-header">
+                    🎯 Prognosa Completion: ${formatDateForDisplay(prognosisDate.toISOString().split('T')[0])}
+                    <span class="task-risk-badge task-risk-${riskLevel}">
+                        ${riskLevel === 'high' ? '🔴 HIGH RISK' : riskLevel === 'medium' ? '🟡 MEDIUM' : '🟢 ON TRACK'}
+                    </span>
+                </div>
+                <div style="font-size: 11px; color: #6c757d;">
+                    ${prognosisDate > targetCompDate ? 
+                        `⚠️ Estimated ${Math.ceil((prognosisDate - targetCompDate) / (1000 * 60 * 60 * 24))} days delay from target` : 
+                        `✅ Expected to complete ${Math.ceil((targetCompDate - prognosisDate) / (1000 * 60 * 60 * 24))} days early`
+                    }
+                </div>
+            </div>
+            ` : ''}
+        </div>
+
+        ${riskLevel !== 'low' ? `
+        <div class="task-recommendations">
+            <div class="task-recommendations-title">💡 Recommended Actions:</div>
+            <ul class="task-recommendations-list">
+                ${riskLevel === 'high' ? `
+                    <li>Fast-track in-progress tasks with additional resources</li>
+                    <li>Consider parallel execution of independent tasks</li>
+                    <li>Schedule weekend/overtime work if necessary</li>
+                    <li>Review and optimize task dependencies</li>
+                ` : `
+                    <li>Monitor progress closely for next few days</li>
+                    <li>Ensure resources are available as planned</li>
+                    <li>Prepare mitigation plan if delays occur</li>
+                `}
+            </ul>
+        </div>
+        ` : ''}
+
+        <!-- Task Groups -->
+        ${renderTaskGroup('completed', 'Completed', completedTasks, '🟢', true)}
+        ${renderTaskGroup('inprogress', 'In Progress', inProgressTasks, '🟡', false)}
+        ${renderTaskGroup('pending', 'Pending', pendingTasks, '⚪', false)}
+
+        <!-- Add Task Button -->
+        <div style="text-align: center; margin-top: 20px;">
+            <button onclick="openTaskEditModal()" style="padding: 12px 24px; background: #28a745; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                ➕ Add New Task
+            </button>
+        </div>
+    `;
+
+    document.getElementById('taskTrackerContent').innerHTML = content;
+}
+
+function renderTaskGroup(status, title, tasks, icon, collapsed) {
+    if (tasks.length === 0) return '';
+
+    const groupId = `task-group-${status}`;
+    
+    return `
+        <div class="task-group">
+            <div class="task-group-header ${status}" onclick="toggleTaskGroup('${groupId}')">
+                <div class="task-group-title">
+                    <span>${icon}</span>
+                    <span>${title.toUpperCase()}</span>
+                    <span class="task-group-count">${tasks.length} task${tasks.length > 1 ? 's' : ''}</span>
+                </div>
+                <span class="task-group-toggle" id="${groupId}-toggle">
+                    ${collapsed ? '▶' : '▼'}
+                </span>
+            </div>
+            <div id="${groupId}" style="display: ${collapsed ? 'none' : 'block'};">
+                ${tasks.map(task => renderTaskItem(task, status)).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function renderTaskItem(task, status) {
+    const progressPercent = task.progress || 0;
+    
+    return `
+        <div class="task-item ${status}">
+            <div class="task-header">
+                <div class="task-title">${task.name}</div>
+                <span class="task-status-badge ${status}">
+                    ${status === 'completed' ? '✅ DONE' : 
+                      status === 'inprogress' ? `⏳ ${progressPercent}%` : 
+                      '⬜ PENDING'}
+                </span>
+            </div>
+            
+            ${task.description ? `
+                <div style="font-size: 11px; color: #6c757d; margin-bottom: 8px;">
+                    ${task.description}
+                </div>
+            ` : ''}
+            
+            <div class="task-meta">
+                ${task.startDate ? `
+                    <div class="task-meta-item">
+                        <span>📅</span>
+                        <span>${task.completedDate ? 
+                            `${formatDateForDisplay(task.startDate)} - ${formatDateForDisplay(task.completedDate)}` : 
+                            `Started: ${formatDateForDisplay(task.startDate)}`
+                        }</span>
+                    </div>
+                ` : task.targetStart ? `
+                    <div class="task-meta-item">
+                        <span>🎯</span>
+                        <span>Target: ${formatDateForDisplay(task.targetStart)}${task.targetEnd ? ` - ${formatDateForDisplay(task.targetEnd)}` : ''}</span>
+                    </div>
+                ` : ''}
+                
+                ${task.duration ? `
+                    <div class="task-meta-item">
+                        <span>⏱️</span>
+                        <span>${task.duration} day${task.duration > 1 ? 's' : ''}</span>
+                    </div>
+                ` : ''}
+                
+                ${task.assignedTo ? `
+                    <div class="task-meta-item">
+                        <span>👤</span>
+                        <span>${task.assignedTo}</span>
+                    </div>
+                ` : ''}
+            </div>
+            
+            ${status === 'inprogress' && progressPercent < 100 ? `
+                <div class="task-progress-bar">
+                    <div class="task-progress-fill" style="width: ${progressPercent}%;"></div>
+                </div>
+            ` : ''}
+            
+            ${task.notes ? `
+                <div class="task-notes">
+                    📝 ${task.notes}
+                </div>
+            ` : ''}
+            
+            <div class="task-actions">
+                ${status === 'pending' ? `
+                    <button class="task-btn task-btn-start" onclick="startTask('${task.id}')">
+                        ▶️ Start Task
+                    </button>
+                ` : ''}
+                
+                ${status === 'inprogress' ? `
+                    <button class="task-btn task-btn-complete" onclick="completeTask('${task.id}')">
+                        ✅ Mark Complete
+                    </button>
+                    <button class="task-btn task-btn-update" onclick="updateTaskProgress('${task.id}')">
+                        📊 Update Progress
+                    </button>
+                ` : ''}
+                
+                <button class="task-btn task-btn-edit" onclick="editTask('${task.id}')">
+                    ✏️ Edit
+                </button>
+                <button class="task-btn task-btn-delete" onclick="deleteTask('${task.id}')">
+                    🗑️ Delete
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function toggleTaskGroup(groupId) {
+    const group = document.getElementById(groupId);
+    const toggle = document.getElementById(`${groupId}-toggle`);
+    
+    if (group.style.display === 'none') {
+        group.style.display = 'block';
+        toggle.textContent = '▼';
+    } else {
+        group.style.display = 'none';
+        toggle.textContent = '▶';
+    }
+}
+
+function openTaskEditModal(taskId = null) {
+    if (taskId) {
+        // Edit existing task
+        const tasks = onsiteTasks[currentEquipmentTasks.firebaseKey] || [];
+        const task = tasks.find(t => t.id === taskId);
+        
+        if (!task) {
+            showNotification('Task not found', 'error');
+            return;
+        }
+        
+        currentTaskEditId = taskId;
+        document.getElementById('taskEditTitle').textContent = 'Edit Task';
+        
+        document.getElementById('taskNameInput').value = task.name || '';
+        document.getElementById('taskDescInput').value = task.description || '';
+        document.getElementById('taskStartInput').value = task.targetStart || '';
+        document.getElementById('taskEndInput').value = task.targetEnd || '';
+        document.getElementById('taskDurationInput').value = task.duration || '';
+        document.getElementById('taskAssignedInput').value = task.assignedTo || '';
+        document.getElementById('taskStatusInput').value = task.status || 'pending';
+        document.getElementById('taskProgressInput').value = task.progress || 0;
+        document.getElementById('taskNotesInput').value = task.notes || '';
+        
+        // Show/hide progress based on status
+        const status = task.status || 'pending';
+        document.getElementById('taskProgressGroup').style.display = 
+            status === 'inprogress' ? 'block' : 'none';
+    } else {
+        // Add new task
+        currentTaskEditId = null;
+        document.getElementById('taskEditTitle').textContent = 'Add New Task';
+        
+        document.getElementById('taskNameInput').value = '';
+        document.getElementById('taskDescInput').value = '';
+        document.getElementById('taskStartInput').value = '';
+        document.getElementById('taskEndInput').value = '';
+        document.getElementById('taskDurationInput').value = '';
+        document.getElementById('taskAssignedInput').value = '';
+        document.getElementById('taskStatusInput').value = 'pending';
+        document.getElementById('taskProgressInput').value = 0;
+        document.getElementById('taskNotesInput').value = '';
+        
+        document.getElementById('taskProgressGroup').style.display = 'none';
+    }
+    
+    document.getElementById('taskEditModal').style.display = 'block';
+}
+
+function closeTaskEditModal() {
+    document.getElementById('taskEditModal').style.display = 'none';
+    currentTaskEditId = null;
+}
+
+function saveTask() {
+    const name = document.getElementById('taskNameInput').value.trim();
+    
+    if (!name) {
+        showNotification('Please enter task name', 'error');
+        return;
+    }
+    
+    const taskData = {
+        name: name,
+        description: document.getElementById('taskDescInput').value.trim(),
+        targetStart: document.getElementById('taskStartInput').value,
+        targetEnd: document.getElementById('taskEndInput').value,
+        duration: parseInt(document.getElementById('taskDurationInput').value) || null,
+        assignedTo: document.getElementById('taskAssignedInput').value.trim(),
+        status: document.getElementById('taskStatusInput').value,
+        progress: parseInt(document.getElementById('taskProgressInput').value) || 0,
+        notes: document.getElementById('taskNotesInput').value.trim()
+    };
+    
+    // Add timestamps based on status
+    if (taskData.status === 'inprogress' && !currentTaskEditId) {
+        taskData.startDate = new Date().toISOString().split('T')[0];
+    } else if (taskData.status === 'completed') {
+        if (!taskData.startDate) {
+            taskData.startDate = new Date().toISOString().split('T')[0];
+        }
+        taskData.completedDate = new Date().toISOString().split('T')[0];
+        taskData.progress = 100;
+    }
+    
+    const equipmentKey = currentEquipmentTasks.firebaseKey;
+    const tasks = onsiteTasks[equipmentKey] || [];
+    
+    if (currentTaskEditId) {
+        // Update existing task
+        const taskIndex = tasks.findIndex(t => t.id === currentTaskEditId);
+        if (taskIndex !== -1) {
+            tasks[taskIndex] = { ...tasks[taskIndex], ...taskData };
+        }
+    } else {
+        // Add new task
+        taskData.id = Date.now().toString();
+        taskData.createdAt = new Date().toISOString();
+        tasks.push(taskData);
+    }
+    
+    // Save to Firebase
+    database.ref(`onsiteTasks/${equipmentKey}`).set(tasks).then(() => {
+        showNotification(currentTaskEditId ? 'Task updated successfully' : 'Task added successfully', 'success');
+        closeTaskEditModal();
+        renderTaskTracker();
+        updateEquipmentProgress(equipmentKey);
+        
+        // Add to activity history
+        const equipment = currentEquipmentTasks.equipment;
+        
+        // Get the saved task for detailed logging
+        let savedTask;
+        if (currentTaskEditId) {
+            savedTask = tasks.find(t => t.id === currentTaskEditId);
+        } else {
+            savedTask = tasks[tasks.length - 1];
+        }
+        
+        activityHistoryRef.push({
+            timestamp: new Date().toISOString(),
+            type: currentTaskEditId ? 'update' : 'add',
+            category: currentTaskEditId ? 'TASK UPDATE' : 'TASK ADD',
+            title: equipment.vendor + ' - ' + equipment.equipment,
+            equipmentId: equipment.id,
+            equipment: equipment.equipment,
+            vendor: equipment.vendor,
+            description: `${currentTaskEditId ? 'Updated' : 'Added'} task: ${name}`,
+            notes: `${savedTask.description ? savedTask.description + '\n\n' : ''}Target: ${savedTask.targetStart || 'TBD'} to ${savedTask.targetEnd || 'TBD'}${savedTask.duration ? ' (' + savedTask.duration + ' days)' : ''}\nAssigned to: ${savedTask.assignedTo || 'Unassigned'}\nStatus: ${savedTask.status} | Progress: ${savedTask.progress}%\n${savedTask.notes ? '\nTask Notes: ' + savedTask.notes : ''}`,
+            user: savedTask.assignedTo || prompt('Enter your name:') || 'Anonymous',
+            icon: currentTaskEditId ? '📝' : '➕',
+            color: currentTaskEditId ? '#17a2b8' : '#28a745'
+        });
+    }).catch((error) => {
+        showNotification('Error saving task: ' + error.message, 'error');
+    });
+}
+
+function editTask(taskId) {
+    openTaskEditModal(taskId);
+}
+
+function deleteTask(taskId) {
+    if (!confirm('Are you sure you want to delete this task?')) return;
+    
+    const equipmentKey = currentEquipmentTasks.firebaseKey;
+    const tasks = onsiteTasks[equipmentKey] || [];
+    const task = tasks.find(t => t.id === taskId);
+    
+    if (!task) {
+        showNotification('Task not found', 'error');
+        return;
+    }
+    
+    const updatedTasks = tasks.filter(t => t.id !== taskId);
+    
+    database.ref(`onsiteTasks/${equipmentKey}`).set(updatedTasks).then(() => {
+        showNotification('Task deleted successfully', 'success');
+        renderTaskTracker();
+updateEquipmentProgress(equipmentKey);  // ← TAMBAHKAN BARIS INI
+        
+         const equipment = currentEquipmentTasks.equipment;
+        const deletedTask = tasks.find(t => t.id === taskId);
+        
+        activityHistoryRef.push({
+            timestamp: new Date().toISOString(),
+            type: 'delete',
+            category: 'TASK DELETE',
+            title: equipment.vendor + ' - ' + equipment.equipment,
+            equipmentId: equipment.id,
+            equipment: equipment.equipment,
+            vendor: equipment.vendor,
+            description: `Deleted task: ${deletedTask ? deletedTask.name : 'Unknown Task'}`,
+            notes: `${deletedTask && deletedTask.description ? deletedTask.description + '\n\n' : ''}Task was: ${deletedTask ? deletedTask.status : 'unknown'}\n${deletedTask && deletedTask.notes ? 'Notes: ' + deletedTask.notes : ''}`,
+            user: deletedTask && deletedTask.assignedTo ? deletedTask.assignedTo : 'System',
+            icon: '🗑️',
+            color: '#e74c3c'
+        });
+    }).catch((error) => {
+        showNotification('Error deleting task: ' + error.message, 'error');
+    });
+}
+
+function startTask(taskId) {
+    const equipmentKey = currentEquipmentTasks.firebaseKey;
+    const tasks = onsiteTasks[equipmentKey] || [];
+    const taskIndex = tasks.findIndex(t => t.id === taskId);
+    
+    if (taskIndex === -1) {
+        showNotification('Task not found', 'error');
+        return;
+    }
+    
+    tasks[taskIndex].status = 'inprogress';
+    tasks[taskIndex].startDate = new Date().toISOString().split('T')[0];
+    tasks[taskIndex].progress = 0;
+    
+    database.ref(`onsiteTasks/${equipmentKey}`).set(tasks).then(() => {
+        showNotification('Task started', 'success');
+        renderTaskTracker();
+        
+        // Add to activity history
+        const equipment = currentEquipmentTasks.equipment;
+        const startedTask = tasks[taskIndex];
+        
+        activityHistoryRef.push({
+            timestamp: new Date().toISOString(),
+            type: 'update',
+            category: 'TASK START',
+            title: equipment.vendor + ' - ' + equipment.equipment,
+            equipmentId: equipment.id,
+            equipment: equipment.equipment,
+            vendor: equipment.vendor,
+            description: `Started task: ${startedTask.name}`,
+            notes: `${startedTask.description ? startedTask.description + '\n\n' : ''}Target: ${startedTask.targetStart} to ${startedTask.targetEnd} (${startedTask.duration} days)\nAssigned to: ${startedTask.assignedTo || 'Unassigned'}`,
+            user: startedTask.assignedTo || 'System',
+            icon: '▶️',
+            color: '#3498db'
+        });
+    }).catch((error) => {
+        showNotification('Error starting task: ' + error.message, 'error');
+    });
+}
+
+function completeTask(taskId) {
+    const equipmentKey = currentEquipmentTasks.firebaseKey;
+    const tasks = onsiteTasks[equipmentKey] || [];
+    const taskIndex = tasks.findIndex(t => t.id === taskId);
+    
+    if (taskIndex === -1) {
+        showNotification('Task not found', 'error');
+        return;
+    }
+    
+    tasks[taskIndex].status = 'completed';
+    tasks[taskIndex].completedDate = new Date().toISOString().split('T')[0];
+    tasks[taskIndex].progress = 100;
+    
+    database.ref(`onsiteTasks/${equipmentKey}`).set(tasks).then(() => {
+        showNotification('Task completed! 🎉', 'success');
+        renderTaskTracker();
+// Update equipment progress based on completed tasks
+        updateEquipmentProgress(equipmentKey);  // ← TAMBAHKAN BARIS INI
+        
+        // Add to activity history
+        const equipment = currentEquipmentTasks.equipment;
+        const completedTask = tasks[taskIndex];
+        
+        activityHistoryRef.push({
+            timestamp: new Date().toISOString(),
+            type: 'update',
+            category: 'TASK COMPLETE',
+            title: equipment.vendor + ' - ' + equipment.equipment,
+            equipmentId: equipment.id,
+            equipment: equipment.equipment,
+            vendor: equipment.vendor,
+            description: `Completed task: ${completedTask.name}`,
+            notes: `${completedTask.description ? completedTask.description + '\n\n' : ''}Task completed successfully.\n${completedTask.notes ? '\nTask Notes: ' + completedTask.notes : ''}`,
+            user: completedTask.assignedTo || prompt('Enter your name:') || 'Anonymous',
+            icon: '✅',
+            color: '#28a745'
+        });
+    }).catch((error) => {
+        showNotification('Error completing task: ' + error.message, 'error');
+    });
+}
+
+function updateTaskProgress(taskId) {
+    const equipmentKey = currentEquipmentTasks.firebaseKey;
+    const tasks = onsiteTasks[equipmentKey] || [];
+    const taskIndex = tasks.findIndex(t => t.id === taskId);
+    
+    if (taskIndex === -1) {
+        showNotification('Task not found', 'error');
+        return;
+    }
+    
+    const currentProgress = tasks[taskIndex].progress || 0;
+    const newProgress = prompt(`Update progress for "${tasks[taskIndex].name}"\nCurrent: ${currentProgress}%\n\nEnter new progress (0-100):`, currentProgress);
+    
+    if (newProgress === null) return; // User cancelled
+    
+    const progress = parseInt(newProgress);
+    
+    if (isNaN(progress) || progress < 0 || progress > 100) {
+        showNotification('Please enter a valid progress (0-100)', 'error');
+        return;
+    }
+    
+    tasks[taskIndex].progress = progress;
+    
+    // If 100%, mark as completed
+    if (progress === 100) {
+        tasks[taskIndex].status = 'completed';
+        tasks[taskIndex].completedDate = new Date().toISOString().split('T')[0];
+    }
+    
+    database.ref(`onsiteTasks/${equipmentKey}`).set(tasks).then(() => {
+        showNotification('Progress updated to ' + progress + '%', 'success');
+        renderTaskTracker();
+renderTaskTracker();
+        updateEquipmentProgress(equipmentKey);  // ← TAMBAHKAN
+        
+        // Add to activity history
+        
+        // Add to activity history
+        const equipment = currentEquipmentTasks.equipment;
+        const updatedTask = tasks[taskIndex];
+        
+        activityHistoryRef.push({
+            timestamp: new Date().toISOString(),
+            type: 'update',
+            category: 'TASK PROGRESS',
+            title: equipment.vendor + ' - ' + equipment.equipment,
+            equipmentId: equipment.id,
+            equipment: equipment.equipment,
+            vendor: equipment.vendor,
+            description: `Updated task progress: ${updatedTask.name}`,
+            notes: `Progress: ${progress}%\n${updatedTask.description ? '\nTask: ' + updatedTask.description : ''}\n${updatedTask.notes ? '\nNotes: ' + updatedTask.notes : ''}`,
+            user: updatedTask.assignedTo || 'System',
+            icon: '📊',
+            color: '#f39c12'
+        });
+    }).catch((error) => {
+        showNotification('Error updating progress: ' + error.message, 'error');
+    });
+}
+
+function exportTaskReport() {
+    if (!currentEquipmentTasks) return;
+
+    const { equipment, firebaseKey } = currentEquipmentTasks;
+    const tasks = onsiteTasks[firebaseKey] || [];
+    
+    const completedTasks = tasks.filter(t => t.status === 'completed');
+    const inProgressTasks = tasks.filter(t => t.status === 'inprogress');
+    const pendingTasks = tasks.filter(t => t.status === 'pending');
+    
+    const printWindow = window.open('', '_blank');
+    const currentDate = new Date().toLocaleString();
+    
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Onsite Task Report - ${equipment.equipment}</title>
+        <style>
+            body { 
+                font-family: Arial, sans-serif; 
+                margin: 20px; 
+                font-size: 11px; 
+                background: white; 
+                color: #333; 
+            }
+            .header { 
+                text-align: center; 
+                margin-bottom: 30px; 
+                border-bottom: 2px solid #333; 
+                padding-bottom: 15px; 
+            }
+            .header h1 { 
+                margin: 0; 
+                font-size: 18px; 
+                color: #333; 
+            }
+            .info-box { 
+                background: #f8f9fa; 
+                padding: 15px; 
+                margin-bottom: 20px; 
+                border-radius: 6px; 
+            }
+            .info-grid { 
+                display: grid; 
+                grid-template-columns: repeat(2, 1fr); 
+                gap: 10px; 
+            }
+            .section { 
+                margin-bottom: 30px; 
+            }
+            .section-title { 
+                font-size: 14px; 
+                font-weight: bold; 
+                margin-bottom: 15px; 
+                padding-bottom: 5px; 
+                border-bottom: 2px solid #333; 
+            }
+            .task-item { 
+                border: 1px solid #ddd; 
+                padding: 12px; 
+                margin-bottom: 10px; 
+                border-radius: 4px; 
+                page-break-inside: avoid; 
+            }
+            .task-item.completed { 
+                border-left: 4px solid #28a745; 
+                background: #f8fff9; 
+            }
+            .task-item.inprogress { 
+                border-left: 4px solid #ffc107; 
+                background: #fffef8; 
+            }
+            .task-item.pending { 
+                border-left: 4px solid #6c757d; 
+                background: #f8f9fa; 
+            }
+            .task-name { 
+                font-weight: bold; 
+                font-size: 12px; 
+                margin-bottom: 5px; 
+            }
+            .task-meta { 
+                font-size: 10px; 
+                color: #666; 
+                margin: 5px 0; 
+            }
+            .task-notes { 
+                font-size: 10px; 
+                background: white; 
+                padding: 8px; 
+                margin-top: 8px; 
+                border-radius: 3px; 
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>📋 Onsite Task Report</h1>
+            <p>${equipment.equipment}</p>
+            <p style="font-size: 10px;">Vendor: ${equipment.vendor} | Generated on: ${currentDate}</p>
+        </div>
+        
+        <div class="info-box">
+            <div class="info-grid">
+<div><strong>MOB Date:</strong> ${equipment.mobDate}</div>
+                <div><strong>Target Completion:</strong> ${equipment.targetCompDate ? formatDateForDisplay(equipment.targetCompDate) : 'N/A'}</div>
+                <div><strong>Total Tasks:</strong> ${tasks.length}</div>
+                <div><strong>Completed:</strong> ${completedTasks.length} (${tasks.length > 0 ? Math.round((completedTasks.length/tasks.length)*100) : 0}%)</div>
+            </div>
+        </div>
+
+${completedTasks.length > 0 ? `
+    <div class="section">
+        <div class="section-title">✅ Completed Tasks (${completedTasks.length})</div>
+        ${completedTasks.map(task => `
+            <div class="task-item completed">
+                <div class="task-name">✅ ${task.name}</div>
+                ${task.description ? `<div style="font-size: 10px; color: #666; margin: 3px 0;">${task.description}</div>` : ''}
+                <div class="task-meta">
+                    ${task.startDate ? `Started: ${formatDateForDisplay(task.startDate)}` : ''} 
+                    ${task.completedDate ? `| Completed: ${formatDateForDisplay(task.completedDate)}` : ''}
+                    ${task.duration ? `| Duration: ${task.duration} days` : ''}
+                    ${task.assignedTo ? `| By: ${task.assignedTo}` : ''}
+                </div>
+                ${task.notes ? `<div class="task-notes">📝 ${task.notes}</div>` : ''}
+            </div>
+        `).join('')}
+    </div>
+    ` : ''}
+
+    ${inProgressTasks.length > 0 ? `
+    <div class="section">
+        <div class="section-title">⏳ In Progress (${inProgressTasks.length})</div>
+        ${inProgressTasks.map(task => `
+            <div class="task-item inprogress">
+                <div class="task-name">⏳ ${task.name} - ${task.progress || 0}%</div>
+                ${task.description ? `<div style="font-size: 10px; color: #666; margin: 3px 0;">${task.description}</div>` : ''}
+                <div class="task-meta">
+                    ${task.startDate ? `Started: ${formatDateForDisplay(task.startDate)}` : ''}
+                    ${task.targetEnd ? `| Target: ${formatDateForDisplay(task.targetEnd)}` : ''}
+                    ${task.assignedTo ? `| By: ${task.assignedTo}` : ''}
+                </div>
+                ${task.notes ? `<div class="task-notes">📝 ${task.notes}</div>` : ''}
+            </div>
+        `).join('')}
+    </div>
+    ` : ''}
+
+    ${pendingTasks.length > 0 ? `
+    <div class="section">
+        <div class="section-title">⬜ Pending (${pendingTasks.length})</div>
+        ${pendingTasks.map(task => `
+            <div class="task-item pending">
+                <div class="task-name">⬜ ${task.name}</div>
+                ${task.description ? `<div style="font-size: 10px; color: #666; margin: 3px 0;">${task.description}</div>` : ''}
+                <div class="task-meta">
+                    ${task.targetStart ? `Target Start: ${formatDateForDisplay(task.targetStart)}` : ''}
+                    ${task.targetEnd ? `| Target End: ${formatDateForDisplay(task.targetEnd)}` : ''}
+                    ${task.duration ? `| Est. ${task.duration} days` : ''}
+                    ${task.assignedTo ? `| Assigned: ${task.assignedTo}` : ''}
+                </div>
+                ${task.notes ? `<div class="task-notes">📝 ${task.notes}</div>` : ''}
+            </div>
+        `).join('')}
+    </div>
+    ` : ''}
+
+    <div style="margin-top: 30px; padding-top: 15px; border-top: 2px solid #333; text-align: center;">
+        <p style="margin: 0; font-size: 11px; font-weight: bold;">Developed by TS-KPB</p>
+        <p style="margin: 5px 0 0 0; font-size: 9px; color: #999;">© 2025 All Rights Reserved</p>
+    </div>
+</body>
+</html>
+`;
+
+printWindow.document.write(htmlContent);
+printWindow.document.close();
+printWindow.onload = function() {
+    printWindow.print();
+};
+}
+
+// ===== UPDATE EQUIPMENT PROGRESS BASED ON TASKS =====
+
+function updateEquipmentProgress(equipmentKey) {
+    const tasks = onsiteTasks[equipmentKey] || [];
+    
+    if (tasks.length === 0) return;
+    
+    // Calculate overall progress
+    const totalTasks = tasks.length;
+    const completedTasks = tasks.filter(t => t.status === 'completed').length;
+    const overallProgress = Math.round((completedTasks / totalTasks) * 100);
+    
+    // Update equipment progress in Firebase
+    database.ref(`projectData/${equipmentKey}/progress`).set(overallProgress).then(() => {
+        console.log('Equipment progress updated:', overallProgress + '%');
+        
+        // Log to activity history
+        const equipment = projectData.find(p => p.firebaseKey === equipmentKey);
+        if (equipment) {
+            activityHistoryRef.push({
+                timestamp: new Date().toISOString(),
+                type: 'update',
+                category: 'PROGRESS UPDATE',
+                title: equipment.vendor + ' - ' + equipment.equipment,
+                equipmentId: equipment.id,
+                equipment: equipment.equipment,
+                vendor: equipment.vendor,
+                description: `Overall progress updated based on task completion`,
+                notes: `Progress: ${overallProgress}% (${completedTasks}/${totalTasks} tasks completed)`,
+                user: 'System Auto-Update',
+                icon: '📊',
+                color: '#17a2b8'
+            });
+        }
+    });
+}
+
+// ===== RENDER TASK COMPLETION HISTORY =====
+
+function renderTaskCompletionHistory(equipmentKey) {
+    const tasks = onsiteTasks[equipmentKey] || [];
+    
+    if (tasks.length === 0) {
+        return '<p style="color: #7f8c8d; font-style: italic;">No tasks recorded yet.</p>';
+    }
+    
+    const completedTasks = tasks.filter(t => t.status === 'completed').sort((a, b) => {
+        return new Date(b.completedDate) - new Date(a.completedDate);
+    });
+    
+    const inProgressTasks = tasks.filter(t => t.status === 'inprogress');
+    const pendingTasks = tasks.filter(t => t.status === 'pending');
+    
+    let html = `
+        <div style="margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                <div style="background: #d4edda; padding: 15px; border-radius: 6px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #28a745;">${completedTasks.length}</div>
+                    <div style="font-size: 12px; color: #155724;">Completed</div>
+                </div>
+                <div style="background: #fff3cd; padding: 15px; border-radius: 6px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #ffc107;">${inProgressTasks.length}</div>
+                    <div style="font-size: 12px; color: #856404;">In Progress</div>
+                </div>
+                <div style="background: #d1ecf1; padding: 15px; border-radius: 6px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #0c5460;">${pendingTasks.length}</div>
+                    <div style="font-size: 12px; color: #0c5460;">Pending</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    if (completedTasks.length > 0) {
+        html += '<h4 style="margin: 15px 0 10px 0; color: #28a745; font-size: 14px;">✅ Completed Tasks:</h4>';
+        completedTasks.forEach(task => {
+            const startDate = task.startDate ? formatDateForDisplay(task.startDate) : 'N/A';
+            const endDate = task.completedDate ? formatDateForDisplay(task.completedDate) : 'N/A';
+            const duration = task.duration || 'N/A';
+            
+            html += `
+    <div style="padding: 12px; margin-bottom: 10px; background: #f8fff9; border-left: 4px solid #28a745; border-radius: 4px;">
+        <div style="font-weight: bold; font-size: 13px; color: #2c3e50; margin-bottom: 5px;">
+            ✅ ${task.name}
+        </div>
+        <div style="font-size: 11px; color: #6c757d; line-height: 1.5;">
+            ${task.description ? `<div>${task.description}</div>` : ''}
+            <div><strong>Duration:</strong> ${duration} days | <strong>Period:</strong> ${startDate} - ${endDate}</div>
+            ${task.assignedTo ? `<div><strong>By:</strong> ${task.assignedTo}</div>` : ''}
+            ${task.notes ? `<div style="background: white; padding: 6px; border-radius: 3px; margin-top: 5px;"><strong>Notes:</strong> ${task.notes}</div>` : ''}
+        </div>
+    </div>
+`;
+        });
+    }
+    
+    if (inProgressTasks.length > 0) {
+        html += '<h4 style="margin: 15px 0 10px 0; color: #ffc107; font-size: 14px;">⏳ In Progress:</h4>';
+        inProgressTasks.forEach(task => {
+            html += `
+                <div style="padding: 12px; margin-bottom: 10px; background: #fffef8; border-left: 4px solid #ffc107; border-radius: 4px;">
+                    <div style="font-weight: bold; font-size: 13px; color: #2c3e50; margin-bottom: 5px;">
+                        ⏳ ${task.name} - ${task.progress || 0}%
+                    </div>
+                    <div style="font-size: 11px; color: #6c757d;">
+                        ${task.assignedTo ? `<strong>By:</strong> ${task.assignedTo}` : ''}
+                    </div>
+                    <div style="width: 100%; height: 6px; background: #f0f0f0; border-radius: 3px; margin-top: 5px;">
+                        <div style="width: ${task.progress || 0}%; height: 100%; background: #ffc107; border-radius: 3px;"></div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    if (pendingTasks.length > 0) {
+        html += '<h4 style="margin: 15px 0 10px 0; color: #6c757d; font-size: 14px;">⬜ Pending:</h4>';
+        pendingTasks.forEach(task => {
+            html += `
+                <div style="padding: 12px; margin-bottom: 10px; background: #f8f9fa; border-left: 4px solid #6c757d; border-radius: 4px;">
+                    <div style="font-weight: bold; font-size: 13px; color: #2c3e50; margin-bottom: 5px;">
+                        ⬜ ${task.name}
+                    </div>
+                    <div style="font-size: 11px; color: #6c757d;">
+                        ${task.targetStart ? `<strong>Target:</strong> ${formatDateForDisplay(task.targetStart)}` : ''}
+                        ${task.assignedTo ? ` | <strong>Assigned:</strong> ${task.assignedTo}` : ''}
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    return html;
+}
+
+// ===== DROPDOWN FUNCTIONS =====
+
+// ===== DROPDOWN FUNCTIONS (Event Delegation) =====
+
+function initDropdowns() {
+    // Handle dropdown trigger clicks
+    document.addEventListener('click', function(event) {
+        const trigger = event.target.closest('.dropdown-trigger');
+        
+        if (trigger) {
+            event.stopPropagation();
+            const dropdownId = trigger.getAttribute('data-dropdown');
+            toggleDropdown(dropdownId);
+        } else {
+            // Close all dropdowns if clicked outside
+            closeAllDropdowns();
+        }
+    });
+    
+    // Handle dropdown item clicks
+    document.addEventListener('click', function(event) {
+        const item = event.target.closest('.dropdown-item');
+        
+        if (item) {
+            event.stopPropagation();
+            const action = item.getAttribute('data-action');
+            const key = item.getAttribute('data-key');
+            
+            if (action === 'tasks') {
+                openTaskTracker(key);
+            } else if (action === 'progress') {
+                showProgressReportById(key);
+            }
+            
+            closeAllDropdowns();
+        }
+    });
+    
+    // Add hover effect to dropdown items
+    document.addEventListener('mouseover', function(event) {
+        const item = event.target.closest('.dropdown-item');
+        if (item) {
+            item.style.background = '#f8f9fa';
+        }
+    });
+    
+    document.addEventListener('mouseout', function(event) {
+        const item = event.target.closest('.dropdown-item');
+        if (item) {
+            item.style.background = 'white';
+        }
+    });
+}
+
+function toggleDropdown(dropdownId) {
+    // Close all other dropdowns first
+    closeAllDropdowns();
+    
+    // Toggle current dropdown
+    const dropdown = document.getElementById(dropdownId);
+    if (dropdown) {
+        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+function closeAllDropdowns() {
+    document.querySelectorAll('.action-dropdown').forEach(dropdown => {
+        dropdown.style.display = 'none';
+    });
+}
 
     // ===== EXPORT =====
     function exportToPDF() {
@@ -3865,6 +5428,28 @@ window.clearAllFilters = clearAllFilters;
 window.showProgressReportById = showProgressReportById;
         window.closeProgressReport = closeProgressReport;
         window.exportProgressReportPDF = exportProgressReportPDF;
+// Task Tracker Global Functions
+window.openTaskTracker = openTaskTracker;
+window.closeTaskTracker = closeTaskTracker;
+window.toggleTaskGroup = toggleTaskGroup;
+window.openTaskEditModal = openTaskEditModal;
+window.closeTaskEditModal = closeTaskEditModal;
+window.saveTask = saveTask;
+window.editTask = editTask;
+window.deleteTask = deleteTask;
+window.startTask = startTask;
+window.completeTask = completeTask;
+window.updateTaskProgress = updateTaskProgress;
+window.exportTaskReport = exportTaskReport;
+// Dropdown Global Functions
+window.initDropdowns = initDropdowns;
+window.toggleDropdown = toggleDropdown;
+window.closeAllDropdowns = closeAllDropdowns;
+window.updateEquipmentProgress = updateEquipmentProgress;
+// Task History Render
+window.renderTaskCompletionHistory = renderTaskCompletionHistory;
+window.toggleDropdown = toggleDropdown;
+window.closeAllDropdowns = closeAllDropdowns;
         window.exportToPDF = exportToPDF;
         window.closeModal = closeModal;
         window.filterByIssueType = filterByIssueType;
