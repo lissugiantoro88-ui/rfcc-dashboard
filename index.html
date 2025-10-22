@@ -1265,19 +1265,14 @@
     <div class="dashboard-container">
       <div class="header">
             <h1>RFCC VENDOR MOBILIZATION & PROGRESS TRACKING</h1>
-            <div style="display: flex; justify-content: center; align-items: center; position: relative;">
+            <div style="display: flex; justify-content: center; align-items: center; gap: 25px;">
                 <div class="subtitle" style="font-size: 13px; opacity: 0.85;">
                     📅 Updated: <span id="currentDate"></span>
                 </div>
-<div class="subtitle" style="font-size: 13px; opacity: 0.85;">
-                📅 Updated: <span id="currentDate"></span>
-            </div>
-            
-            <!-- Auto-Sort Toggle -->
-            <div style="margin-top: 8px;">
-                <label style="display: inline-flex; align-items: center; gap: 5px; cursor: pointer; font-size: 11px; background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 12px; transition: all 0.2s;">
-                    <input type="checkbox" id="sortToggle" checked onchange="toggleAutoSort(this.checked)" style="cursor: pointer;">
-                    <span>🔄 Auto-Sort Recent Updates</span>
+                <!-- Auto-Sort Toggle - Sejajar dengan tanggal -->
+                <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 11px; background: rgba(255,255,255,0.15); padding: 5px 12px; border-radius: 8px; transition: all 0.3s; backdrop-filter: blur(5px);">
+                    <input type="checkbox" id="sortToggle" checked onchange="toggleAutoSort(this.checked)" style="width: 14px; height: 14px; cursor: pointer; accent-color: #27ae60;">
+                    <span style="color: #fff; font-weight: 500; letter-spacing: 0.3px;">✓ Auto-sort</span>
                 </label>
             </div>
             
@@ -1942,7 +1937,7 @@ projectDataRef.on('value', (snapshot) => {
 });
 
     // Listen for activity history changes
-    activityHistoryRef.orderByChild('timestamp').limitToLast(50).on('value', (snapshot) => {
+    activityHistoryRef.orderByChild('timestamp').on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
             activityHistory = Object.keys(data).map(key => ({
