@@ -3341,6 +3341,17 @@ if (autoSortEnabled && filteredData.length > 0) {
     const NOW = Date.now();
     const RECENT_THRESHOLD = 5 * 60 * 1000; // 5 menit dalam milliseconds
     
+    console.log('🔄 AUTO-SORT ACTIVE');
+    console.log('📊 Items to sort:', filteredData.length);
+    
+    // Debug: Log items with lastUpdated
+    filteredData.forEach(item => {
+        if (item.lastUpdated) {
+            const timeSince = NOW - new Date(item.lastUpdated).getTime();
+            console.log(`📦 ${item.equipment}: updated ${Math.floor(timeSince/1000)}s ago`);
+        }
+    });
+    
     filteredData = filteredData.slice().sort((a, b) => {
         // Cek apakah item baru diupdate (dalam 5 menit terakhir)
         const isRecentA = a.lastUpdated && (NOW - new Date(a.lastUpdated).getTime()) < RECENT_THRESHOLD;
@@ -3393,22 +3404,30 @@ if (isRecentlyUpdated) {
 row.className = rowClasses;
 row.setAttribute('data-firebase-key', item.firebaseKey);
 
-// ✨✨✨ TAMBAHKAN KODE INI (BONUS: HIGHLIGHT KUNING) ✨✨✨
-// Highlight item yang baru diupdate (5 menit)
+// ✨✨✨ HIGHLIGHT ITEM YANG BARU DIUPDATE ✨✨✨
 if (item.lastUpdated) {
     const timeSinceUpdate = Date.now() - new Date(item.lastUpdated).getTime();
+    
+    // Highlight kuning untuk item yang diupdate < 5 menit
     if (timeSinceUpdate < 5 * 60 * 1000) { // 5 menit
         row.style.backgroundColor = '#fff3cd'; // Kuning muda
         row.style.borderLeft = '4px solid #ffc107'; // Border kuning
+        row.style.transition = 'all 0.5s ease'; // Smooth transition
         
-        // Hapus highlight setelah 5 detik
-        setTimeout(() => {
-            row.style.backgroundColor = '';
-            row.style.borderLeft = '';
-        }, 5000);
+        // Tambahkan badge "UPDATED"
+        const firstCell = row.cells[0];
+        if (firstCell) {
+            const badge = document.createElement('span');
+            badge.textContent = '🔥 NEW';
+            badge.style.cssText = 'background: #ffc107; color: #000; padding: 2px 6px; border-radius: 10px; font-size: 8px; font-weight: bold; margin-left: 5px;';
+            firstCell.appendChild(badge);
+        }
+        
+        // ⭐ PENTING: JANGAN hapus highlight terlalu cepat!
+        // Biarkan highlight tetap ada selama item masih "recent" (< 5 menit)
     }
 }
-// ✨✨✨ AKHIR KODE TAMBAHAN ✨✨✨
+// ✨✨✨ AKHIR HIGHLIGHT CODE ✨✨✨
 
 // Calculate time since update
 let timeSinceUpdate = '';
@@ -3930,24 +3949,34 @@ if (item.mitigationPlan !== taskData.mitigationPlan) changes.push(`Mitigation Pl
             const detailedNotes = userNotes ? `${userNotes} | Changes: ${changeDescription}` : `Changes: ${changeDescription}`;
             
             projectDataRef.child(currentEditId).update(taskData).then(() => {
-                // Add to history
-                activityHistoryRef.push({
-                    timestamp: new Date().toISOString(),
-                    type: 'update',
-                    category: 'UPDATE',
-                    title: vendor + ' - ' + equipment.substring(0, 30),
-                    equipmentId: item.id,
-                    equipment: equipment,
-                    vendor: vendor,
-                    description: `${changes.length} field(s) updated`,
-                    notes: detailedNotes,
-                    user: prompt('Enter your name:') || 'Anonymous',
-                    icon: '📝',
-                    color: '#27ae60'
-                });
-                
-              showNotification('✅ Task updated successfully! Check the highlighted row.', 'success');
-                closeModal();
+    // ⭐ UPDATE LOCAL DATA IMMEDIATELY
+    const itemIndex = projectData.findIndex(p => p.firebaseKey === currentEditId);
+    if (itemIndex !== -1) {
+        projectData[itemIndex] = { ...projectData[itemIndex], ...taskData };
+        console.log('✅ Local data updated:', projectData[itemIndex].lastUpdated);
+    }
+    
+    // Add to history
+    activityHistoryRef.push({
+        timestamp: new Date().toISOString(),
+        type: 'update',
+        category: 'UPDATE',
+        title: vendor + ' - ' + equipment.substring(0, 30),
+        equipmentId: item.id,
+        equipment: equipment,
+        vendor: vendor,
+        description: `${changes.length} field(s) updated`,
+        notes: detailedNotes,
+        user: prompt('Enter your name:') || 'Anonymous',
+        icon: '📝',
+        color: '#27ae60'
+    });
+    
+    showNotification('✅ Task updated successfully! Check the highlighted row.', 'success');
+    closeModal();
+    
+    // ⭐ FORCE REPOPULATE TABLE TO TRIGGER SORT
+    populateTable();
                 
                 // Scroll to updated item
                 setTimeout(() => {
