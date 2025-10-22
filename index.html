@@ -1269,6 +1269,19 @@
                 <div class="subtitle" style="font-size: 13px; opacity: 0.85;">
                     📅 Updated: <span id="currentDate"></span>
                 </div>
+<div class="subtitle" style="font-size: 13px; opacity: 0.85;">
+                📅 Updated: <span id="currentDate"></span>
+            </div>
+            
+            <!-- Auto-Sort Toggle -->
+            <div style="margin-top: 8px;">
+                <label style="display: inline-flex; align-items: center; gap: 5px; cursor: pointer; font-size: 11px; background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 12px; transition: all 0.2s;">
+                    <input type="checkbox" id="sortToggle" checked onchange="toggleAutoSort(this.checked)" style="cursor: pointer;">
+                    <span>🔄 Auto-Sort Recent Updates</span>
+                </label>
+            </div>
+            
+            <div style="position: absolute; right: 20px;
                 <div style="position: absolute; right: 20px; font-size: 11px; background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 15px;">
                     👥 <span id="onlineCount" style="font-weight: bold;">0</span> online
                 </div>
@@ -1585,8 +1598,61 @@
             <h3 class="modal-title">📊 Equipment Progress Report</h3>
             <span class="close" onclick="closeProgressReport()">&times;</span>
         </div>
-        <div id="progressReportContent" style="max-height: 70vh; overflow-y: auto;">
+        
+        <!-- TAMBAHKAN FILTER SECTION INI -->
+        <div style="background: #f8f9fa; padding: 15px; border-bottom: 2px solid #e9ecef; margin-bottom: 15px;">
+            <h4 style="margin: 0 0 12px 0; font-size: 14px; color: #2c3e50; display: flex; align-items: center; gap: 8px;">
+                🔍 Filter Timeline
+            </h4>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                <div>
+                    <label style="display: block; font-size: 11px; font-weight: 600; color: #495057; margin-bottom: 4px;">📅 Dari Tanggal:</label>
+                    <input type="date" id="reportDateFrom" style="width: 100%; padding: 6px; border: 1px solid #ced4da; border-radius: 4px; font-size: 11px;" onchange="applyReportFilter()">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 11px; font-weight: 600; color: #495057; margin-bottom: 4px;">📅 Sampai Tanggal:</label>
+                    <input type="date" id="reportDateTo" style="width: 100%; padding: 6px; border: 1px solid #ced4da; border-radius: 4px; font-size: 11px;" onchange="applyReportFilter()">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 11px; font-weight: 600; color: #495057; margin-bottom: 4px;">📂 Tipe Update:</label>
+                    <select id="reportFilterType" style="width: 100%; padding: 6px; border: 1px solid #ced4da; border-radius: 4px; font-size: 11px;" onchange="applyReportFilter()">
+                        <option value="all">Semua Tipe</option>
+                        <option value="ADD">Task Added</option>
+                        <option value="UPDATE">Progress Update</option>
+                        <option value="TASK START">Task Started</option>
+                        <option value="TASK COMPLETE">Task Completed</option>
+                        <option value="PROGRESS UPDATE">Progress Update</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-size: 11px; color: #6c757d;">
+                    <span id="reportTotalCount">0</span> updates ditemukan
+                </div>
+                <button onclick="clearReportFilter()" style="padding: 6px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600;">
+                    🔄 Reset Filter
+                </button>
+            </div>
+        </div>
+        
+        <div id="progressReportContent" style="max-height: 50vh; overflow-y: auto;">
             <!-- Content will be populated by JavaScript -->
+        </div>
+        
+        <!-- TAMBAHKAN PAGINATION CONTROLS INI -->
+        <div style="margin-top: 15px; padding: 12px; background: #f8f9fa; border-radius: 6px; border-top: 2px solid #e9ecef;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-size: 11px; color: #6c757d;">
+                    Menampilkan <span id="reportPageInfo">0</span> updates
+                </div>
+                <div style="display: flex; gap: 5px; align-items: center;">
+                    <button onclick="changeReportPage(-1)" id="prevReportPageBtn" style="padding: 6px 12px; background: #34495e; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600;">◄ Prev</button>
+                    <span id="reportPageNumbers" style="display: flex; gap: 5px;"></span>
+                    <button onclick="changeReportPage(1)" id="nextReportPageBtn" style="padding: 6px 12px; background: #34495e; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600;">Next ►</button>
+                </div>
+            </div>
         </div>
         <div style="margin-top: 20px; text-align: center; padding-top: 15px; border-top: 1px solid #ecf0f1;">
             <button onclick="exportProgressReportPDF()" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; margin-right: 10px;">📄 Export as PDF</button>
@@ -1830,6 +1896,9 @@ database.ref('onlineUsers').on('value', (snapshot) => {
         let activityHistory = [];
         let currentEditId = null;
         let currentFilter = 'all';
+ // ===== AUTO-SORT SETTINGS =====
+        let autoSortEnabled = true; // Set false untuk disable auto-sort
+
 // Task Tracker Variables
 let currentEquipmentTasks = null;
 let currentTaskEditId = null;
@@ -1857,19 +1926,20 @@ let onsiteTasks = {}; // Store tasks per equipment
     // ===== FIREBASE REAL-TIME LISTENERS =====
     
     // Listen for project data changes
-    projectDataRef.on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            projectData = Object.keys(data).map(key => ({
-                firebaseKey: key,
-                ...data[key]
-            }));
-        } else {
-            projectData = [];
-        }
-        populateTable();
-        updateStats();
-    });
+projectDataRef.on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+        projectData = Object.keys(data).map((key, index) => ({
+            firebaseKey: key,
+            originalOrder: index, // ⭐ TAMBAHKAN INI - simpan urutan asli
+            ...data[key]
+        }));
+    } else {
+        projectData = [];
+    }
+    populateTable();
+    updateStats();
+});
 
     // Listen for activity history changes
     activityHistoryRef.orderByChild('timestamp').limitToLast(50).on('value', (snapshot) => {
@@ -2696,6 +2766,86 @@ function exportGanttPDF() {
 
 /* End of Dropdown Styles */
 
+/* End of Dropdown Styles */
+
+/* ===== RECENT UPDATE HIGHLIGHT STYLES ===== */
+.data-table tr.recently-updated {
+    position: relative;
+    background: rgba(46, 204, 113, 0.03) !important;
+    border-left: 3px solid #27ae60 !important;
+    animation: pulseGlow 2s ease-in-out;
+}
+
+.data-table tr.recently-updated::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, #27ae60, #2ecc71);
+    box-shadow: 0 0 8px rgba(39, 174, 96, 0.4);
+}
+
+.recent-update-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 9px;
+    font-weight: 600;
+    margin-left: 6px;
+    box-shadow: 0 2px 4px rgba(39, 174, 96, 0.2);
+    animation: slideIn 0.3s ease-out;
+}
+
+.recent-update-time {
+    font-size: 9px;
+    color: #27ae60;
+    font-weight: 500;
+    margin-left: 8px;
+    opacity: 0.8;
+}
+
+@keyframes pulseGlow {
+    0%, 100% {
+        box-shadow: 0 0 0 rgba(39, 174, 96, 0);
+    }
+    50% {
+        box-shadow: 0 0 15px rgba(39, 174, 96, 0.3);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Fade out animation after 30 seconds */
+.data-table tr.recently-updated.fading {
+    animation: fadeOutHighlight 2s ease-out forwards;
+}
+
+@keyframes fadeOutHighlight {
+    from {
+        background: rgba(46, 204, 113, 0.03);
+        border-left-color: #27ae60;
+    }
+    to {
+        background: transparent;
+        border-left-color: transparent;
+    }
+}
+
             @media print {
                 body {
                     -webkit-print-color-adjust: exact;
@@ -3166,6 +3316,58 @@ if (window.tempStatusFilter) {
         return false;
     });
 }
+// Apply status filter if exists
+if (window.tempStatusFilter) {
+    const statusType = window.tempStatusFilter;
+    filteredData = filteredData.filter(item => {
+        if (statusType === 'all') {
+            return true;
+        } else if (statusType === 'onsite') {
+            return item.status.includes('Onsite') || item.status.includes('Completed');
+        } else if (statusType === 'notonsite') {
+            return !item.status.includes('Onsite') && !item.status.includes('Completed');
+        } else if (statusType === 'inprogress') {
+            return item.status.includes('Onsite') && !item.status.includes('Completed');
+        } else if (statusType === 'completed') {
+            return item.status.includes('Completed');
+        } else if (statusType === 'ontime') {
+            const dateStatus = getDateStatus(item.targetDate, item.mobDate);
+            return dateStatus.status === 'ON TIME';
+        } else if (statusType === 'delayed') {
+            const dateStatus = getDateStatus(item.targetDate, item.mobDate);
+            return dateStatus.status.includes('DELAYED');
+        }
+        return false;
+    });
+}
+
+// ===== AUTO-SORT: Recently Updated Items First =====
+if (autoSortEnabled && filteredData.length > 0) {
+    const NOW = Date.now();
+    const RECENT_THRESHOLD = 5 * 60 * 1000; // 5 menit dalam milliseconds
+    
+    filteredData = filteredData.slice().sort((a, b) => {
+        // Cek apakah item baru diupdate (dalam 5 menit terakhir)
+        const isRecentA = a.lastUpdated && (NOW - new Date(a.lastUpdated).getTime()) < RECENT_THRESHOLD;
+        const isRecentB = b.lastUpdated && (NOW - new Date(b.lastUpdated).getTime()) < RECENT_THRESHOLD;
+        
+        // Item yang baru diupdate (< 5 menit) naik ke atas
+        if (isRecentA && !isRecentB) return -1;
+        if (!isRecentA && isRecentB) return 1;
+        
+        // Jika sama-sama recent, sort by newest
+        if (isRecentA && isRecentB) {
+            const timeA = new Date(a.lastUpdated).getTime();
+            const timeB = new Date(b.lastUpdated).getTime();
+            return timeB - timeA;
+        }
+        
+        // Jika tidak recent (> 5 menit), gunakan urutan original
+        return (a.originalOrder || 0) - (b.originalOrder || 0);
+    });
+}
+
+        // Calculate pagination
 
         // Calculate pagination
         const totalPages = Math.ceil(filteredData.length / itemsPerTablePage);
@@ -3174,7 +3376,7 @@ if (window.tempStatusFilter) {
         const pageData = filteredData.slice(startIndex, endIndex);
 
         pageData.forEach((item, index) => {
-    const rowNumber = startIndex + index + 1;  // Tambahkan ini untuk nomor urut dinamis
+    const rowNumber = startIndex + index + 1;
     const dateStatus = getDateStatus(item.targetDate, item.mobDate);
     const row = document.createElement('tr');
 
@@ -3183,13 +3385,55 @@ let rowClasses = `priority-${item.priority}`;
 if (item.highlighted) {
     rowClasses += ' highlighted';
 }
+
+// ===== CHECK IF RECENTLY UPDATED (LAST 30 SECONDS) =====
+const now = new Date();
+const lastUpdate = item.lastUpdated ? new Date(item.lastUpdated) : null;
+const isRecentlyUpdated = lastUpdate && (now - lastUpdate) < 30000; // 30 seconds
+
+if (isRecentlyUpdated) {
+    rowClasses += ' recently-updated';
+}
+
 row.className = rowClasses;
+row.setAttribute('data-firebase-key', item.firebaseKey);
+
+// ✨✨✨ TAMBAHKAN KODE INI (BONUS: HIGHLIGHT KUNING) ✨✨✨
+// Highlight item yang baru diupdate (5 menit)
+if (item.lastUpdated) {
+    const timeSinceUpdate = Date.now() - new Date(item.lastUpdated).getTime();
+    if (timeSinceUpdate < 5 * 60 * 1000) { // 5 menit
+        row.style.backgroundColor = '#fff3cd'; // Kuning muda
+        row.style.borderLeft = '4px solid #ffc107'; // Border kuning
+        
+        // Hapus highlight setelah 5 detik
+        setTimeout(() => {
+            row.style.backgroundColor = '';
+            row.style.borderLeft = '';
+        }, 5000);
+    }
+}
+// ✨✨✨ AKHIR KODE TAMBAHAN ✨✨✨
+
+// Calculate time since update
+let timeSinceUpdate = '';
+if (lastUpdate) {
+    const seconds = Math.floor((now - lastUpdate) / 1000);
+    if (seconds < 60) {
+        timeSinceUpdate = `${seconds}s ago`;
+    } else if (seconds < 3600) {
+        timeSinceUpdate = `${Math.floor(seconds / 60)}m ago`;
+    } else {
+        timeSinceUpdate = `${Math.floor(seconds / 3600)}h ago`;
+    }
+}
 
 row.innerHTML = `
     <td>${rowNumber}</td>
     <td><span class="priority-badge priority-${item.priority}">${item.priority}</span></td>
     <td style="font-weight: ${item.highlighted ? '700' : '500'}; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 8px;" title="${item.equipment}">
-        ${item.highlighted ? '<span class="warning-badge">⚠</span>' : ''}${item.equipment}
+        ${item.highlighted ? '<span class="warning-badge">⚠️</span>' : ''}${item.equipment}
+        ${isRecentlyUpdated ? `<span class="recent-update-badge">🔄 NEW</span><span class="recent-update-time">${timeSinceUpdate}</span>` : ''}
     </td>
     <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.vendor}"><strong>${item.vendor}</strong></td>
 <td><span class="status-badge">${item.disc || item.task}</span></td>
@@ -3233,6 +3477,21 @@ row.innerHTML = `
         `;
         
         tableBody.appendChild(row);
+
+        // Auto-remove highlight after 30 seconds
+        if (isRecentlyUpdated) {
+            setTimeout(() => {
+                row.classList.add('fading');
+                setTimeout(() => {
+                    row.classList.remove('recently-updated', 'fading');
+                    // Remove badge and time
+                    const badge = row.querySelector('.recent-update-badge');
+                    const timeSpan = row.querySelector('.recent-update-time');
+                    if (badge) badge.remove();
+                    if (timeSpan) timeSpan.remove();
+                }, 2000);
+            }, 30000);
+        }
         });
 
         // Update pagination info
@@ -3630,7 +3889,7 @@ document.getElementById('modalNotes').value = '';
         const mobDateValue = document.getElementById('modalMobDate').value;
         const mobDateFormatted = mobDateValue ? formatDateForDisplay(mobDateValue) : 'TBD';
 
-        const taskData = {
+      const taskData = {
     equipment: equipment,
     vendor: vendor,
     priority: document.getElementById('modalPriority').value,
@@ -3646,7 +3905,8 @@ document.getElementById('modalNotes').value = '';
     prognosaCompDate: document.getElementById('modalPrognosaCompDate').value,
     progress: parseInt(document.getElementById('modalProgress').value) || 0,
     highlighted: document.getElementById('modalHighlight').checked,
-    mitigationPlan: document.getElementById('modalMitigationPlan').value
+    mitigationPlan: document.getElementById('modalMitigationPlan').value,
+    lastUpdated: new Date().toISOString() // ⭐ TAMBAHKAN TIMESTAMP
 };
 
         if (currentEditId) {
@@ -3691,8 +3951,16 @@ if (item.mitigationPlan !== taskData.mitigationPlan) changes.push(`Mitigation Pl
                     color: '#27ae60'
                 });
                 
-                showNotification('Task updated successfully', 'success');
+              showNotification('✅ Task updated successfully! Check the highlighted row.', 'success');
                 closeModal();
+                
+                // Scroll to updated item
+                setTimeout(() => {
+                    const updatedRow = document.querySelector(`tr[data-firebase-key="${currentEditId}"]`);
+                    if (updatedRow) {
+                        updatedRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 500);
             }).catch((error) => {
                 showNotification('Error updating task: ' + error.message, 'error');
             });
@@ -3968,7 +4236,12 @@ function deleteHistory(firebaseKey) {
 });
 
 // ===== PROGRESS REPORT =====
-    let currentEquipmentReport = null;
+let currentEquipmentReport = null;
+let currentReportPage = 1;
+const itemsPerReportPage = 5;
+let reportFilterDateFrom = null;
+let reportFilterDateTo = null;
+let reportFilterType = 'all';
 
     function showProgressReport() {
         const filterValue = document.getElementById('equipmentHistoryFilter').value;
@@ -4037,7 +4310,90 @@ function showProgressReportById(firebaseKey) {
     function closeProgressReport() {
         document.getElementById('progressReportModal').style.display = 'none';
     }
+// ===== REPORT FILTER & PAGINATION FUNCTIONS =====
 
+function applyReportFilter() {
+    reportFilterDateFrom = document.getElementById('reportDateFrom').value;
+    reportFilterDateTo = document.getElementById('reportDateTo').value;
+    reportFilterType = document.getElementById('reportFilterType').value;
+    currentReportPage = 1;
+    renderProgressReport();
+}
+
+function clearReportFilter() {
+    document.getElementById('reportDateFrom').value = '';
+    document.getElementById('reportDateTo').value = '';
+    document.getElementById('reportFilterType').value = 'all';
+    reportFilterDateFrom = null;
+    reportFilterDateTo = null;
+    reportFilterType = 'all';
+    currentReportPage = 1;
+    renderProgressReport();
+    showNotification('Filter direset', 'success');
+}
+
+function changeReportPage(direction) {
+    if (!currentEquipmentReport) return;
+    
+    const filteredHistory = getFilteredHistory();
+    const totalPages = Math.ceil(filteredHistory.length / itemsPerReportPage);
+    const newPage = currentReportPage + direction;
+    
+    if (newPage >= 1 && newPage <= totalPages) {
+        currentReportPage = newPage;
+        renderProgressReport();
+        
+        // Scroll to top of timeline
+        document.getElementById('progressReportContent').scrollTop = 0;
+    }
+}
+
+function goToReportPage(page) {
+    currentReportPage = page;
+    renderProgressReport();
+    document.getElementById('progressReportContent').scrollTop = 0;
+}
+
+function getFilteredHistory() {
+    if (!currentEquipmentReport) return [];
+    
+    let filtered = currentEquipmentReport.history.filter(item => item && item.timestamp);
+    
+    // Filter by date range
+    if (reportFilterDateFrom) {
+        const fromDate = new Date(reportFilterDateFrom);
+        fromDate.setHours(0, 0, 0, 0);
+        filtered = filtered.filter(item => new Date(item.timestamp) >= fromDate);
+    }
+    
+    if (reportFilterDateTo) {
+        const toDate = new Date(reportFilterDateTo);
+        toDate.setHours(23, 59, 59, 999);
+        filtered = filtered.filter(item => new Date(item.timestamp) <= toDate);
+    }
+    
+    // Filter by type
+    if (reportFilterType !== 'all') {
+        filtered = filtered.filter(item => item.category === reportFilterType);
+    }
+    
+    return filtered.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+}
+
+function renderReportPageNumbers(totalPages) {
+    const pageNumbersDiv = document.getElementById('reportPageNumbers');
+    let html = '';
+    
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentReportPage - 1 && i <= currentReportPage + 1)) {
+            html += `<button onclick="goToReportPage(${i})" style="padding: 6px 10px; background: ${i === currentReportPage ? '#667eea' : '#ecf0f1'}; color: ${i === currentReportPage ? 'white' : '#2c3e50'}; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; min-width: 32px; font-weight: ${i === currentReportPage ? '700' : '600'};">${i}</button>`;
+        } else if (i === currentReportPage - 2 || i === currentReportPage + 2) {
+            html += '<span style="padding: 0 5px; color: #95a5a6;">...</span>';
+        }
+    }
+    
+    pageNumbersDiv.innerHTML = html;
+}
     function renderProgressReport() {
     if (!currentEquipmentReport) return;
 
@@ -4045,8 +4401,15 @@ function showProgressReportById(firebaseKey) {
     const container = document.getElementById('progressReportContent');
     
     // Filter and sort history
-    const validHistory = history.filter(item => item && item.timestamp);
-    const sortedHistory = validHistory.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    // Get filtered history with pagination
+const filteredHistory = getFilteredHistory();
+const totalPages = Math.ceil(filteredHistory.length / itemsPerReportPage);
+const startIndex = (currentReportPage - 1) * itemsPerReportPage;
+const endIndex = startIndex + itemsPerReportPage;
+const sortedHistory = filteredHistory.slice(startIndex, endIndex);
+
+// Update filter stats
+document.getElementById('reportTotalCount').textContent = filteredHistory.length;
     
     // Handle empty history
     if (sortedHistory.length === 0) {
@@ -4139,6 +4502,16 @@ function showProgressReportById(firebaseKey) {
         </div>
         ` : ''}
     `;
+// Update pagination
+    const pageStart = startIndex + 1;
+    const pageEnd = Math.min(endIndex, filteredHistory.length);
+    document.getElementById('reportPageInfo').textContent = 
+        `${pageStart}-${pageEnd} dari ${filteredHistory.length}`;
+    
+    document.getElementById('prevReportPageBtn').disabled = currentReportPage === 1;
+    document.getElementById('nextReportPageBtn').disabled = currentReportPage === totalPages || totalPages === 0;
+    
+    renderReportPageNumbers(totalPages);
 }
 
     function exportProgressReportPDF() {
@@ -4273,9 +4646,25 @@ function renderTaskTracker() {
         `📋 Onsite Task Tracker - ${equipment.equipment}`;
 
     // Calculate statistics
+    // Calculate statistics
     const completedTasks = tasks.filter(t => t.status === 'completed');
     const inProgressTasks = tasks.filter(t => t.status === 'inprogress');
     const pendingTasks = tasks.filter(t => t.status === 'pending');
+    
+    // ===== AUTO-SORT ONSITE TASKS BY LAST UPDATE =====
+    const sortTasksByUpdate = (taskArray) => {
+        if (!autoSortEnabled || taskArray.length === 0) return taskArray;
+        
+        return taskArray.sort((a, b) => {
+            const dateA = a.lastTaskUpdate ? new Date(a.lastTaskUpdate) : new Date(0);
+            const dateB = b.lastTaskUpdate ? new Date(b.lastTaskUpdate) : new Date(0);
+            return dateB - dateA; // Newest first
+        });
+    };
+    
+    const sortedCompleted = sortTasksByUpdate([...completedTasks]);
+    const sortedInProgress = sortTasksByUpdate([...inProgressTasks]);
+    const sortedPending = sortTasksByUpdate([...pendingTasks]);
     
     const totalTasks = tasks.length;
     const completedCount = completedTasks.length;
@@ -4405,9 +4794,10 @@ function renderTaskTracker() {
         ` : ''}
 
         <!-- Task Groups -->
-        ${renderTaskGroup('completed', 'Completed', completedTasks, '🟢', true)}
-        ${renderTaskGroup('inprogress', 'In Progress', inProgressTasks, '🟡', false)}
-        ${renderTaskGroup('pending', 'Pending', pendingTasks, '⚪', false)}
+       <!-- Task Groups -->
+        ${renderTaskGroup('completed', 'Completed', sortedCompleted, '🟢', true)}
+        ${renderTaskGroup('inprogress', 'In Progress', sortedInProgress, '🟡', false)}
+        ${renderTaskGroup('pending', 'Pending', sortedPending, '⚪', false)}
 
         <!-- Add Task Button -->
         <div style="text-align: center; margin-top: 20px;">
@@ -4618,7 +5008,8 @@ function saveTask() {
         assignedTo: document.getElementById('taskAssignedInput').value.trim(),
         status: document.getElementById('taskStatusInput').value,
         progress: parseInt(document.getElementById('taskProgressInput').value) || 0,
-        notes: document.getElementById('taskNotesInput').value.trim()
+        notes: document.getElementById('taskNotesInput').value.trim(),
+        lastTaskUpdate: new Date().toISOString() // ⭐ TIMESTAMP
     };
     
     // Add timestamps based on status
@@ -4743,6 +5134,7 @@ function startTask(taskId) {
     tasks[taskIndex].status = 'inprogress';
     tasks[taskIndex].startDate = new Date().toISOString().split('T')[0];
     tasks[taskIndex].progress = 0;
+    tasks[taskIndex].lastTaskUpdate = new Date().toISOString(); // ⭐ TIMESTAMP
     
     database.ref(`onsiteTasks/${equipmentKey}`).set(tasks).then(() => {
         showNotification('Task started', 'success');
@@ -4781,9 +5173,10 @@ function completeTask(taskId) {
         return;
     }
     
-    tasks[taskIndex].status = 'completed';
+   tasks[taskIndex].status = 'completed';
     tasks[taskIndex].completedDate = new Date().toISOString().split('T')[0];
     tasks[taskIndex].progress = 100;
+    tasks[taskIndex].lastTaskUpdate = new Date().toISOString(); // ⭐ TIMESTAMP
     
     database.ref(`onsiteTasks/${equipmentKey}`).set(tasks).then(() => {
         showNotification('Task completed! 🎉', 'success');
@@ -4836,7 +5229,8 @@ function updateTaskProgress(taskId) {
         return;
     }
     
-    tasks[taskIndex].progress = progress;
+   tasks[taskIndex].progress = progress;
+    tasks[taskIndex].lastTaskUpdate = new Date().toISOString(); // ⭐ TIMESTAMP
     
     // If 100%, mark as completed
     if (progress === 100) {
@@ -5384,7 +5778,30 @@ function closeAllDropdowns() {
                 }, 300);
             }, 4000);
         }
-
+// ===== AUTO-SORT TOGGLE FUNCTION =====
+        function toggleAutoSort(enabled) {
+            autoSortEnabled = enabled;
+            const status = enabled ? 'enabled ✅' : 'disabled ❌';
+            showNotification(`🔄 Auto-sort ${status}`, 'success');
+            
+            // Re-populate table with new sort setting
+            populateTable();
+            
+            // Update localStorage to remember setting
+            localStorage.setItem('autoSortEnabled', enabled);
+        }
+        
+        // Load saved setting on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedSortSetting = localStorage.getItem('autoSortEnabled');
+            if (savedSortSetting !== null) {
+                autoSortEnabled = savedSortSetting === 'true';
+                const checkbox = document.getElementById('sortToggle');
+                if (checkbox) {
+                    checkbox.checked = autoSortEnabled;
+                }
+            }
+        });
         // Make functions globally accessible
         window.openUpdateModal = openUpdateModal;
         window.deleteItem = deleteItem;
@@ -5403,6 +5820,10 @@ window.filterGanttByDateRange = filterGanttByDateRange;
 window.showMitigationTooltip = showMitigationTooltip; // Add this
 window.attachGanttHoverEvents = attachGanttHoverEvents; // Add this
 window.enhanceGanttHeader = enhanceGanttHeader; // ADD THIS LINE
+window.applyReportFilter = applyReportFilter;
+window.clearReportFilter = clearReportFilter;
+window.changeReportPage = changeReportPage;
+window.goToReportPage = goToReportPage;
 function exportGanttImage() {
     if (!ganttInstance) {
         showNotification('Please open Gantt chart first', 'error');
