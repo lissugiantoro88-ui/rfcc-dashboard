@@ -3492,20 +3492,20 @@ row.innerHTML = `
         
         tableBody.appendChild(row);
 
-        // Auto-remove highlight after 30 seconds
-        if (isRecentlyUpdated) {
-            setTimeout(() => {
-                row.classList.add('fading');
-                setTimeout(() => {
-                    row.classList.remove('recently-updated', 'fading');
-                    // Remove badge and time
-                    const badge = row.querySelector('.recent-update-badge');
-                    const timeSpan = row.querySelector('.recent-update-time');
-                    if (badge) badge.remove();
-                    if (timeSpan) timeSpan.remove();
-                }, 2000);
-            }, 30000);
-        }
+        // Auto-remove badge after 2 minutes (tetapi highlight tetap sampai 5 menit)
+if (isRecentlyUpdated) {
+    setTimeout(() => {
+        row.classList.add('fading');
+        setTimeout(() => {
+            row.classList.remove('recently-updated', 'fading');
+            // Remove badge and time
+            const badge = row.querySelector('.recent-update-badge');
+            const timeSpan = row.querySelector('.recent-update-time');
+            if (badge) badge.remove();
+            if (timeSpan) timeSpan.remove();
+        }, 2000);
+    }, 120000); // ⭐ Ubah dari 30000 (30 detik) jadi 120000 (2 menit)
+}
         });
 
         // Update pagination info
