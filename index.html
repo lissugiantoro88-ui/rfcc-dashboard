@@ -5488,9 +5488,27 @@ function updateEquipmentProgress(equipmentKey) {
     const completedTasks = tasks.filter(t => t.status === 'completed').length;
     const overallProgress = Math.round((completedTasks / totalTasks) * 100);
     
-    // Update equipment progress in Firebase
-    database.ref(`projectData/${equipmentKey}/progress`).set(overallProgress).then(() => {
-        console.log('Equipment progress updated:', overallProgress + '%');
+    // ⭐⭐⭐ CRITICAL: Update lastUpdated timestamp ⭐⭐⭐
+    const updateData = {
+        progress: overallProgress,
+        lastUpdated: new Date().toISOString() // ← TAMBAHKAN INI!
+    };
+    
+    // Update equipment progress AND lastUpdated in Firebase
+    database.ref(`projectData/${equipmentKey}`).update(updateData).then(() => {
+        console.log('✅ Equipment progress updated:', overallProgress + '%');
+        console.log('✅ lastUpdated timestamp set:', updateData.lastUpdated);
+        
+        // ⭐ Update local data immediately
+        const equipmentIndex = projectData.findIndex(p => p.firebaseKey === equipmentKey);
+        if (equipmentIndex !== -1) {
+            projectData[equipmentIndex].progress = overallProgress;
+            projectData[equipmentIndex].lastUpdated = updateData.lastUpdated;
+            console.log('✅ Local data updated for:', projectData[equipmentIndex].equipment);
+        }
+        
+        // ⭐ Force re-populate table to trigger auto-sort
+        populateTable();
         
         // Log to activity history
         const equipment = projectData.find(p => p.firebaseKey === equipmentKey);
@@ -5510,6 +5528,8 @@ function updateEquipmentProgress(equipmentKey) {
                 color: '#17a2b8'
             });
         }
+    }).catch((error) => {
+        console.error('❌ Error updating equipment progress:', error);
     });
 }
 
