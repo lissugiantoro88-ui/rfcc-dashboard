@@ -4089,14 +4089,46 @@ if (item.mitigationPlan !== taskData.mitigationPlan) changes.push(`Mitigation Pl
     }
 
 function deleteHistory(firebaseKey) {
-        if (confirm('Are you sure you want to delete this history item?')) {
-            activityHistoryRef.child(firebaseKey).remove().then(() => {
-                showNotification('History deleted successfully', 'success');
-            }).catch((error) => {
-                showNotification('Error deleting history: ' + error.message, 'error');
-            });
-        }
+    if (confirm('Are you sure you want to delete this history item?')) {
+        // ⭐ TAMBAHAN BARU - Ambil data history sebelum dihapus
+        const historyItem = activityHistory.find(h => h.firebaseKey === firebaseKey);
+        
+        activityHistoryRef.child(firebaseKey).remove().then(() => {
+            showNotification('History deleted successfully', 'success');
+            
+            // ⭐ CEK: Apakah ini delete history dari TASK COMPLETE?
+            if (historyItem && historyItem.category === 'TASK COMPLETE') {
+                console.log('🔄 Deleted TASK COMPLETE history - checking if equipment needs reset');
+                
+                // Cari equipment terkait
+                const equipment = projectData.find(p => 
+                    p.equipment === historyItem.equipment && 
+                    p.vendor === historyItem.vendor
+                );
+                
+                if (equipment && equipment.firebaseKey) {
+                    const equipmentKey = equipment.firebaseKey;
+                    
+                    // Cek apakah masih ada task completed lainnya
+                    const tasks = onsiteTasks[equipmentKey] || [];
+                    const hasActiveTasks = tasks.some(t => 
+                        t.status === 'inprogress' || t.status === 'completed'
+                    );
+                    
+                    if (!hasActiveTasks) {
+                        console.log('🔄 No active tasks left - resetting equipment timestamp');
+                        resetEquipmentUpdateTime(equipmentKey);
+                        showNotification('History deleted. Equipment returned to original position.', 'info');
+                    } else {
+                        console.log('ℹ️ Equipment still has active tasks - timestamp not reset');
+                    }
+                }
+            }
+        }).catch((error) => {
+            showNotification('Error deleting history: ' + error.message, 'error');
+        });
     }
+}
 
  let currentHistoryPage = 1;
     const itemsPerPage = 20;
@@ -5103,15 +5135,16 @@ function saveTask() {
         if (isUndo) {
             console.log('🔄 UNDO detected - checking if timestamp reset needed');
             
-            // Cek apakah masih ada task completed lainnya
-            const completedTasks = tasks.filter(t => 
-                t.status === 'completed' && t.id !== currentTaskEditId
-            );
-            
-            if (completedTasks.length === 0) {
-                console.log('🔄 No completed tasks left - will reset timestamp after save');
-                window._resetTimestampAfterSave = equipmentKey;
-            }
+            // ⭐ Cek apakah masih ada task aktif (inprogress atau completed) selain yang di-undo
+const hasOtherActiveTasks = tasks.some(t => 
+    (t.status === 'inprogress' || t.status === 'completed') && 
+    t.id !== currentTaskEditId
+);
+
+if (!hasOtherActiveTasks) {
+    console.log('🔄 No active tasks left - will reset timestamp after save');
+    window._resetTimestampAfterSave = equipmentKey;
+}
         }
         // ⭐ AKHIR TAMBAHAN
     }
@@ -5193,15 +5226,16 @@ function deleteTask(taskId) {
     
     // ⭐⭐⭐ TAMBAHKAN BLOCK INI ⭐⭐⭐
     // CEK: Apakah masih ada task aktif tersisa?
-    const remainingActiveTasks = updatedTasks.filter(t => 
-        t.status !== 'completed' && t.status !== 'pending'
-    );
-    
-    if (remainingActiveTasks.length === 0) {
-        console.log('🔄 No active tasks left - resetting equipment timestamp');
-        resetEquipmentUpdateTime(equipmentKey);
-        showNotification('Task deleted. Equipment returned to original position.', 'info');
-    }
+    // ⭐ CEK: Apakah masih ada task yang aktif (inprogress atau completed)?
+const hasActiveTasks = updatedTasks.some(t => 
+    t.status === 'inprogress' || t.status === 'completed'
+);
+
+if (!hasActiveTasks) {
+    console.log('🔄 No active tasks left - resetting equipment timestamp');
+    resetEquipmentUpdateTime(equipmentKey);
+    showNotification('Task deleted. Equipment returned to original position.', 'info');
+}
     // ⭐⭐⭐ AKHIR BLOCK TAMBAHAN ⭐⭐⭐
     
     const equipment = currentEquipmentTasks.equipment;
@@ -5683,14 +5717,18 @@ function resetEquipmentUpdateTime(equipmentKey) {
     database.ref(`projectData/${equipmentKey}/lastUpdated`).remove().then(() => {
         console.log('🔄 Equipment update time reset, item will return to original position');
         
-        // Update local data
+        // ⭐ Update local data IMMEDIATELY
         const equipmentIndex = projectData.findIndex(p => p.firebaseKey === equipmentKey);
         if (equipmentIndex !== -1) {
             delete projectData[equipmentIndex].lastUpdated;
             console.log('✅ Local data updated:', projectData[equipmentIndex].equipment);
         }
         
-        // Table akan ter-update otomatis dari Firebase listener
+        // ⭐⭐⭐ FORCE RE-RENDER TABLE IMMEDIATELY ⭐⭐⭐
+        populateTable();
+        console.log('✅ Table re-rendered - item moved to original position');
+        
+        // Firebase listener akan sync untuk device lain
     }).catch((error) => {
         console.error('❌ Error resetting update time:', error);
     });
