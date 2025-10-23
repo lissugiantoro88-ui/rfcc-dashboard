@@ -1924,14 +1924,37 @@ let onsiteTasks = {}; // Store tasks per equipment
 projectDataRef.on('value', (snapshot) => {
     const data = snapshot.val();
     if (data) {
-        projectData = Object.keys(data).map((key, index) => ({
-            firebaseKey: key,
-            originalOrder: index, // ⭐ TAMBAHKAN INI - simpan urutan asli
-            ...data[key]
-        }));
+        // ⭐ Preserve originalOrder jika sudah ada
+        const newData = Object.keys(data).map((key, index) => {
+            const existingItem = projectData.find(p => p.firebaseKey === key);
+            return {
+                firebaseKey: key,
+                originalOrder: existingItem ? existingItem.originalOrder : index, // ← PRESERVE!
+                ...data[key]
+            };
+        });
+        
+        projectData = newData;
+        
+        // Debug log untuk item yang baru diupdate
+        const recentUpdates = projectData.filter(item => {
+            if (!item.lastUpdated) return false;
+            const timeSince = Date.now() - new Date(item.lastUpdated).getTime();
+            return timeSince < 5 * 60 * 1000; // < 5 menit
+        });
+        
+        if (recentUpdates.length > 0) {
+            console.log(`🔔 ${recentUpdates.length} items recently updated:`);
+            recentUpdates.forEach(item => {
+                const timeSince = Date.now() - new Date(item.lastUpdated).getTime();
+                console.log(`  - ${item.equipment}: ${Math.floor(timeSince/1000)}s ago`);
+            });
+        }
     } else {
         projectData = [];
     }
+    
+    console.log('🔄 Firebase sync complete, re-rendering table...');
     populateTable();
     updateStats();
 });
@@ -3247,6 +3270,9 @@ function filterByStatus(statusType) {
 
     // ===== TABLE POPULATION =====
     function populateTable() {
+ console.log('📊 populateTable() called');
+    console.log('📊 autoSortEnabled:', autoSortEnabled);
+    console.log('📊 projectData.length:', projectData.length);
         const tableBody = document.getElementById('tableBody');
         tableBody.innerHTML = '';
 
@@ -5508,7 +5534,10 @@ function updateEquipmentProgress(equipmentKey) {
         }
         
         // ⭐ Force re-populate table to trigger auto-sort
-        populateTable();
+        // ⚠️ JANGAN panggil populateTable() di sini!
+// Biarkan Firebase listener yang handle re-render
+// Ini memastikan semua device sync dengan benar
+console.log('⏳ Waiting for Firebase listener to re-render table...');
         
         // Log to activity history
         const equipment = projectData.find(p => p.firebaseKey === equipmentKey);
