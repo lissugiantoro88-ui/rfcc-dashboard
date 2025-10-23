@@ -1891,6 +1891,8 @@ database.ref('onlineUsers').on('value', (snapshot) => {
         let activityHistory = [];
         let currentEditId = null;
         let currentFilter = 'all';
+let searchResults = []; // Menyimpan hasil pencarian
+let isSearching = false; // Status sedang search atau tidak
  // ===== AUTO-SORT SETTINGS =====
         let autoSortEnabled = true; // Set false untuk disable auto-sort
 
@@ -2043,7 +2045,15 @@ onsiteTasksRef.on('value', (snapshot) => {
         });
 
         const searchBox = document.getElementById('searchBox');
-        if (searchBox) searchBox.addEventListener('keyup', searchTable);
+if (searchBox) {
+    searchBox.addEventListener('input', searchTable);
+    searchBox.addEventListener('keyup', function(e) {
+        if (e.key === 'Escape') {
+            this.value = '';
+            searchTable();
+        }
+    });
+}
 
        const addItemBtn = document.getElementById('addItemBtn');
 const exportBtn = document.getElementById('exportBtn');
@@ -3143,20 +3153,49 @@ function exportGanttPDFSafe() {
 
     // ===== FILTER AND SEARCH =====
     function filterByPriority(priority) {
-        currentFilter = priority;
-        currentTablePage = 1; // Reset to page 1
-        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelector(`[data-filter="${priority}"]`).classList.add('active');
-        populateTable();
-        updateStats();
+    currentFilter = priority;
+    currentTablePage = 1; // Reset to page 1
+    
+    // Reset search jika sedang searching
+    if (isSearching) {
+        document.getElementById('searchBox').value = '';
+        isSearching = false;
+        searchResults = [];
     }
+    
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`[data-filter="${priority}"]`).classList.add('active');
+    populateTable();
+    updateStats();
+}
 
     function searchTable() {
-        const searchTerm = document.getElementById('searchBox').value.toLowerCase();
-        document.querySelectorAll('#tableBody tr').forEach(row => {
-            row.style.display = row.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
-        });
+    const searchTerm = document.getElementById('searchBox').value.toLowerCase().trim();
+    
+    // Jika search kosong, reset ke semua data
+    if (searchTerm === '') {
+        isSearching = false;
+        searchResults = [];
+        currentTablePage = 1;
+        populateTable();
+        return;
     }
+    
+    // Filter data berdasarkan search term
+    let dataToSearch = projectData;
+    if (currentFilter !== 'all') {
+        dataToSearch = projectData.filter(item => item.priority === currentFilter);
+    }
+    
+    searchResults = dataToSearch.filter(item => {
+        const searchText = `${item.equipment} ${item.vendor} ${item.task} ${item.status} ${item.contract} ${item.visa}`.toLowerCase();
+        return searchText.includes(searchTerm);
+    });
+    
+    isSearching = true;
+    currentTablePage = 1;
+    populateTable();
+}
 
     function filterByIssueType(issueType) {
     // Reset search box
@@ -3270,20 +3309,41 @@ function filterByStatus(statusType) {
 
     // ===== TABLE POPULATION =====
     function populateTable() {
- console.log('📊 populateTable() called');
+    console.log('📊 populateTable() called');
     console.log('📊 autoSortEnabled:', autoSortEnabled);
     console.log('📊 projectData.length:', projectData.length);
-        const tableBody = document.getElementById('tableBody');
-        tableBody.innerHTML = '';
+    const tableBody = document.getElementById('tableBody');
+    tableBody.innerHTML = '';
 
-let filteredData;
-if (currentFilter === 'highlighted') {
-    filteredData = projectData.filter(item => item.highlighted);
-} else if (currentFilter === 'all') {
-    filteredData = projectData;
-} else {
-    filteredData = projectData.filter(item => item.priority === currentFilter);
-}
+    let filteredData;
+    
+    // Jika sedang searching, gunakan searchResults
+    if (isSearching) {
+        filteredData = searchResults;
+    } else if (currentFilter === 'highlighted') {
+        filteredData = projectData.filter(item => item.highlighted);
+    } else if (currentFilter === 'all') {
+        filteredData = projectData;
+    } else {
+        filteredData = projectData.filter(item => item.priority === currentFilter);
+    }
+    
+    // Jika tidak ada hasil pencarian, tampilkan pesan
+    if (isSearching && filteredData.length === 0) {
+        const searchTerm = document.getElementById('searchBox').value;
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="13" style="text-align: center; padding: 60px 20px; color: #95a5a6;">
+                    <div style="font-size: 48px; margin-bottom: 15px;">🔍</div>
+                    <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #7f8c8d;">No results found</div>
+                    <div style="font-size: 14px; color: #95a5a6;">No items match "<strong>${searchTerm}</strong>"</div>
+                    <div style="font-size: 13px; color: #bdc3c7; margin-top: 10px;">Try different keywords or clear the search</div>
+                </td>
+            </tr>
+        `;
+        updatePaginationInfo(0, 0);
+        return;
+    }
 
 // Apply issue filter if exists
 // Apply issue filter if exists
