@@ -3362,41 +3362,48 @@ if (window.tempStatusFilter) {
     });
 }
 
-// ===== AUTO-SORT: Recently Updated Items First =====
+// ===== AUTO-SORT: Permanent Ranking by Last Update =====
 if (autoSortEnabled && filteredData.length > 0) {
     const NOW = Date.now();
-    const RECENT_THRESHOLD = 5 * 60 * 1000; // 5 menit dalam milliseconds
     
-    console.log('🔄 AUTO-SORT ACTIVE');
+    console.log('🔄 AUTO-SORT ACTIVE (Permanent Ranking Mode)');
     console.log('📊 Items to sort:', filteredData.length);
     
-    // Debug: Log items with lastUpdated
-    filteredData.forEach(item => {
-        if (item.lastUpdated) {
-            const timeSince = NOW - new Date(item.lastUpdated).getTime();
-            console.log(`📦 ${item.equipment}: updated ${Math.floor(timeSince/1000)}s ago`);
-        }
-    });
-    
     filteredData = filteredData.slice().sort((a, b) => {
-        // Cek apakah item baru diupdate (dalam 5 menit terakhir)
-        const isRecentA = a.lastUpdated && (NOW - new Date(a.lastUpdated).getTime()) < RECENT_THRESHOLD;
-        const isRecentB = b.lastUpdated && (NOW - new Date(b.lastUpdated).getTime()) < RECENT_THRESHOLD;
+        const hasUpdateA = !!a.lastUpdated;
+        const hasUpdateB = !!b.lastUpdated;
         
-        // Item yang baru diupdate (< 5 menit) naik ke atas
-        if (isRecentA && !isRecentB) return -1;
-        if (!isRecentA && isRecentB) return 1;
+        // ⭐ Item yang PERNAH diupdate SELALU di atas item yang BELUM PERNAH diupdate
+        if (hasUpdateA && !hasUpdateB) return -1; // A pernah update, B belum → A di atas
+        if (!hasUpdateA && hasUpdateB) return 1;  // B pernah update, A belum → B di atas
         
-        // Jika sama-sama recent, sort by newest
-        if (isRecentA && isRecentB) {
+        // ⭐ Jika KEDUANYA pernah diupdate → Sort by NEWEST first
+        if (hasUpdateA && hasUpdateB) {
             const timeA = new Date(a.lastUpdated).getTime();
             const timeB = new Date(b.lastUpdated).getTime();
-            return timeB - timeA;
+            const diff = timeB - timeA; // Newest first
+            
+            // Debug log untuk item yang baru diupdate (< 5 menit)
+            if (diff !== 0) {
+                const timeSinceA = Math.floor((NOW - timeA) / 1000);
+                const timeSinceB = Math.floor((NOW - timeB) / 1000);
+                
+                if (timeSinceA < 300 || timeSinceB < 300) { // < 5 menit
+                    console.log(`📦 ${a.equipment}: ${timeSinceA}s ago vs ${b.equipment}: ${timeSinceB}s ago`);
+                }
+            }
+            
+            return diff;
         }
         
-        // Jika tidak recent (> 5 menit), gunakan urutan original
+        // ⭐ Jika KEDUANYA belum pernah diupdate → Gunakan urutan original
         return (a.originalOrder || 0) - (b.originalOrder || 0);
     });
+    
+    // Summary log
+    const updatedItems = filteredData.filter(i => i.lastUpdated).length;
+    const neverUpdatedItems = filteredData.length - updatedItems;
+    console.log(`✅ Sorted: ${updatedItems} updated items on top, ${neverUpdatedItems} never-updated items at bottom`);
 }
 
         // Calculate pagination
@@ -3430,17 +3437,21 @@ if (isRecentlyUpdated) {
 row.className = rowClasses;
 row.setAttribute('data-firebase-key', item.firebaseKey);
 
-// ✨✨✨ HIGHLIGHT ITEM YANG BARU DIUPDATE ✨✨✨
+// ✨✨✨ HIGHLIGHT ITEM YANG BARU DIUPDATE (< 5 MENIT) ✨✨✨
 if (item.lastUpdated) {
     const timeSinceUpdate = Date.now() - new Date(item.lastUpdated).getTime();
     
-    // Highlight kuning untuk item yang diupdate < 5 menit
+    // ⭐ Highlight kuning HANYA untuk yang BARU SAJA diupdate (< 5 menit)
+    // Item tetap di atas meskipun highlight hilang setelah 5 menit
     if (timeSinceUpdate < 5 * 60 * 1000) { // 5 menit
-        row.style.backgroundColor = '#fff3cd'; // Kuning muda
-        row.style.borderLeft = '4px solid #ffc107'; // Border kuning
-        row.style.transition = 'all 0.5s ease'; // Smooth transition
+        // Gunakan setProperty dengan important untuk override CSS class
+        row.style.setProperty('background-color', '#fff3cd', 'important');
+        row.style.setProperty('border-left', '4px solid #ffc107', 'important');
+        row.style.setProperty('transition', 'all 0.5s ease', 'important');
         
-        // Tambahkan badge "UPDATED"
+        console.log(`🎨 Highlight applied: ${item.equipment} (${Math.floor(timeSinceUpdate/1000)}s ago)`);
+        
+        // Tambahkan badge "🔥 NEW"
         const firstCell = row.cells[0];
         if (firstCell) {
             const badge = document.createElement('span');
@@ -3448,9 +3459,9 @@ if (item.lastUpdated) {
             badge.style.cssText = 'background: #ffc107; color: #000; padding: 2px 6px; border-radius: 10px; font-size: 8px; font-weight: bold; margin-left: 5px;';
             firstCell.appendChild(badge);
         }
-        
-        // ⭐ PENTING: JANGAN hapus highlight terlalu cepat!
-        // Biarkan highlight tetap ada selama item masih "recent" (< 5 menit)
+    } else {
+        // Item sudah > 5 menit, tapi TETAP di atas karena pernah diupdate
+        console.log(`📌 ${item.equipment}: Updated ${Math.floor(timeSinceUpdate/60000)} minutes ago (still on top)`);
     }
 }
 // ✨✨✨ AKHIR HIGHLIGHT CODE ✨✨✨
@@ -5077,27 +5088,58 @@ function saveTask() {
     const tasks = onsiteTasks[equipmentKey] || [];
     
     if (currentTaskEditId) {
-        // Update existing task
-        const taskIndex = tasks.findIndex(t => t.id === currentTaskEditId);
-        if (taskIndex !== -1) {
-            tasks[taskIndex] = { ...tasks[taskIndex], ...taskData };
-        }
-    } else {
-        // Add new task
-        taskData.id = Date.now().toString();
-        taskData.createdAt = new Date().toISOString();
-        tasks.push(taskData);
-    }
-    
-    // Save to Firebase
-    database.ref(`onsiteTasks/${equipmentKey}`).set(tasks).then(() => {
-        showNotification(currentTaskEditId ? 'Task updated successfully' : 'Task added successfully', 'success');
-        closeTaskEditModal();
-        renderTaskTracker();
-        updateEquipmentProgress(equipmentKey);
+    // Update existing task
+    const taskIndex = tasks.findIndex(t => t.id === currentTaskEditId);
+    if (taskIndex !== -1) {
+        // ⭐ TAMBAHAN BARU - Deteksi UNDO (completed → status lain)
+        const oldStatus = tasks[taskIndex].status;
+        const newStatus = taskData.status;
+        const isUndo = (oldStatus === 'completed' && newStatus !== 'completed');
+        // ⭐ AKHIR TAMBAHAN
         
-        // Add to activity history
-        const equipment = currentEquipmentTasks.equipment;
+        tasks[taskIndex] = { ...tasks[taskIndex], ...taskData };
+        
+        // ⭐ TAMBAHAN BARU - Flag untuk reset timestamp jika undo
+        if (isUndo) {
+            console.log('🔄 UNDO detected - checking if timestamp reset needed');
+            
+            // Cek apakah masih ada task completed lainnya
+            const completedTasks = tasks.filter(t => 
+                t.status === 'completed' && t.id !== currentTaskEditId
+            );
+            
+            if (completedTasks.length === 0) {
+                console.log('🔄 No completed tasks left - will reset timestamp after save');
+                window._resetTimestampAfterSave = equipmentKey;
+            }
+        }
+        // ⭐ AKHIR TAMBAHAN
+    }
+} else {
+    // Add new task
+    taskData.id = Date.now().toString();
+    taskData.createdAt = new Date().toISOString();
+    tasks.push(taskData);
+}
+
+    // Save to Firebase
+database.ref(`onsiteTasks/${equipmentKey}`).set(tasks).then(() => {
+    showNotification(currentTaskEditId ? 'Task updated successfully' : 'Task added successfully', 'success');
+    closeTaskEditModal();
+    renderTaskTracker();
+    updateEquipmentProgress(equipmentKey);
+    
+    // ⭐ TAMBAHAN BARU - Reset timestamp jika ada flag undo
+    if (window._resetTimestampAfterSave === equipmentKey) {
+        console.log('🔄 Resetting timestamp after undo');
+        resetEquipmentUpdateTime(equipmentKey);
+        showNotification('Task reverted. Equipment returned to original position.', 'info');
+        delete window._resetTimestampAfterSave;
+    }
+    // ⭐ AKHIR TAMBAHAN
+    
+    // Add to activity history
+    const equipment = currentEquipmentTasks.equipment;
         
         // Get the saved task for detailed logging
         let savedTask;
@@ -5144,32 +5186,104 @@ function deleteTask(taskId) {
     
     const updatedTasks = tasks.filter(t => t.id !== taskId);
     
-    database.ref(`onsiteTasks/${equipmentKey}`).set(updatedTasks).then(() => {
-        showNotification('Task deleted successfully', 'success');
-        renderTaskTracker();
-updateEquipmentProgress(equipmentKey);  // ← TAMBAHKAN BARIS INI
-        
-         const equipment = currentEquipmentTasks.equipment;
-        const deletedTask = tasks.find(t => t.id === taskId);
-        
-        activityHistoryRef.push({
-            timestamp: new Date().toISOString(),
-            type: 'delete',
-            category: 'TASK DELETE',
-            title: equipment.vendor + ' - ' + equipment.equipment,
-            equipmentId: equipment.id,
-            equipment: equipment.equipment,
-            vendor: equipment.vendor,
-            description: `Deleted task: ${deletedTask ? deletedTask.name : 'Unknown Task'}`,
-            notes: `${deletedTask && deletedTask.description ? deletedTask.description + '\n\n' : ''}Task was: ${deletedTask ? deletedTask.status : 'unknown'}\n${deletedTask && deletedTask.notes ? 'Notes: ' + deletedTask.notes : ''}`,
-            user: deletedTask && deletedTask.assignedTo ? deletedTask.assignedTo : 'System',
-            icon: '🗑️',
-            color: '#e74c3c'
-        });
+   database.ref(`onsiteTasks/${equipmentKey}`).set(updatedTasks).then(() => {
+    showNotification('Task deleted successfully', 'success');
+    renderTaskTracker();
+    updateEquipmentProgress(equipmentKey);
+    
+    // ⭐⭐⭐ TAMBAHKAN BLOCK INI ⭐⭐⭐
+    // CEK: Apakah masih ada task aktif tersisa?
+    const remainingActiveTasks = updatedTasks.filter(t => 
+        t.status !== 'completed' && t.status !== 'pending'
+    );
+    
+    if (remainingActiveTasks.length === 0) {
+        console.log('🔄 No active tasks left - resetting equipment timestamp');
+        resetEquipmentUpdateTime(equipmentKey);
+        showNotification('Task deleted. Equipment returned to original position.', 'info');
+    }
+    // ⭐⭐⭐ AKHIR BLOCK TAMBAHAN ⭐⭐⭐
+    
+    const equipment = currentEquipmentTasks.equipment;
+    const deletedTask = tasks.find(t => t.id === taskId);
+    
+    activityHistoryRef.push({
+        timestamp: new Date().toISOString(),
+        type: 'delete',
+        category: 'TASK DELETE',
+        title: equipment.vendor + ' - ' + equipment.equipment,
+        equipmentId: equipment.id,
+        equipment: equipment.equipment,
+        vendor: equipment.vendor,
+        description: `Deleted task: ${deletedTask ? deletedTask.name : 'Unknown Task'}`,
+        notes: `${deletedTask && deletedTask.description ? deletedTask.description + '\n\n' : ''}Task was: ${deletedTask ? deletedTask.status : 'unknown'}\n${deletedTask && deletedTask.notes ? 'Notes: ' + deletedTask.notes : ''}`,
+        user: deletedTask && deletedTask.assignedTo ? deletedTask.assignedTo : 'System',
+        icon: '🗑️',
+        color: '#e74c3c'
+    });
     }).catch((error) => {
         showNotification('Error deleting task: ' + error.message, 'error');
     });
 }
+
+// ⭐ FUNGSI BARU - REVERT TASK KE PENDING
+function revertTaskToPending(taskId) {
+    if (!confirm('Revert this task back to pending status?')) return;
+    
+    const equipmentKey = currentEquipmentTasks.firebaseKey;
+    const tasks = onsiteTasks[equipmentKey] || [];
+    const taskIndex = tasks.findIndex(t => t.id === taskId);
+    
+    if (taskIndex === -1) {
+        showNotification('Task not found', 'error');
+        return;
+    }
+    
+    const oldStatus = tasks[taskIndex].status;
+    tasks[taskIndex].status = 'pending';
+    tasks[taskIndex].progress = 0;
+    delete tasks[taskIndex].startDate;
+    delete tasks[taskIndex].completedDate;
+    tasks[taskIndex].lastTaskUpdate = new Date().toISOString();
+    
+    database.ref(`onsiteTasks/${equipmentKey}`).set(tasks).then(() => {
+        showNotification('Task reverted to pending', 'success');
+        renderTaskTracker();
+        
+        // ⭐ CEK APAKAH PERLU RESET TIMESTAMP
+        const activeTasks = tasks.filter(t => 
+            t.status === 'inprogress' || t.status === 'completed'
+        );
+        
+        if (activeTasks.length === 0) {
+            console.log('🔄 No active tasks - resetting equipment timestamp');
+            resetEquipmentUpdateTime(equipmentKey);
+            showNotification('All tasks reverted. Equipment returned to original position.', 'info');
+        }
+        
+        // Activity history
+        const equipment = currentEquipmentTasks.equipment;
+        activityHistoryRef.push({
+            timestamp: new Date().toISOString(),
+            type: 'update',
+            category: 'TASK REVERT',
+            title: equipment.vendor + ' - ' + equipment.equipment,
+            equipmentId: equipment.id,
+            equipment: equipment.equipment,
+            vendor: equipment.vendor,
+            description: `Reverted task to pending: ${tasks[taskIndex].name}`,
+            notes: `Task was ${oldStatus}, now pending`,
+            user: 'System',
+            icon: '↩️',
+            color: '#f39c12'
+        });
+    }).catch((error) => {
+        showNotification('Error reverting task: ' + error.message, 'error');
+    });
+}
+
+// Make globally accessible
+window.revertTaskToPending = revertTaskToPending;
 
 function startTask(taskId) {
     const equipmentKey = currentEquipmentTasks.firebaseKey;
@@ -5563,6 +5677,27 @@ console.log('⏳ Waiting for Firebase listener to re-render table...');
 }
 
 // ===== RENDER TASK COMPLETION HISTORY =====
+// ===== RESET EQUIPMENT UPDATE TIMESTAMP =====
+function resetEquipmentUpdateTime(equipmentKey) {
+    // Reset lastUpdated ke null (item kembali ke posisi original)
+    database.ref(`projectData/${equipmentKey}/lastUpdated`).remove().then(() => {
+        console.log('🔄 Equipment update time reset, item will return to original position');
+        
+        // Update local data
+        const equipmentIndex = projectData.findIndex(p => p.firebaseKey === equipmentKey);
+        if (equipmentIndex !== -1) {
+            delete projectData[equipmentIndex].lastUpdated;
+            console.log('✅ Local data updated:', projectData[equipmentIndex].equipment);
+        }
+        
+        // Table akan ter-update otomatis dari Firebase listener
+    }).catch((error) => {
+        console.error('❌ Error resetting update time:', error);
+    });
+}
+
+// Make it globally accessible
+window.resetEquipmentUpdateTime = resetEquipmentUpdateTime;
 
 function renderTaskCompletionHistory(equipmentKey) {
     const tasks = onsiteTasks[equipmentKey] || [];
@@ -5934,6 +6069,7 @@ window.deleteTask = deleteTask;
 window.startTask = startTask;
 window.completeTask = completeTask;
 window.updateTaskProgress = updateTaskProgress;
+window.revertTaskToPending = revertTaskToPending; // ⭐ TAMBAH INI
 window.exportTaskReport = exportTaskReport;
 // Dropdown Global Functions
 window.initDropdowns = initDropdowns;
