@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -240,10 +239,11 @@
     }
 
     .data-table-container {
-        overflow-x: auto;
-        border: 1px solid #ecf0f1;
-        border-radius: 4px;
-    }
+    overflow-x: auto;
+    overflow-y: visible;
+    border: 1px solid #ecf0f1;
+    border-radius: 4px;
+}
 
     .data-table {
     width: 100%;
@@ -263,15 +263,144 @@
     }
 
     .data-table td {
-        padding: 10px 8px;
-        border-bottom: 1px solid #ecf0f1;
-        vertical-align: middle;
-        font-size: 12px;
-    }
+    padding: 10px 8px;
+    border-bottom: 1px solid #ecf0f1;
+    vertical-align: middle;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 
-    .data-table tr:hover {
-        background: #f8f9fa;
+/* Kolom yang boleh wrap */
+.data-table td.wrap-text {
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    max-width: none !important;
+}
+
+/* Fix kolom Actions agar dropdown tidak terpotong */
+.data-table td:last-child {
+    overflow: visible !important;
+    position: relative;
+    padding: 12px 8px !important;
+}
+
+/* Tambah z-index untuk row yang memiliki dropdown active */
+.data-table tr:has(.action-dropdown[style*="display: block"]) {
+    position: relative;
+    z-index: 1000;
+}
+
+/* Dropdown backdrop untuk close saat klik di luar */
+.dropdown-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9998;
+    background: transparent;
+}
+
+/* Dropdown container - FIXED position agar lepas dari table flow */
+.action-dropdown {
+    position: fixed !important;
+    z-index: 9999 !important;
+    background: white !important;
+    border: 2px solid #d0d0d0 !important;
+    border-radius: 10px !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.25), 
+                0 4px 12px rgba(0,0,0,0.15) !important;
+    min-width: 200px !important;
+    overflow: hidden !important;
+    animation: dropdownSlideIn 0.2s ease-out;
+    transform-origin: top;
+}
+
+/* Dropdown animation */
+@keyframes dropdownSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.95);
     }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Dropdown items */
+.dropdown-item {
+    width: 100%;
+    padding: 14px 18px;
+    border: none;
+    background: white;
+    text-align: left;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: #2c3e50;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.dropdown-item:hover {
+    background: linear-gradient(90deg, #f0f7ff 0%, #e3f2fd 100%) !important;
+    color: #2196F3 !important;
+    padding-left: 24px;
+}
+
+.dropdown-item:active {
+    background: #bbdefb !important;
+    transform: scale(0.98);
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.dropdown-item span:first-child {
+    font-size: 18px;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+}
+
+.dropdown-item:hover span:first-child {
+    transform: scale(1.15) rotate(5deg);
+}
+
+.dropdown-item span:last-child {
+    flex: 1;
+}
+
+/* Tombol More styling */
+.action-btn.dropdown-trigger {
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.action-btn.dropdown-trigger:hover {
+    background: #8e44ad !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(155, 89, 182, 0.4);
+}
+
+.action-btn.dropdown-trigger:active {
+    transform: translateY(0);
+}
+
+.action-btn.dropdown-trigger.active {
+    background: #8e44ad !important;
+    box-shadow: 0 2px 8px rgba(155, 89, 182, 0.4);
+}
 
     .data-table tr.priority-1st { background: #fdf2f2; }
     .data-table tr.priority-2nd { background: #fefbf3; }
@@ -299,12 +428,15 @@
     .status-delayed { background: #f8d7da; color: #721c24; }
 
     .priority-badge {
-        padding: 4px 8px;
-        border-radius: 3px;
-        font-size: 11px;
-        font-weight: 600;
-        color: white;
-    }
+    padding: 5px 12px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    color: white;
+    display: inline-block;
+    min-width: 55px;
+    text-align: center;
+}
 
     .priority-1st { background: #dc3545; }
     .priority-2nd { background: #fd7e14; }
@@ -1344,22 +1476,22 @@
                     <table class="data-table" id="mainDataTable">
                         <thead>
                             <tr>
-                                <th style="width: 3%;">No</th>
-                                <th style="width: 5%;">Priority</th>
-                                <th style="width: 19%;">Equipment</th>
-                                <th style="width: 9%;">Vendor</th>
-                                <th style="width: 4%;">Disc</th>
-<th style="width: 8%;">Task</th>
+                                <th style="width: 2%;">No</th>
+<th style="width: 4%;">Priority</th>
+<th style="width: 18%;">Equipment</th>
+<th style="width: 8%;">Vendor</th>
+<th style="width: 4%;">Disc</th>
+<th style="width: 12%;">Task</th>
 <th style="width: 8%;">Status</th>
-<th style="width: 7%;">Contract</th>
-                                <th style="width: 5%;">VISA</th>
-                                <th style="width: 7%;">Target MOB<br>Date</th>
-                               <th style="width: 5%;">MOB Date</th>
+<th style="width: 6%;">Contract</th>
+<th style="width: 5%;">VISA</th>
+<th style="width: 6%;">Target MOB<br>Date</th>
+<th style="width: 5%;">MOB Date</th>
 <th style="width: 6%;">MOB Status</th>
-<th style="width: 6%;">Target Comp.<br>Date</th>
-<th style="width: 6%;">Prognosa Comp.<br>Date</th>
-<th style="width: 5%;">Progress</th>
-                                <th style="width: 12%;">Actions</th>
+<th style="width: 5%;">Target Comp.<br>Date</th>
+<th style="width: 5%;">Prognosa Comp.<br>Date</th>
+<th style="width: 4%;">Progress</th>
+<th style="width: 12%;">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody">
@@ -2980,7 +3112,7 @@ function exportGanttPDF() {
                         <td style="text-align: center;">${index + 1}</td>
                         <td style="font-weight: 600;">${item.equipment}</td>
                         <td><strong>${item.vendor}</strong></td>
-                        <td><span class="priority-badge priority-${item.priority}">${item.priority}</span></td>
+                        <td style="text-align: center;"><span class="priority-badge priority-${item.priority}">${item.priority}</span></td>
                         <td>${formatDateForDisplay(task.start)}</td>
                         <td>${formatDateForDisplay(task.end)}</td>
                         <td style="text-align: center;">${duration} days</td>
@@ -3541,15 +3673,15 @@ if (lastUpdate) {
 }
 
 row.innerHTML = `
-    <td>${rowNumber}</td>
-    <td><span class="priority-badge priority-${item.priority}">${item.priority}</span></td>
-    <td style="font-weight: ${item.highlighted ? '700' : '500'}; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 8px;" title="${item.equipment}">
-        ${item.highlighted ? '<span class="warning-badge">⚠️</span>' : ''}${item.equipment}
-        ${isRecentlyUpdated ? `<span class="recent-update-badge">🔄 NEW</span><span class="recent-update-time">${timeSinceUpdate}</span>` : ''}
-    </td>
+    <td style="text-align: center;">${rowNumber}</td>
+    <td style="text-align: center;"><span class="priority-badge priority-${item.priority}">${item.priority}</span></td>
+    <td class="wrap-text" style="font-weight: ${item.highlighted ? '700' : '500'}; padding-right: 8px;">
+    ${item.highlighted ? '<span class="warning-badge">⚠️</span>' : ''}${item.equipment}
+    ${isRecentlyUpdated ? `<span class="recent-update-badge">🔄 NEW</span><span class="recent-update-time">${timeSinceUpdate}</span>` : ''}
+</td>
     <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.vendor}"><strong>${item.vendor}</strong></td>
-<td><span class="status-badge">${item.disc || item.task}</span></td>
-<td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; font-size: 11px;" title="${item.taskName || '-'}">${item.taskName || '-'}</td>
+<td style="text-align: center;"><span class="status-badge">${item.disc || '-'}</span></td>
+<td class="wrap-text" style="font-size: 11px;">${item.taskName || '-'}</td>
 <td><span class="status-badge ${getStatusClass(item.status)}">${item.status}</span></td>
                 <td><span class="status-badge ${getContractClass(item.contract)}">${item.contract}</span></td>
                 <td><span class="status-badge ${getVisaClass(item.visa)}">${item.visa}</span></td>
@@ -3563,29 +3695,29 @@ row.innerHTML = `
                         <div class="progress-fill" style="width: ${item.progress}%;"></div>
                     </div>
                     <small style="font-size: 8px; margin-left: 3px;">${item.progress}%</small>
-                <td style="white-space: nowrap; text-align: center;">
-                    <button class="action-btn primary" onclick="openUpdateModal('${item.firebaseKey}')" style="font-size: 9px; padding: 4px 8px;">Update</button>
-                    ${item.status && (item.status.includes('Onsite') || item.status.includes('Completed')) ? `
-                        <div style="display: inline-block; position: relative; vertical-align: middle;">
-                            <button class="action-btn dropdown-trigger" data-dropdown="dropdown-${item.firebaseKey}" style="background: #9b59b6; color: white; font-size: 9px; padding: 4px 8px; margin-left: 3px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
-                                📋 More ▼
-                            </button>
-                            <div id="dropdown-${item.firebaseKey}" class="action-dropdown" style="display: none; position: absolute; background: white; border: 1px solid #ddd; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 150px; top: calc(100% + 2px); left: 0; overflow: hidden;">
-                                <button class="dropdown-item" data-action="tasks" data-key="${item.firebaseKey}" style="width: 100%; padding: 10px 15px; border: none; background: white; text-align: left; cursor: pointer; font-size: 11px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; gap: 8px;">
-                                    <span style="font-size: 14px;">📋</span>
-                                    <span>Onsite Tasks</span>
-                                </button>
-                                <button class="dropdown-item" data-action="progress" data-key="${item.firebaseKey}" style="width: 100%; padding: 10px 15px; border: none; background: white; text-align: left; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 8px;">
-                                    <span style="font-size: 14px;">📊</span>
-                                    <span>Progress Report</span>
-                                </button>
-                            </div>
-                        </div>
-                    ` : `
-                        <button class="action-btn success" onclick="showProgressReportById('${item.firebaseKey}')" title="View Progress Report" style="background: #27ae60; font-size: 9px; padding: 4px 8px; margin-left: 3px;">📊 Progress</button>
-                    `}
-                    <button class="btn-delete" onclick="deleteItem('${item.firebaseKey}')" title="Delete" style="font-size: 12px; padding: 4px 7px; line-height: 1; margin-left: 3px;">🗑️</button>
-                </td>
+                <td style="white-space: nowrap; text-align: center; position: relative; overflow: visible;">
+    <button class="action-btn primary" onclick="openUpdateModal('${item.firebaseKey}')" style="font-size: 9px; padding: 4px 8px;">Update</button>
+    ${item.status && (item.status.includes('Onsite') || item.status.includes('Completed')) ? `
+        <div style="display: inline-block; position: relative; vertical-align: middle; z-index: 100;">
+            <button class="action-btn dropdown-trigger" onclick="toggleDropdown('dropdown-${item.firebaseKey}')" style="background: #9b59b6; color: white; font-size: 9px; padding: 4px 8px; margin-left: 3px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+    📋 More ▼
+</button>
+            <div id="dropdown-${item.firebaseKey}" class="action-dropdown" style="display: none;">
+                <button class="dropdown-item" data-action="tasks" data-key="${item.firebaseKey}">
+                    <span style="font-size: 14px;">📋</span>
+                    <span>Onsite Tasks</span>
+                </button>
+                <button class="dropdown-item" data-action="progress" data-key="${item.firebaseKey}">
+                    <span style="font-size: 14px;">📊</span>
+                    <span>Progress Report</span>
+                </button>
+            </div>
+        </div>
+    ` : `
+        <button class="action-btn success" onclick="showProgressReportById('${item.firebaseKey}')" title="View Progress Report" style="background: #27ae60; font-size: 9px; padding: 4px 8px; margin-left: 3px;">📊 Progress</button>
+    `}
+    <button class="btn-delete" onclick="deleteItem('${item.firebaseKey}')" title="Delete" style="font-size: 12px; padding: 4px 7px; line-height: 1; margin-left: 3px;">🗑️</button>
+</td>
         `;
         
         tableBody.appendChild(row);
@@ -5898,28 +6030,24 @@ function renderTaskCompletionHistory(equipmentKey) {
 // ===== DROPDOWN FUNCTIONS (Event Delegation) =====
 
 function initDropdowns() {
-    // Handle dropdown trigger clicks
-    document.addEventListener('click', function(event) {
-        const trigger = event.target.closest('.dropdown-trigger');
-        
-        if (trigger) {
-            event.stopPropagation();
-            const dropdownId = trigger.getAttribute('data-dropdown');
-            toggleDropdown(dropdownId);
-        } else {
-            // Close all dropdowns if clicked outside
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.dropdown-trigger') && !e.target.closest('.action-dropdown')) {
             closeAllDropdowns();
         }
     });
     
+    // Close dropdown on scroll
+    document.addEventListener('scroll', function() {
+        closeAllDropdowns();
+    }, true);
+    
     // Handle dropdown item clicks
-    document.addEventListener('click', function(event) {
-        const item = event.target.closest('.dropdown-item');
-        
-        if (item) {
-            event.stopPropagation();
-            const action = item.getAttribute('data-action');
-            const key = item.getAttribute('data-key');
+    document.addEventListener('click', function(e) {
+        const dropdownItem = e.target.closest('.dropdown-item');
+        if (dropdownItem) {
+            const action = dropdownItem.getAttribute('data-action');
+            const key = dropdownItem.getAttribute('data-key');
             
             if (action === 'tasks') {
                 openTaskTracker(key);
@@ -5930,31 +6058,32 @@ function initDropdowns() {
             closeAllDropdowns();
         }
     });
-    
-    // Add hover effect to dropdown items
-    document.addEventListener('mouseover', function(event) {
-        const item = event.target.closest('.dropdown-item');
-        if (item) {
-            item.style.background = '#f8f9fa';
-        }
-    });
-    
-    document.addEventListener('mouseout', function(event) {
-        const item = event.target.closest('.dropdown-item');
-        if (item) {
-            item.style.background = 'white';
-        }
-    });
 }
 
 function toggleDropdown(dropdownId) {
-    // Close all other dropdowns first
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+    
+    const isVisible = dropdown.style.display === 'block';
+    
+    // Close all dropdowns first
     closeAllDropdowns();
     
-    // Toggle current dropdown
-    const dropdown = document.getElementById(dropdownId);
-    if (dropdown) {
-        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    if (!isVisible) {
+        // Get button position
+        const button = dropdown.previousElementSibling;
+        const rect = button.getBoundingClientRect();
+        
+        // Position dropdown below button with FIXED positioning
+        dropdown.style.display = 'block';
+        dropdown.style.top = (rect.bottom + 5) + 'px';
+        dropdown.style.left = rect.left + 'px';
+        
+        // Mark button as active
+        button.classList.add('active');
+        
+        // Create backdrop
+        createDropdownBackdrop();
     }
 }
 
@@ -5962,7 +6091,33 @@ function closeAllDropdowns() {
     document.querySelectorAll('.action-dropdown').forEach(dropdown => {
         dropdown.style.display = 'none';
     });
+    
+    // Remove active state from buttons
+    document.querySelectorAll('.dropdown-trigger').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Remove backdrop
+    removeDropdownBackdrop();
 }
+
+function createDropdownBackdrop() {
+    // Remove existing backdrop first
+    removeDropdownBackdrop();
+    
+    const backdrop = document.createElement('div');
+    backdrop.className = 'dropdown-backdrop';
+    backdrop.onclick = closeAllDropdowns;
+    document.body.appendChild(backdrop);
+}
+
+function removeDropdownBackdrop() {
+    const backdrop = document.querySelector('.dropdown-backdrop');
+    if (backdrop) {
+        backdrop.remove();
+    }
+}
+    
 
     // ===== EXPORT =====
     function exportToPDF() {
@@ -6031,7 +6186,7 @@ function closeAllDropdowns() {
                                 <td>${item.priority}</td>
                                 <td>${item.equipment}</td>
                                 <td>${item.vendor}</td>
-                                <td>${item.task}</td>
+                                <td class="wrap-text">${item.task}</td>
                                 <td>${item.status}</td>
 
 <td>${item.targetDate ? formatDateForDisplay(item.targetDate) : '-'}</td>
@@ -6187,6 +6342,11 @@ window.closeAllDropdowns = closeAllDropdowns;
         window.saveUpdate = saveUpdate;
 	window.changeTablePage = changeTablePage;
         window.goToTablePage = goToTablePage;
+// Make functions globally accessible
+window.toggleDropdown = toggleDropdown;
+window.closeAllDropdowns = closeAllDropdowns;
+window.createDropdownBackdrop = createDropdownBackdrop;
+window.removeDropdownBackdrop = removeDropdownBackdrop;
     </script>
 
     <!-- Footer -->
