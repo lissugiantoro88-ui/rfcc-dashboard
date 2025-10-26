@@ -1482,22 +1482,23 @@
                     <table class="data-table" id="mainDataTable">
                         <thead>
                             <tr>
-                                <th style="width: 2%;">No</th>
-<th style="width: 4%;">Priority</th>
-<th style="width: 18%;">Equipment</th>
-<th style="width: 8%;">Vendor</th>
-<th style="width: 4%;">Disc</th>
-<th style="width: 12%;">Task</th>
-<th style="width: 8%;">Status</th>
+                                <!-- ✅ SESUDAH (Total 100% - BENAR & PROPORSIONAL) -->
+<th style="width: 2%;">No</th>
+<th style="width: 3%;">Priority</th>
+<th style="width: 17%;">Equipment</th>       
+<th style="width: 5%;">Vendor</th>           <!-- ⬇️ 8%→6% (nama singkat) -->
+<th style="width: 3%;">Disc</th>             <!-- ⬇️ 4%→3% (CI, COM, ME) -->
+<th style="width: 21%;">Task</th>            <!-- ⬆️ 12%→18% DIPERBESAR! -->
+<th style="width: 5%;">Status</th>           <!-- ⬇️ 8%→7% -->
 <th style="width: 6%;">Contract</th>
 <th style="width: 5%;">VISA</th>
 <th style="width: 6%;">Target MOB<br>Date</th>
 <th style="width: 5%;">MOB Date</th>
 <th style="width: 6%;">MOB Status</th>
 <th style="width: 5%;">Target Comp.<br>Date</th>
-<th style="width: 5%;">Prognosa Comp.<br>Date</th>
+<th style="width: 6%;">Prognosa Comp.<br>Date</th>
 <th style="width: 4%;">Progress</th>
-<th style="width: 12%;">Actions</th>
+<th style="width: 11%;">Actions</th>         <!-- ⬇️ 12%→11% -->
                             </tr>
                         </thead>
                         <tbody id="tableBody">
@@ -1603,13 +1604,25 @@
     <label class="form-label">Discipline:</label>
     <select id="modalDisc" class="form-control">
         <option value="CI">CI</option>
-        <option value="COM">COM</option>
-        <option value="ME">ME</option>
-        <option value="EL">EL</option>
         <option value="CI/COM">CI/COM</option>
+        <option value="COM">COM</option>
         <option value="COM-EL">COM-EL</option>
+        <option value="COM-I">COM-I</option>
         <option value="COM-ME">COM-ME</option>
+        <option value="COM-ME-CI">COM-ME-CI</option>
+        <option value="EL">EL</option>
+        <option value="HV">HV</option>
+        <option value="ME">ME</option>
+        <option value="MR">MR</option>
+        <option value="custom">➕ Custom (Type Your Own)</option>
     </select>
+</div>
+
+<!-- Custom Discipline Input (Hidden by default) -->
+<div class="form-group" id="customDiscGroup" style="display: none;">
+    <label class="form-label">Custom Discipline:</label>
+    <input type="text" id="customDiscInput" class="form-control" placeholder="Type your custom discipline..." maxlength="20">
+    <small style="color: #7f8c8d; font-size: 11px;">Max 20 characters. Example: CI/ME, COM-CI-EL, etc.</small>
 </div>
 <div class="form-group">
     <label class="form-label">Task Name:</label>
@@ -2236,23 +2249,41 @@ onsiteTasksRef.on('value', (snapshot) => {
     }
 
     // ===== EVENT LISTENERS =====
-    function setupEventListeners() {
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                filterByPriority(this.getAttribute('data-filter'));
-            });
+   function setupEventListeners() {
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            filterByPriority(this.getAttribute('data-filter'));
         });
-
-        const searchBox = document.getElementById('searchBox');
-if (searchBox) {
-    searchBox.addEventListener('input', searchTable);
-    searchBox.addEventListener('keyup', function(e) {
-        if (e.key === 'Escape') {
-            this.value = '';
-            searchTable();
-        }
     });
-}
+    
+    const searchBox = document.getElementById('searchBox');
+    if (searchBox) {
+        searchBox.addEventListener('input', searchTable);
+        searchBox.addEventListener('keyup', function(e) {
+            if (e.key === 'Escape') {
+                this.value = '';
+                searchTable();
+            }
+        });
+    }
+
+    // ⭐ TAMBAHKAN CODE BARU INI DI SINI ⭐
+    // ===== HANDLE CUSTOM DISCIPLINE INPUT =====
+    const modalDiscSelect = document.getElementById('modalDisc');
+    const customDiscGroup = document.getElementById('customDiscGroup');
+    const customDiscInput = document.getElementById('customDiscInput');
+    
+    if (modalDiscSelect) {
+        modalDiscSelect.addEventListener('change', function() {
+            if (this.value === 'custom') {
+                if (customDiscGroup) customDiscGroup.style.display = 'block';
+                if (customDiscInput) customDiscInput.focus();
+            } else {
+                if (customDiscGroup) customDiscGroup.style.display = 'none';
+                if (customDiscInput) customDiscInput.value = '';
+            }
+        });
+    }
 
        const addItemBtn = document.getElementById('addItemBtn');
 const exportBtn = document.getElementById('exportBtn');
@@ -4196,7 +4227,37 @@ function searchEquipment() {
         document.getElementById('modalEquipment').value = item.equipment;
 document.getElementById('modalVendor').value = item.vendor;
 document.getElementById('modalPriority').value = item.priority;
-document.getElementById('modalDisc').value = item.disc || item.task || 'CI';
+ // ⭐ GANTI BARIS 4199 DENGAN CODE BARU INI ⭐
+    // Handle custom discipline on edit
+    const modalDiscSelect = document.getElementById('modalDisc');
+    const customDiscGroup = document.getElementById('customDiscGroup');
+    const customDiscInput = document.getElementById('customDiscInput');
+
+    if (modalDiscSelect) {
+        const discValue = item.disc || item.task || 'CI';
+        
+        // Check if the disc value exists in dropdown options
+        const discExists = Array.from(modalDiscSelect.options).some(option => 
+            option.value === discValue && option.value !== 'custom'
+        );
+        
+        if (discExists) {
+            // Standard disc - select from dropdown
+            modalDiscSelect.value = discValue;
+            if (customDiscGroup) customDiscGroup.style.display = 'none';
+            if (customDiscInput) customDiscInput.value = '';
+        } else if (discValue && discValue !== 'CI') {
+            // Custom disc - set to custom and show input
+            modalDiscSelect.value = 'custom';
+            if (customDiscInput) customDiscInput.value = discValue;
+            if (customDiscGroup) customDiscGroup.style.display = 'block';
+        } else {
+            // Default to CI
+            modalDiscSelect.value = 'CI';
+            if (customDiscGroup) customDiscGroup.style.display = 'none';
+        }
+    }
+    // ⭐ AKHIR CODE BARU ⭐
 document.getElementById('modalTask').value = item.taskName || '';
 document.getElementById('modalStatus').value = item.status;
         document.getElementById('modalContract').value = item.contract;
@@ -4217,6 +4278,11 @@ document.getElementById('modalNotes').value = '';
 document.getElementById('modalVendor').value = '';
 document.getElementById('modalPriority').value = '2nd';
 document.getElementById('modalDisc').value = 'CI';
+// Reset custom discipline input
+    const customDiscGroup = document.getElementById('customDiscGroup');
+    const customDiscInput = document.getElementById('customDiscInput');
+    if (customDiscGroup) customDiscGroup.style.display = 'none';
+    if (customDiscInput) customDiscInput.value = '';
 document.getElementById('modalTask').value = '';
 document.getElementById('modalStatus').value = 'Contract Issue';
         document.getElementById('modalContract').value = 'Quotation';
@@ -4236,6 +4302,25 @@ document.getElementById('modalNotes').value = '';
         currentEditId = null;
     }
 
+// ===== HELPER: GET DISCIPLINE VALUE =====
+function getDiscValue() {
+    const discSelect = document.getElementById('modalDisc');
+    const customDiscInput = document.getElementById('customDiscInput');
+    
+    if (!discSelect) return 'CI'; // Default fallback
+    
+    if (discSelect.value === 'custom') {
+        const customValue = customDiscInput ? customDiscInput.value.trim() : '';
+        if (!customValue) {
+            showNotification('Please enter a custom discipline', 'error');
+            return null;
+        }
+        return customValue.toUpperCase(); // Convert to uppercase for consistency
+    }
+    
+    return discSelect.value;
+}
+
     // ===== CRUD OPERATIONS =====
     function saveUpdate() {
         const equipment = document.getElementById('modalEquipment').value.trim();
@@ -4246,6 +4331,14 @@ document.getElementById('modalNotes').value = '';
             return;
         }
 
+// ⭐ TAMBAHKAN CODE BARU INI DI SINI ⭐
+    // Validate discipline
+    const discValue = getDiscValue();
+    if (!discValue) {
+        return; // getDiscValue already showed error notification
+    }
+    // ⭐ AKHIR CODE BARU ⭐
+
         const mobDateValue = document.getElementById('modalMobDate').value;
         const mobDateFormatted = mobDateValue ? formatDateForDisplay(mobDateValue) : 'TBD';
 
@@ -4253,7 +4346,7 @@ document.getElementById('modalNotes').value = '';
     equipment: equipment,
     vendor: vendor,
     priority: document.getElementById('modalPriority').value,
-    disc: document.getElementById('modalDisc').value,
+    disc: getDiscValue(),
     task: document.getElementById('modalDisc').value, // Keep for backward compatibility
     taskName: document.getElementById('modalTask').value,
     status: document.getElementById('modalStatus').value,
