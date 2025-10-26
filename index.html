@@ -249,7 +249,7 @@
     width: 100%;
     border-collapse: collapse;
     font-size: 12px;
-    min-width: 1500px;
+    table-layout: auto;  /* ⭐ GANTI dari fixed ke auto */
 }
 
     .data-table th {
@@ -262,15 +262,47 @@
         white-space: nowrap;
     }
 
-    .data-table td {
+    /* ✅ SESUDAH */
+.data-table td {
     padding: 10px 8px;
     border-bottom: 1px solid #ecf0f1;
     vertical-align: middle;
     font-size: 12px;
-    white-space: nowrap;
+    white-space: nowrap;        /* Tetap nowrap untuk kolom lain */
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* ⭐ TAMBAHKAN INI MULAI DARI SINI (Baris 274 baru) */
+/* KOLOM TASK - Bisa multi-line */
+/* ✅ GANTI DENGAN INI */
+.data-table td:nth-child(6),
+.data-table th:nth-child(6) {
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;  /* ← Lebih baik dari word-break */
+    line-height: 1.4;
+    vertical-align: top;
+    min-width: 150px;  /* ← Lebar minimum agar tidak terlalu sempit */
+}
+
+/* Equipment juga bisa wrap jika terlalu panjang */
+/* ✅ GANTI */
+.data-table td:nth-child(3) {
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    min-width: 120px;
+}
+
+/* MOB Status bisa wrap */
+.data-table td:nth-child(12) {
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    min-width: 80px;
+}
+/* ⭐ SAMPAI SINI */
 
 /* Kolom yang boleh wrap */
 .data-table td.wrap-text {
@@ -3160,16 +3192,23 @@ function exportGanttPDF() {
         <table>
             <thead>
                 <tr>
-                    <th style="width: 4%;">No</th>
-                    <th style="width: 22%;">Equipment</th>
-                    <th style="width: 12%;">Vendor</th>
-                    <th style="width: 7%;">Priority</th>
-                    <th style="width: 10%;">Start Date</th>
-                    <th style="width: 10%;">End Date</th>
-                    <th style="width: 8%;">Duration</th>
-                    <th style="width: 12%;">Progress</th>
-                    <th style="width: 15%;">Status</th>
-                </tr>
+    <th style="width: 2%;">No</th>
+    <th style="width: 3%;">Priority</th>
+    <th style="width: 14%;">Equipment</th>
+    <th style="width: 5%;">Vendor</th>
+    <th style="width: 3%;">Disc</th>
+    <th style="width: 18%;">Task</th>
+    <th style="width: 7%;">Status</th>
+    <th style="width: 6%;">Contract</th>
+    <th style="width: 5%;">VISA</th>
+    <th style="width: 7%;">Target MOB<br>Date</th>
+    <th style="width: 6%;">MOB Date</th>
+    <th style="width: 7%;">MOB Status</th>
+    <th style="width: 6%;">Target Comp.<br>Date</th>
+    <th style="width: 6%;">Prognosa Comp.<br>Date</th>
+    <th style="width: 4%;">Progress</th>
+    <th style="width: 11%;">Actions</th>
+</tr>
             </thead>
             <tbody>
                 ${tasks.map(function(task, index) {
