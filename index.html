@@ -1425,6 +1425,108 @@
     fill: white !important;
 }
 
+/* ⭐ TAMBAH CSS BARU MULAI DARI SINI */
+.equipment-group-row {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white !important;
+    font-weight: 700;
+    cursor: pointer;
+    border-left: 5px solid #ffd700;
+}
+
+.equipment-group-row:hover {
+    transform: translateX(3px);
+}
+
+.equipment-group-row td {
+    padding: 15px 10px !important;
+    color: white !important;
+}
+
+.collapse-icon {
+    transition: transform 0.3s;
+    margin-right: 8px;
+}
+
+.collapsed .collapse-icon {
+    transform: rotate(-90deg);
+}
+
+.child-task-row {
+    background: #f8f9fa;
+    border-left: 4px solid #e0e0e0;
+}
+
+.child-task-row.hidden {
+    display: none;
+}
+
+.child-task-row td:first-child {
+    padding-left: 40px !important;
+}
+
+.phase-badge {
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 9px;
+    margin-right: 5px;
+    background: rgba(255,255,255,0.2);
+}
+
+.phase-badge.complete { background: #22c55e; }
+.phase-badge.ongoing { background: #3b82f6; }
+.phase-badge.pending { background: rgba(255,255,255,0.2); }
+
+.overall-progress-bar {
+    width: 100px;
+    height: 8px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 4px;
+    overflow: hidden;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.overall-progress-fill {
+    height: 100%;
+    background: #22c55e;
+    transition: width 0.5s;
+}
+
+ /* Style untuk kolom nomor di group mode */
+    .equipment-group-row td:first-child {
+        background: rgba(52, 152, 219, 0.1);
+        border-right: 2px solid rgba(52, 152, 219, 0.2);
+        font-size: 14px;
+        color: #2c3e50;
+    }
+    
+    /* Ensure progress bar container is flexible */
+    .overall-progress-bar {
+        min-width: 80px;
+        max-width: 200px;
+    }
+
+/* Force hide pagination in group mode */
+body.grouped-view-active #pagination,
+body.grouped-view-active .pagination-controls,
+body.grouped-view-active .pagination-info,
+body.grouped-view-active #tablePagination {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* Force hide pagination in group mode */
+.hide-in-group-mode {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    opacity: 0 !important;
+}
+
+/* ⭐ AKHIR CSS BARU */
+
 </style>
 </head>
 <body>
@@ -1506,6 +1608,10 @@
     <button class="btn-add" id="addItemBtn">+ Add New Item</button>
     <button class="btn-export" id="exportBtn">📄 Export PDF</button>
     <button class="btn-export" id="viewTimelineBtn" style="background: #9b59b6;">📊 View Timeline</button>
+<!-- ⭐ TAMBAH BUTTON BARU DI BAWAH INI -->
+    <button class="btn-export" id="groupViewBtn" onclick="toggleGroupedView()" style="background: #e67e22;">
+        🔧 Group Equipment
+</button>
     <input type="text" class="search-box" placeholder="Search equipment, vendor, or task..." id="searchBox">
 </div>
                 </div>
@@ -3628,9 +3734,65 @@ function updatePaginationInfo(displayedCount, totalCount) {
 
     // ===== TABLE POPULATION =====
     function populateTable() {
+// Remove grouped view class from body
+    document.body.classList.remove('grouped-view-active');
+
     console.log('📊 populateTable() called');
+  // ✅ TAMBAHKAN INI - Check if search box has value
+    const searchBox = document.getElementById('searchBox');
+    if (searchBox && searchBox.value.trim() !== '') {
+        // Re-trigger search with current value
+        const searchTerm = searchBox.value.trim();
+        isSearching = true;
+        searchResults = projectData.filter(item => {
+            const searchLower = searchTerm.toLowerCase();
+            return (
+                item.equipment.toLowerCase().includes(searchLower) ||
+                item.vendor.toLowerCase().includes(searchLower) ||
+                (item.taskName && item.taskName.toLowerCase().includes(searchLower)) ||
+                (item.disc && item.disc.toLowerCase().includes(searchLower))
+            );
+        });
+    } else {
+        isSearching = false;
+        searchResults = [];
+    }
     console.log('📊 autoSortEnabled:', autoSortEnabled);
     console.log('📊 projectData.length:', projectData.length);
+
+// ✅ TAMBAHKAN INI DI SINI (SETELAH CONSOLE.LOG)
+    // Force show pagination for detail view
+    const paginationDiv = document.getElementById('pagination');
+    if (paginationDiv) {
+        paginationDiv.style.display = 'flex'; // atau 'block'
+    }
+    
+    // Re-enable all pagination controls
+    const paginationElements = document.querySelectorAll(
+        '.pagination-controls, .pagination-info, #tablePagination, ' +
+        'button[onclick*="changeTablePage"], button[onclick*="goToTablePage"], ' +
+        '#pageInput, .page-number-input, .hide-in-group-mode'
+    );
+    
+    paginationElements.forEach(el => {
+        if (el) {
+            el.style.display = '';
+            el.style.visibility = 'visible';
+            el.style.height = '';
+            el.style.overflow = '';
+            el.style.pointerEvents = 'auto';
+            el.classList.remove('hide-in-group-mode');
+            if (el.tagName === 'BUTTON' || el.tagName === 'INPUT') {
+                el.disabled = false;
+            }
+        }
+    });
+    
+    // Set flag: we are NOT in grouped view
+    window.isGroupedView = false;
+    
+    // ✅ SAMPAI SINI
+
     const tableBody = document.getElementById('tableBody');
     tableBody.innerHTML = '';
 
@@ -3944,21 +4106,57 @@ function updateTablePagination(totalItems, totalPages) {
     }
 
     function renderTablePageNumbers(totalPages) {
-        const pageNumbersDiv = document.getElementById('tablePageNumbers');
-        let html = '';
-        
-        for (let i = 1; i <= totalPages; i++) {
-            if (i === 1 || i === totalPages || (i >= currentTablePage - 2 && i <= currentTablePage + 2)) {
-                html += `<button onclick="goToTablePage(${i})" style="padding: 6px 10px; background: ${i === currentTablePage ? '#3498db' : '#ecf0f1'}; color: ${i === currentTablePage ? 'white' : '#2c3e50'}; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; min-width: 30px;">${i}</button>`;
-            } else if (i === currentTablePage - 3 || i === currentTablePage + 3) {
-                html += '<span style="padding: 0 5px;">...</span>';
-            }
-        }
-        
-        pageNumbersDiv.innerHTML = html;
+    const pageNumbersDiv = document.getElementById('tablePageNumbers');
+    pageNumbersDiv.innerHTML = ''; // Clear dulu
+    
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentTablePage - 2 && i <= currentTablePage + 2)) {
+            const btn = document.createElement('button');
+            btn.textContent = i;
+            btn.style.cssText = `
+                padding: 6px 10px; 
+                background: ${i === currentTablePage ? '#3498db' : '#ecf0f1'}; 
+                color: ${i === currentTablePage ? 'white' : '#2c3e50'}; 
+                border: none; 
+                border-radius: 4px; 
+                font-size: 11px; 
+                cursor: pointer; 
+                min-width: 30px;
+                margin: 0 2px;
+            `;
+            
+            // 👇 EVENT LISTENER DENGAN SCROLL
+            btn.addEventListener('click', function() {
+    if (window.isGroupedView) {
+        return;
     }
+    
+    currentTablePage = i;
+    populateTable();
+    
+    // ✅ HANYA 1 scroll command
+    window.scrollTo({ 
+        top: 0, 
+        behavior: 'smooth' 
+    });
+});
+            
+            pageNumbersDiv.appendChild(btn);
+        } else if (i === currentTablePage - 3 || i === currentTablePage + 3) {
+            const dots = document.createElement('span');
+            dots.textContent = '...';
+            dots.style.cssText = 'padding: 0 5px;';
+            pageNumbersDiv.appendChild(dots);
+        }
+    }
+}
 
-    function changeTablePage(direction) {
+  function changeTablePage(direction) {
+    // ✅ UBAH JADI window.isGroupedView
+    if (window.isGroupedView) {
+        return; // Mode group tidak pakai pagination
+    }
+    
     const filteredData = currentFilter === 'all' ? projectData : projectData.filter(item => item.priority === currentFilter);
     const totalPages = Math.ceil(filteredData.length / itemsPerTablePage);
     const newPage = currentTablePage + direction;
@@ -3966,23 +4164,28 @@ function updateTablePagination(totalItems, totalPages) {
     if (newPage >= 1 && newPage <= totalPages) {
         currentTablePage = newPage;
         populateTable();
-        
-        // Scroll ke posisi tabel
-        const tableSection = document.querySelector('.main-table-section');
-        if (tableSection) {
-            tableSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
 
-    function goToTablePage(page) {
-    currentTablePage = page;
-    populateTable();
+function goToTablePage(pageNumber) {
+    if (!pageNumber) {
+        const pageInput = document.getElementById('pageInput');
+        if (!pageInput) return;
+        pageNumber = parseInt(pageInput.value);
+    }
     
-    // Scroll ke posisi tabel
-    const tableSection = document.querySelector('.main-table-section');
-    if (tableSection) {
-        tableSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (isGroupedView) {
+        return;
+    }
+    
+    const filteredData = currentFilter === 'all' ? projectData : projectData.filter(item => item.priority === currentFilter);
+    const totalPages = Math.ceil(filteredData.length / itemsPerTablePage);
+    
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+        currentTablePage = pageNumber;
+        populateTable();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
 
@@ -4161,13 +4364,25 @@ const daysUntil = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
         const sortedEquipment = Array.from(uniqueEquipmentMap.values()).sort((a, b) => a.name.localeCompare(b.name));
         
         sortedEquipment.forEach(eq => {
-            const option = document.createElement('option');
-            option.value = eq.id;
-            option.textContent = `${eq.name} (${eq.vendor})`;
-	option.setAttribute('data-equipment', eq.name.toLowerCase());
-        option.setAttribute('data-vendor', eq.vendor.toLowerCase());
-            filterSelect.appendChild(option);
-        });
+    const option = document.createElement('option');
+    option.value = eq.id;
+    
+    // Find equipment data to get disc
+    const equipmentData = projectData.find(p => p.id === eq.id);
+    const disc = equipmentData ? equipmentData.disc : null;
+    
+    // Add disc to display text
+    option.textContent = disc ? 
+        `${eq.name} (${eq.vendor}) - ${disc}` : 
+        `${eq.name} (${eq.vendor})`;
+    
+    option.setAttribute('data-equipment', eq.name.toLowerCase());
+    option.setAttribute('data-vendor', eq.vendor.toLowerCase());
+    if (disc) {
+        option.setAttribute('data-disc', disc.toLowerCase());
+    }
+    filterSelect.appendChild(option);
+});
         
         filterSelect.value = currentValue;
 if (searchInput) {
@@ -4827,9 +5042,15 @@ function showProgressReportById(firebaseKey) {
     
     console.log('Equipment history:', equipmentHistory);
     
+    // Create equipment title with disc
+    const equipmentTitle = item.disc ? 
+        `${item.equipment} (${item.vendor}) - ${item.disc}` : 
+        `${item.equipment} (${item.vendor})`;
+    
     // Allow showing report even with no history
     currentEquipmentReport = {
         equipment: item,
+        equipmentTitle: equipmentTitle,
         history: equipmentHistory
     };
 
@@ -4931,8 +5152,14 @@ function renderReportPageNumbers(totalPages) {
     function renderProgressReport() {
     if (!currentEquipmentReport) return;
 
-    const { equipment, history } = currentEquipmentReport;
+    const { equipment, equipmentTitle, history } = currentEquipmentReport;
     const container = document.getElementById('progressReportContent');
+    
+    // Use equipmentTitle with disc format
+    const displayTitle = equipmentTitle || 
+        (equipment.disc ? 
+            `${equipment.equipment} (${equipment.vendor}) - ${equipment.disc}` : 
+            `${equipment.equipment} (${equipment.vendor})`);
     
     // Filter and sort history
     // Get filtered history with pagination
@@ -4949,7 +5176,7 @@ document.getElementById('reportTotalCount').textContent = filteredHistory.length
     if (sortedHistory.length === 0) {
         container.innerHTML = `
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                <h2 style="margin: 0 0 10px 0; font-size: 18px;">${equipment.equipment}</h2>
+                <h2 style="margin: 0 0 10px 0; font-size: 18px;">${displayTitle}</h2>
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; font-size: 12px;">
                     <div><strong>Vendor:</strong> ${equipment.vendor}</div>
                     <div><strong>Priority:</strong> ${equipment.priority}</div>
@@ -4973,16 +5200,25 @@ document.getElementById('reportTotalCount').textContent = filteredHistory.length
 
     const statusChanges = sortedHistory.filter(item => item.category === 'UPDATE');
 
+   // Use the displayTitle that was created at the beginning (line 11-13)
+    const vendorInfo = equipment.vendor ? 
+        `${equipment.vendor}` : 
+        'N/A';
+    
     container.innerHTML = `
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-            <h2 style="margin: 0 0 10px 0; font-size: 18px;">${equipment.equipment}</h2>
+            <h2 style="margin: 0 0 10px 0; font-size: 18px;">${displayTitle}</h2>
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; font-size: 12px;">
-                <div><strong>Vendor:</strong> ${equipment.vendor}</div>
-                <div><strong>Priority:</strong> ${equipment.priority}</div>
-                <div><strong>Discipline:</strong> ${equipment.disc || equipment.task}</div>
-                <div><strong>Task:</strong> ${equipment.taskName || '-'}</div>
-                <div><strong>Status:</strong> ${equipment.status}</div>
-                <div><strong>Progress:</strong> ${equipment.progress}%</div>
+                <div><strong>Vendor:</strong> ${vendorInfo}</div>
+                <div><strong>Priority:</strong> <span style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 3px;">${equipment.priority}</span></div>
+                <div><strong>Discipline/Phase:</strong> <span style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 3px;">${equipment.disc || 'N/A'}</span></div>
+                <div><strong>Task Name:</strong> ${equipment.taskName || '-'}</div>
+                <div><strong>Current Status:</strong> <span style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 3px;">${equipment.status}</span></div>
+                <div><strong>Overall Progress:</strong> 
+                    <span style="background: rgba(255,255,255,0.3); padding: 2px 8px; border-radius: 3px; font-weight: bold;">
+                        ${equipment.progress}%
+                    </span>
+                </div>
             </div>
         </div>
 
@@ -5051,9 +5287,14 @@ document.getElementById('reportTotalCount').textContent = filteredHistory.length
     function exportProgressReportPDF() {
         if (!currentEquipmentReport) return;
 
-        const { equipment, history } = currentEquipmentReport;
+        const { equipment, equipmentTitle, history } = currentEquipmentReport;
         const sortedHistory = [...history].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         
+// Add this line:
+const displayTitle = equipmentTitle || 
+    (equipment.disc ? 
+        `${equipment.equipment} (${equipment.vendor}) - ${equipment.disc}` : 
+        `${equipment.equipment} (${equipment.vendor})`);
         const printWindow = window.open('', '_blank');
         const currentDate = new Date().toLocaleString();
         
@@ -5061,7 +5302,7 @@ document.getElementById('reportTotalCount').textContent = filteredHistory.length
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Progress Report - ${equipment.equipment}</title>
+        <title>Progress Report - ${equipmentTitle || equipment.equipment}</title>
         <style>
             body { 
                 font-family: Arial, sans-serif; 
@@ -5095,9 +5336,9 @@ document.getElementById('reportTotalCount').textContent = filteredHistory.length
             </head>
             <body>
                 <div class="header">
-                    <h1>Equipment Progress Report</h1>
-                    <p>${equipment.equipment}</p>
-                    <p style="font-size: 10px;">Generated on: ${currentDate}</p>
+<h1>Equipment Progress Report</h1>
+<p>${equipmentTitle || (equipment.disc ? `${equipment.equipment} (${equipment.vendor}) - ${equipment.disc}` : `${equipment.equipment} (${equipment.vendor})`)}</p>
+<p style="font-size: 10px;">Generated on: ${currentDate}</p>                    
                 </div>
                 
                 <div class="info-box">
@@ -6007,7 +6248,7 @@ function exportTaskReport() {
     <body>
         <div class="header">
             <h1>📋 Onsite Task Report</h1>
-            <p>${equipment.equipment}</p>
+            <p>${equipmentTitle || (equipment.disc ? `${equipment.equipment} (${equipment.vendor}) - ${equipment.disc}` : `${equipment.equipment} (${equipment.vendor})`)}</p>
             <p style="font-size: 10px;">Vendor: ${equipment.vendor} | Generated on: ${currentDate}</p>
         </div>
         
@@ -6606,6 +6847,457 @@ window.toggleDropdown = toggleDropdown;
 window.closeAllDropdowns = closeAllDropdowns;
 window.createDropdownBackdrop = createDropdownBackdrop;
 window.removeDropdownBackdrop = removeDropdownBackdrop;
+
+let isGroupedView = false;
+let currentEquipmentGroups = [];
+
+function toggleGroupedView() {
+    isGroupedView = !isGroupedView;
+    const btn = document.getElementById('groupViewBtn');
+    
+    // Debug log
+    console.log('Toggle Group View - isGroupedView:', isGroupedView);
+    
+    if (isGroupedView) {
+        // === ENTERING GROUP MODE ===
+        console.log('Entering Group Mode');
+        
+        btn.style.background = '#27ae60';
+        btn.innerHTML = '📋 Normal View';
+        currentTablePage = 1;
+        
+        // IMPORTANT: Add class to body
+        document.body.classList.add('in-group-mode');
+        
+        // Force hide pagination immediately
+        const paginationHTML = `
+            <style id="temp-hide-pagination">
+                .pagination-controls, 
+                .pagination-info, 
+                #tablePagination,
+                [class*="pagination"],
+                button[onclick*="changeTablePage"],
+                button[onclick*="goToTablePage"] {
+                    display: none !important;
+                    visibility: hidden !important;
+                }
+            </style>
+        `;
+        
+        // Add temporary style to head
+        if (!document.getElementById('temp-hide-pagination')) {
+            document.head.insertAdjacentHTML('beforeend', paginationHTML);
+        }
+        
+        // Hide pagination controls
+        const paginationControls = document.querySelector('.pagination-controls');
+        const paginationInfo = document.querySelector('.pagination-info');
+        
+        if (paginationControls) paginationControls.style.display = 'none';
+        if (paginationInfo) paginationInfo.style.display = 'none';
+        
+        renderGroupedView();
+        
+    } else {
+        // === RETURNING TO NORMAL MODE ===
+        console.log('Entering Normal Mode');
+        
+        btn.style.background = '#e67e22';
+        btn.innerHTML = '🔧 Group Equipment';
+        currentTablePage = 1;
+        
+        // IMPORTANT: Remove class from body
+        document.body.classList.remove('in-group-mode');
+        
+        // Remove temporary style
+        const tempStyle = document.getElementById('temp-hide-pagination');
+        if (tempStyle) tempStyle.remove();
+        
+        // Show pagination controls
+        setTimeout(() => {
+            const paginationControls = document.querySelector('.pagination-controls');
+            const paginationInfo = document.querySelector('.pagination-info');
+            
+            if (paginationControls) {
+                paginationControls.style.display = '';
+                paginationControls.style.visibility = '';
+            }
+            if (paginationInfo) {
+                paginationInfo.style.display = '';
+                paginationInfo.style.visibility = '';
+            }
+        }, 100);
+        
+        populateTable();
+        
+        setTimeout(() => {
+            updateGroupTableHeader();
+        }, 50);
+    }
+}
+
+function renderGroupedView() {
+    // Add class to body for CSS targeting
+    document.body.classList.add('grouped-view-active');
+
+// Force hide pagination IMMEDIATELY
+    const paginationDiv = document.getElementById('pagination');
+    if (paginationDiv) {
+        paginationDiv.style.display = 'none';
+    }
+    
+    // Set flag untuk track current view
+    window.isGroupedView = true;
+    
+    // Group tasks by equipment
+    const equipmentMap = new Map();
+    
+    projectData.forEach(task => {
+        const key = task.equipment;
+        if (!equipmentMap.has(key)) {
+            equipmentMap.set(key, {
+                equipment: task.equipment,
+                vendor: task.vendor,
+                priority: task.priority,
+                tasks: []
+            });
+        }
+        equipmentMap.get(key).tasks.push(task);
+    });
+    
+    // Calculate progress for each group
+    equipmentMap.forEach((group) => {
+        const total = group.tasks.reduce((sum, t) => sum + (t.progress || 0), 0);
+        group.overallProgress = Math.round(total / group.tasks.length);
+        
+        // Phase breakdown
+        group.phases = {};
+        group.tasks.forEach(t => {
+            const disc = t.disc || 'OTHER';
+            if (!group.phases[disc]) {
+                group.phases[disc] = { count: 0, progress: 0 };
+            }
+            group.phases[disc].count++;
+            group.phases[disc].progress += (t.progress || 0);
+        });
+        
+        // Calculate phase status
+        Object.keys(group.phases).forEach(disc => {
+            const p = group.phases[disc];
+            p.avgProgress = Math.round(p.progress / p.count);
+            p.status = p.avgProgress === 100 ? 'complete' : 
+                       p.avgProgress > 0 ? 'ongoing' : 'pending';
+        });
+    });
+    
+    currentEquipmentGroups = Array.from(equipmentMap.values());
+
+    // Render
+    const tableBody = document.getElementById('tableBody');
+    tableBody.innerHTML = '';
+    
+    // Render all groups
+    currentEquipmentGroups.forEach((group, idx) => {
+        // Group row
+        const groupRow = document.createElement('tr');
+        groupRow.className = 'equipment-group-row collapsed';
+        groupRow.dataset.groupId = `grp-${idx}`;
+        groupRow.dataset.groupNumber = idx + 1;
+        
+        const phaseHTML = Object.entries(group.phases)
+            .map(([disc, data]) => {
+                const icon = data.status === 'complete' ? '✅' : 
+                            data.status === 'ongoing' ? '🔄' : '⏳';
+                return `<span class="phase-badge ${data.status}">${icon}${disc}:${data.avgProgress}%</span>`;
+            }).join('');
+        
+        const groupNumber = idx + 1;
+        groupRow.innerHTML = `
+            <td style="width:3%;text-align:center;font-weight:600;">${groupNumber}</td>
+            <td style="width:35%;">
+                <span class="collapse-icon">▶</span>
+                <strong>${group.equipment}</strong>
+                <span style="font-size:10px;opacity:0.8;margin-left:5px;">(${group.tasks.length} tasks)</span>
+            </td>
+            <td style="width:20%;">${group.vendor}</td>
+            <td style="width:22%;">${phaseHTML}</td>
+            <td style="width:20%;">
+                <div style="display:flex;align-items:center;">
+                    <div class="overall-progress-bar" style="flex:1;margin-right:8px;">
+                        <div class="overall-progress-fill" style="width:${group.overallProgress}%;"></div>
+                    </div>
+                    <span style="font-weight:700;min-width:35px;text-align:right;">${group.overallProgress}%</span>
+                </div>
+            </td>
+        `;
+        
+        groupRow.onclick = () => toggleGroup(idx);
+        tableBody.appendChild(groupRow);
+        
+        // Child rows
+        group.tasks.forEach((task, tIdx) => {
+            const childRow = document.createElement('tr');
+            childRow.className = 'child-task-row hidden';
+            childRow.dataset.parentGroup = `grp-${idx}`;
+            
+            const dateStatus = getDateStatus(task.targetDate, task.mobDate);
+            
+            childRow.innerHTML = `
+                <td>${tIdx + 1}</td>
+                <td><span class="priority-badge priority-${task.priority}">${task.priority}</span></td>
+                <td>${task.equipment}</td>
+                <td>${task.vendor}</td>
+                <td><span class="status-badge">${task.disc || '-'}</span></td>
+                <td class="wrap-text">${task.taskName || '-'}</td>
+                <td><span class="status-badge ${getStatusClass(task.status)}">${task.status}</span></td>
+                <td><span class="status-badge">${task.contract}</span></td>
+                <td><span class="status-badge">${task.visa}</span></td>
+                <td>${task.targetDate ? formatDateForDisplay(task.targetDate) : '-'}</td>
+                <td>${task.mobDate}</td>
+                <td><span class="status-badge ${dateStatus.class}">${dateStatus.status}</span></td>
+                <td>${task.targetCompDate ? formatDateForDisplay(task.targetCompDate) : '-'}</td>
+                <td>${task.prognosaCompDate ? formatDateForDisplay(task.prognosaCompDate) : '-'}</td>
+                <td>
+                    <div class="progress-bar" style="width:50px;">
+                        <div class="progress-fill" style="width:${task.progress}%;"></div>
+                    </div>
+                    <small>${task.progress}%</small>
+                </td>
+                <td style="white-space: nowrap; text-align: center; position: relative; overflow: visible;">
+                    <button class="action-btn primary" onclick="openUpdateModal('${task.firebaseKey}')" style="font-size: 9px; padding: 4px 8px;">Update</button>
+                    ${task.status && (task.status.includes('Onsite') || task.status.includes('Completed')) ? `
+                        <div style="display: inline-block; position: relative; vertical-align: middle; z-index: 100;">
+                            <button class="action-btn dropdown-trigger" onclick="toggleDropdown('dropdown-${task.firebaseKey}')" style="background: #9b59b6; color: white; font-size: 9px; padding: 4px 8px; margin-left: 3px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                                📋 More ▼
+                            </button>
+                            <div id="dropdown-${task.firebaseKey}" class="action-dropdown" style="display: none;">
+                                <button class="dropdown-item" data-action="tasks" data-key="${task.firebaseKey}">
+                                    <span style="font-size: 14px;">📋</span>
+                                    <span>Onsite Tasks</span>
+                                </button>
+                                <button class="dropdown-item" data-action="progress" data-key="${task.firebaseKey}">
+                                    <span style="font-size: 14px;">📊</span>
+                                    <span>Progress Report</span>
+                                </button>
+                            </div>
+                        </div>
+                    ` : `
+                        <button class="action-btn success" onclick="showProgressReportById('${task.firebaseKey}')" title="View Progress Report" style="background: #27ae60; font-size: 9px; padding: 4px 8px; margin-left: 3px;">📊 Progress</button>
+                    `}
+                    <button class="btn-delete" onclick="deleteItem('${task.firebaseKey}')" title="Delete" style="font-size: 12px; padding: 4px 7px; line-height: 1; margin-left: 3px;">🗑️</button>
+                </td>
+            `;
+            
+            tableBody.appendChild(childRow);
+        });
+    });
+    
+    // Set initial header
+    setTimeout(() => updateGroupTableHeader(), 50);
+
+    // Hide pagination
+    setTimeout(() => {
+    const selectors = [
+        '.pagination-controls',
+        '.pagination-info', 
+        '#tablePagination',
+        '#pagination',  // ✅ TAMBAH INI
+        '[class*="pagination"]',
+        '[id*="pagination"]',
+        '[class*="Pagination"]',
+        '[id*="Pagination"]',
+        '[id*="PageNumbers"]',  // ✅ TAMBAH INI
+        '[id*="pageNumbers"]',  // ✅ TAMBAH INI
+        '#tablePageNumbers',  // ✅ TAMBAH INI (dari code sebelumnya)
+        '#tablePageInfo',  // ✅ TAMBAH INI
+        '#prevTablePageBtn',  // ✅ TAMBAH INI
+        '#nextTablePageBtn'  // ✅ TAMBAH INI
+    ];
+    
+    selectors.forEach(selector => {
+        document.querySelectorAll(selector).forEach(el => {
+            el.style.display = 'none';
+            el.style.visibility = 'hidden';
+            el.style.height = '0';
+            el.style.overflow = 'hidden';
+            el.classList.add('hide-in-group-mode');
+        });
+    });
+    
+    // Disable all pagination controls
+    const paginationElements = document.querySelectorAll(
+        '.pagination-controls, .pagination-info, #tablePagination, ' +
+        'button[onclick*="changeTablePage"], button[onclick*="goToTablePage"], ' +
+        '#pageInput, .page-number-input, #prevTablePageBtn, #nextTablePageBtn'
+    );
+    
+    paginationElements.forEach(el => {
+        if (el) {
+            el.style.display = 'none';
+            el.style.pointerEvents = 'none';
+            if (el.tagName === 'BUTTON' || el.tagName === 'INPUT') {
+                el.disabled = true;
+            }
+        }
+    });
+    
+    updateGroupTableHeader();
+}, 100);
+}
+
+function toggleGroup(groupIdx) {
+    const groupRow = document.querySelector(`[data-group-id="grp-${groupIdx}"]`);
+    const childRows = document.querySelectorAll(`[data-parent-group="grp-${groupIdx}"]`);
+    const isCollapsed = groupRow.classList.contains('collapsed');
+    
+    // Get group data
+    const group = currentEquipmentGroups[groupIdx];
+    
+    if (isCollapsed) {
+        // Expand - update to expanded view (16 columns)
+        groupRow.classList.remove('collapsed');
+        childRows.forEach(r => r.classList.remove('hidden'));
+        
+        // Update group row to match 16 columns
+        const phaseHTML = Object.entries(group.phases)
+            .map(([disc, data]) => {
+                const icon = data.status === 'complete' ? '✅' : 
+                            data.status === 'ongoing' ? '🔄' : '⏳';
+                return `<span class="phase-badge ${data.status}">${icon}${disc}:${data.avgProgress}%</span>`;
+            }).join('');
+            
+        groupRow.innerHTML = `
+            <td colspan="3">
+                <span class="collapse-icon">▼</span>
+                <strong>${group.equipment}</strong>
+                <span style="font-size:10px;opacity:0.8;">(${group.tasks.length} tasks)</span>
+            </td>
+            <td>${group.vendor}</td>
+            <td colspan="2">${phaseHTML}</td>
+            <td colspan="7">
+                <div class="overall-progress-bar">
+                    <div class="overall-progress-fill" style="width:${group.overallProgress}%;"></div>
+                </div>
+                <span style="margin-left:10px;font-weight:700;">${group.overallProgress}%</span>
+            </td>
+            <td colspan="3" style="text-align:center;color:#7f8c8d;font-size:11px;">Overall Progress</td>
+        `;
+    } else {
+        // Collapse - update to collapsed view (5 columns)
+        groupRow.classList.add('collapsed');
+        childRows.forEach(r => r.classList.add('hidden'));
+        
+        // Update group row to match 5 columns
+        const phaseHTML = Object.entries(group.phases)
+            .map(([disc, data]) => {
+                const icon = data.status === 'complete' ? '✅' : 
+                            data.status === 'ongoing' ? '🔄' : '⏳';
+                return `<span class="phase-badge ${data.status}" style="font-size:10px;">${icon}${disc}:${data.avgProgress}%</span>`;
+            }).join(' ');
+            
+        // Get group number from data attribute or calculate it
+        const groupNumber = parseInt(groupRow.dataset.groupNumber) || groupIdx + 1;
+        
+        groupRow.innerHTML = `
+            <td style="width:3%;text-align:center;font-weight:600;">${groupNumber}</td>
+            <td style="width:35%;">
+                <span class="collapse-icon">▶</span>
+                <strong>${group.equipment}</strong>
+                <span style="font-size:10px;opacity:0.8;margin-left:5px;">(${group.tasks.length} tasks)</span>
+            </td>
+            <td style="width:20%;">${group.vendor}</td>
+            <td style="width:22%;">${phaseHTML}</td>
+            <td style="width:20%;">
+                <div style="display:flex;align-items:center;">
+                    <div class="overall-progress-bar" style="flex:1;margin-right:8px;">
+                        <div class="overall-progress-fill" style="width:${group.overallProgress}%;"></div>
+                    </div>
+                    <span style="font-weight:700;min-width:35px;text-align:right;">${group.overallProgress}%</span>
+                </div>
+            </td>
+        `;
+    }
+    
+    // Re-bind onclick event
+    groupRow.onclick = () => toggleGroup(groupIdx);
+    
+    // Update header to match current state
+    setTimeout(() => updateGroupTableHeader(), 50);
+}
+
+// 👇👇👇 TAMBAHKAN FUNCTION BARU DI SINI (SETELAH LINE 6833) 👇👇👇
+
+function updateGroupTableHeader() {
+    const headerRow = document.querySelector('.data-table thead tr');
+    if (!headerRow) return;
+    
+    // ✅ MODE NORMAL: Header 16 kolom lengkap
+    if (!isGroupedView) {
+        headerRow.innerHTML = `
+            <th style="width:3%;">No</th>
+            <th style="width:5%;">Priority</th>
+            <th style="width:12%;">Equipment</th>
+            <th style="width:8%;">Vendor</th>
+            <th style="width:4%;">Disc</th>
+            <th style="width:15%;">Task Name</th>
+            <th style="width:8%;">Status</th>
+            <th style="width:6%;">Contract</th>
+            <th style="width:5%;">VISA</th>
+            <th style="width:6%;">Target Date</th>
+            <th style="width:6%;">MOB Date</th>
+            <th style="width:6%;">Date Status</th>
+            <th style="width:6%;">Target Comp</th>
+            <th style="width:6%;">Prognosa</th>
+            <th style="width:4%;">Progress</th>
+            <th style="width:10%;">Actions</th>
+        `;
+        return;
+    }
+    
+    // ✅ MODE GROUP: Check if any group is expanded
+    const hasExpandedGroup = document.querySelector('.equipment-group-row:not(.collapsed)');
+    
+    if (hasExpandedGroup) {
+        // 👇 GROUP EXPANDED: Header 16 kolom (cocok dengan child rows)
+        headerRow.innerHTML = `
+            <th style="width:3%;">No</th>
+            <th style="width:5%;">Priority</th>
+            <th style="width:12%;">Equipment</th>
+            <th style="width:8%;">Vendor</th>
+            <th style="width:4%;">Disc</th>
+            <th style="width:15%;">Task Name</th>
+            <th style="width:8%;">Status</th>
+            <th style="width:6%;">Contract</th>
+            <th style="width:5%;">VISA</th>
+            <th style="width:6%;">Target Date</th>
+            <th style="width:6%;">MOB Date</th>
+            <th style="width:6%;">Date Status</th>
+            <th style="width:6%;">Target Comp</th>
+            <th style="width:6%;">Prognosa</th>
+            <th style="width:4%;">Progress</th>
+            <th style="width:10%;">Actions</th>
+        `;
+    } else {
+        // 👇 GROUP COLLAPSED: Header 5 kolom sederhana
+        headerRow.innerHTML = `
+            <th style="width:3%;">No</th>
+            <th style="width:35%;">Equipment</th>
+            <th style="width:20%;">Vendor</th>
+            <th style="width:22%;">Phase Status</th>
+            <th style="width:20%;">Overall Progress</th>
+        `;
+    }
+}
+
+
+
+// 👆👆👆 SAMPAI SINI 👆👆👆
+
+window.toggleGroupedView = toggleGroupedView;
+window.toggleGroup = toggleGroup;
+window.updateGroupTableHeader = updateGroupTableHeader;  // 👈 TAMBAH INI
+
+
     </script>
 
     <!-- Footer -->
