@@ -3536,31 +3536,37 @@ function exportGanttPDFSafe() {
 }
 
     function searchTable() {
-    const searchTerm = document.getElementById('searchBox').value.toLowerCase().trim();
+    const searchBox = document.getElementById('searchBox');
+    const searchTerm = searchBox.value.trim().toLowerCase();
     
-    // Jika search kosong, reset ke semua data
+    // ✅ CHECK VIEW MODE DULU
+    if (window.isGroupedView) {
+        // Kalau di group view, render ulang group view (akan auto-filter)
+        renderGroupedView();
+        return;
+    }
+    
+    // Kalau di detail view, pakai logic existing
     if (searchTerm === '') {
         isSearching = false;
         searchResults = [];
         currentTablePage = 1;
         populateTable();
-        return;
+    } else {
+        isSearching = true;
+        searchResults = projectData.filter(item => {
+            return (
+                item.equipment.toLowerCase().includes(searchTerm) ||
+                item.vendor.toLowerCase().includes(searchTerm) ||
+                (item.taskName && item.taskName.toLowerCase().includes(searchTerm)) ||
+                (item.disc && item.disc.toLowerCase().includes(searchTerm)) ||
+                (item.status && item.status.toLowerCase().includes(searchTerm)) ||
+                (item.priority && item.priority.toLowerCase().includes(searchTerm))
+            );
+        });
+        currentTablePage = 1;
+        populateTable();
     }
-    
-    // Filter data berdasarkan search term
-    let dataToSearch = projectData;
-    if (currentFilter !== 'all') {
-        dataToSearch = projectData.filter(item => item.priority === currentFilter);
-    }
-    
-    searchResults = dataToSearch.filter(item => {
-        const searchText = `${item.equipment} ${item.vendor} ${item.task} ${item.status} ${item.contract} ${item.visa}`.toLowerCase();
-        return searchText.includes(searchTerm);
-    });
-    
-    isSearching = true;
-    currentTablePage = 1;
-    populateTable();
 }
 
     function filterByIssueType(issueType) {
@@ -3739,24 +3745,6 @@ function updatePaginationInfo(displayedCount, totalCount) {
 
     console.log('📊 populateTable() called');
   // ✅ TAMBAHKAN INI - Check if search box has value
-    const searchBox = document.getElementById('searchBox');
-    if (searchBox && searchBox.value.trim() !== '') {
-        // Re-trigger search with current value
-        const searchTerm = searchBox.value.trim();
-        isSearching = true;
-        searchResults = projectData.filter(item => {
-            const searchLower = searchTerm.toLowerCase();
-            return (
-                item.equipment.toLowerCase().includes(searchLower) ||
-                item.vendor.toLowerCase().includes(searchLower) ||
-                (item.taskName && item.taskName.toLowerCase().includes(searchLower)) ||
-                (item.disc && item.disc.toLowerCase().includes(searchLower))
-            );
-        });
-    } else {
-        isSearching = false;
-        searchResults = [];
-    }
     console.log('📊 autoSortEnabled:', autoSortEnabled);
     console.log('📊 projectData.length:', projectData.length);
 
@@ -6992,12 +6980,45 @@ function renderGroupedView() {
     
     currentEquipmentGroups = Array.from(equipmentMap.values());
 
-    // Render
+// ✅ TAMBAHKAN FILTERING BERDASARKAN SEARCH
+const searchBox = document.getElementById('searchBox');
+let filteredGroups = currentEquipmentGroups;
+
+if (searchBox && searchBox.value.trim() !== '') {
+    const searchTerm = searchBox.value.trim().toLowerCase();
+    filteredGroups = currentEquipmentGroups.filter(group => {
+        return (
+            group.equipment.toLowerCase().includes(searchTerm) ||
+            group.vendor.toLowerCase().includes(searchTerm)
+        );
+    });
+}
+
+// Show "no results" message if nothing found
+if (searchBox && searchBox.value.trim() !== '' && filteredGroups.length === 0) {
     const tableBody = document.getElementById('tableBody');
-    tableBody.innerHTML = '';
+    tableBody.innerHTML = `
+        <tr>
+            <td colspan="5" style="text-align: center; padding: 60px 20px; color: #95a5a6;">
+                <div style="font-size: 48px; margin-bottom: 15px;">🔍</div>
+                <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #7f8c8d;">No results found</div>
+                <div style="font-size: 14px; color: #95a5a6;">No equipment match "<strong>${searchBox.value}</strong>"</div>
+                <div style="font-size: 13px; color: #bdc3c7; margin-top: 10px;">Try different keywords or clear the search</div>
+            </td>
+        </tr>
+    `;
     
-    // Render all groups
-    currentEquipmentGroups.forEach((group, idx) => {
+    // Set header for empty state
+    setTimeout(() => updateGroupTableHeader(), 50);
+    return;
+}
+
+// Render
+const tableBody = document.getElementById('tableBody');
+tableBody.innerHTML = '';
+
+// ✅ GANTI currentEquipmentGroups DENGAN filteredGroups
+filteredGroups.forEach((group, idx) => {
         // Group row
         const groupRow = document.createElement('tr');
         groupRow.className = 'equipment-group-row collapsed';
