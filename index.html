@@ -7022,21 +7022,43 @@ if (currentFilter !== 'all' && currentFilter !== 'highlighted') {
     filteredGroups = currentEquipmentGroups.map(group => {
         const filteredTasks = group.tasks.filter(task => task.priority === currentFilter);
         
-        if (filteredTasks.length === 0) return null; // Exclude group if no matching tasks
+        if (filteredTasks.length === 0) return null;
         
         // Recalculate progress for filtered tasks
         const total = filteredTasks.reduce((sum, t) => sum + (t.progress || 0), 0);
         const newProgress = Math.round(total / filteredTasks.length);
         
+        // ✅ RECALCULATE PHASES berdasarkan filteredTasks
+        const newPhases = {};
+        filteredTasks.forEach(t => {
+            const disc = t.disc || 'OTHER';
+            if (!newPhases[disc]) {
+                newPhases[disc] = { count: 0, progress: 0 };
+            }
+            newPhases[disc].count++;
+            newPhases[disc].progress += (t.progress || 0);
+        });
+        
+        // Calculate phase status
+        Object.keys(newPhases).forEach(disc => {
+            const p = newPhases[disc];
+            p.avgProgress = Math.round(p.progress / p.count);
+            p.status = p.avgProgress === 100 ? 'complete' : 
+                       p.avgProgress > 0 ? 'ongoing' : 'pending';
+        });
+        
         return {
-            ...group,
+            equipment: filteredTasks[0].equipment,
+            vendor: filteredTasks[0].vendor,
+            priority: filteredTasks[0].priority,
             tasks: filteredTasks,
-            overallProgress: newProgress
+            overallProgress: newProgress,
+            phases: newPhases  // ✅ GUNAKAN phases yang baru di-recalculate
         };
-    }).filter(group => group !== null); // Remove null groups
+    }).filter(group => group !== null);
 }
 
-// Filter by highlighted
+// ✅ TAMBAHKAN INI DI BAWAH - Filter by highlighted/critical
 if (currentFilter === 'highlighted') {
     filteredGroups = currentEquipmentGroups.map(group => {
         const filteredTasks = group.tasks.filter(task => task.highlighted);
@@ -7046,10 +7068,31 @@ if (currentFilter === 'highlighted') {
         const total = filteredTasks.reduce((sum, t) => sum + (t.progress || 0), 0);
         const newProgress = Math.round(total / filteredTasks.length);
         
+        // Recalculate phases
+        const newPhases = {};
+        filteredTasks.forEach(t => {
+            const disc = t.disc || 'OTHER';
+            if (!newPhases[disc]) {
+                newPhases[disc] = { count: 0, progress: 0 };
+            }
+            newPhases[disc].count++;
+            newPhases[disc].progress += (t.progress || 0);
+        });
+        
+        Object.keys(newPhases).forEach(disc => {
+            const p = newPhases[disc];
+            p.avgProgress = Math.round(p.progress / p.count);
+            p.status = p.avgProgress === 100 ? 'complete' : 
+                       p.avgProgress > 0 ? 'ongoing' : 'pending';
+        });
+        
         return {
-            ...group,
+            equipment: filteredTasks[0].equipment,
+            vendor: filteredTasks[0].vendor,
+            priority: filteredTasks[0].priority,
             tasks: filteredTasks,
-            overallProgress: newProgress
+            overallProgress: newProgress,
+            phases: newPhases
         };
     }).filter(group => group !== null);
 }
@@ -7100,9 +7143,13 @@ if (filteredGroups.length === 0) {
     return;
 }
 
+// ✅ Store filteredGroups in global variable so toggleGroup can access it
+window.currentFilteredGroups = filteredGroups;
+
 // Render
 const tableBody = document.getElementById('tableBody');
 tableBody.innerHTML = '';
+
 
 // ✅ GANTI currentEquipmentGroups DENGAN filteredGroups
 filteredGroups.forEach((group, idx) => {
@@ -7115,8 +7162,10 @@ filteredGroups.forEach((group, idx) => {
         const phaseHTML = Object.entries(group.phases)
             .map(([disc, data]) => {
                 const icon = data.status === 'complete' ? '✅' : 
-                            data.status === 'ongoing' ? '🔄' : '⏳';
-                return `<span class="phase-badge ${data.status}">${icon}${disc}:${data.avgProgress}%</span>`;
+            data.status === 'ongoing' ? '🔄' : '⏳';
+const bgColor = data.status === 'complete' ? '#3498db' : 
+               data.status === 'ongoing' ? '#22c55e' : '#95a5a6';
+return `<span class="phase-badge ${data.status}" style="font-size:10px; background: ${bgColor};">${icon}${disc}:${data.avgProgress}%</span>`;
             }).join('');
         
         const groupNumber = idx + 1;
@@ -7132,8 +7181,8 @@ filteredGroups.forEach((group, idx) => {
             <td style="width:20%;">
                 <div style="display:flex;align-items:center;">
                     <div class="overall-progress-bar" style="flex:1;margin-right:8px;">
-                        <div class="overall-progress-fill" style="width:${group.overallProgress}%;"></div>
-                    </div>
+    <div class="overall-progress-fill" style="width:${group.overallProgress}%; background: ${group.overallProgress === 100 ? '#3498db' : '#22c55e'};"></div>
+</div>
                     <span style="font-weight:700;min-width:35px;text-align:right;">${group.overallProgress}%</span>
                 </div>
             </td>
@@ -7258,8 +7307,10 @@ function toggleGroup(groupIdx) {
     const childRows = document.querySelectorAll(`[data-parent-group="grp-${groupIdx}"]`);
     const isCollapsed = groupRow.classList.contains('collapsed');
     
-    // Get group data
-    const group = currentEquipmentGroups[groupIdx];
+     // ✅ Get group data from FILTERED groups, not original
+    // Store filteredGroups in global variable
+    const group = window.currentFilteredGroups ? window.currentFilteredGroups[groupIdx] : currentEquipmentGroups[groupIdx];
+    
     
     if (isCollapsed) {
         // Expand - update to expanded view (16 columns)
@@ -7270,8 +7321,10 @@ function toggleGroup(groupIdx) {
         const phaseHTML = Object.entries(group.phases)
             .map(([disc, data]) => {
                 const icon = data.status === 'complete' ? '✅' : 
-                            data.status === 'ongoing' ? '🔄' : '⏳';
-                return `<span class="phase-badge ${data.status}">${icon}${disc}:${data.avgProgress}%</span>`;
+            data.status === 'ongoing' ? '🔄' : '⏳';
+const bgColor = data.status === 'complete' ? '#3498db' : 
+               data.status === 'ongoing' ? '#22c55e' : '#95a5a6';
+return `<span class="phase-badge ${data.status}" style="font-size:10px; background: ${bgColor};">${icon}${disc}:${data.avgProgress}%</span>`;
             }).join('');
             
         groupRow.innerHTML = `
@@ -7284,8 +7337,8 @@ function toggleGroup(groupIdx) {
             <td colspan="2">${phaseHTML}</td>
             <td colspan="7">
                 <div class="overall-progress-bar">
-                    <div class="overall-progress-fill" style="width:${group.overallProgress}%;"></div>
-                </div>
+    <div class="overall-progress-fill" style="width:${group.overallProgress}%; background: ${group.overallProgress === 100 ? '#3498db' : '#22c55e'};"></div>
+</div>
                 <span style="margin-left:10px;font-weight:700;">${group.overallProgress}%</span>
             </td>
             <td colspan="3" style="text-align:center;color:#7f8c8d;font-size:11px;">Overall Progress</td>
@@ -7299,8 +7352,10 @@ function toggleGroup(groupIdx) {
         const phaseHTML = Object.entries(group.phases)
             .map(([disc, data]) => {
                 const icon = data.status === 'complete' ? '✅' : 
-                            data.status === 'ongoing' ? '🔄' : '⏳';
-                return `<span class="phase-badge ${data.status}" style="font-size:10px;">${icon}${disc}:${data.avgProgress}%</span>`;
+            data.status === 'ongoing' ? '🔄' : '⏳';
+const bgColor = data.status === 'complete' ? '#3498db' : 
+               data.status === 'ongoing' ? '#22c55e' : '#95a5a6';
+return `<span class="phase-badge ${data.status}" style="font-size:10px; background: ${bgColor};">${icon}${disc}:${data.avgProgress}%</span>`;
             }).join(' ');
             
         // Get group number from data attribute or calculate it
