@@ -7169,20 +7169,23 @@ return `<span class="phase-badge ${data.status}" style="font-size:10px; backgrou
             }).join('');
         
         const groupNumber = idx + 1;
-        groupRow.innerHTML = `
-            <td style="width:3%;text-align:center;font-weight:600;">${groupNumber}</td>
-            <td style="width:35%;">
-                <span class="collapse-icon">▶</span>
-                <strong>${group.equipment}</strong>
-                <span style="font-size:10px;opacity:0.8;margin-left:5px;">(${group.tasks.length} tasks)</span>
-            </td>
-            <td style="width:20%;">${group.vendor}</td>
-            <td style="width:22%;">${phaseHTML}</td>
-            <td style="width:20%;">
-                <div style="display:flex;align-items:center;">
-                    <div class="overall-progress-bar" style="flex:1;margin-right:8px;">
-    <div class="overall-progress-fill" style="width:${group.overallProgress}%; background: ${group.overallProgress === 100 ? '#3498db' : '#22c55e'};"></div>
-</div>
+        // Calculate color BEFORE template string
+const progressColor1 = (group.overallProgress === 100) ? '#3498db' : '#22c55e';
+
+groupRow.innerHTML = `
+    <td style="width:3%;text-align:center;font-weight:600;">${groupNumber}</td>
+    <td style="width:35%;">
+        <span class="collapse-icon">▶</span>
+        <strong>${group.equipment}</strong>
+        <span style="font-size:10px;opacity:0.8;margin-left:5px;">(${group.tasks.length} tasks)</span>
+    </td>
+    <td style="width:20%;">${group.vendor}</td>
+    <td style="width:22%;">${phaseHTML}</td>
+    <td style="width:20%;">
+        <div style="display:flex;align-items:center;">
+            <div class="overall-progress-bar" style="flex:1;margin-right:8px;">
+                <div class="overall-progress-fill" style="width:${group.overallProgress}%; background:${progressColor1};"></div>
+            </div>
                     <span style="font-weight:700;min-width:35px;text-align:right;">${group.overallProgress}%</span>
                 </div>
             </td>
@@ -7327,18 +7330,21 @@ const bgColor = data.status === 'complete' ? '#3498db' :
 return `<span class="phase-badge ${data.status}" style="font-size:10px; background: ${bgColor};">${icon}${disc}:${data.avgProgress}%</span>`;
             }).join('');
             
-        groupRow.innerHTML = `
-            <td colspan="3">
-                <span class="collapse-icon">▼</span>
-                <strong>${group.equipment}</strong>
-                <span style="font-size:10px;opacity:0.8;">(${group.tasks.length} tasks)</span>
-            </td>
-            <td>${group.vendor}</td>
-            <td colspan="2">${phaseHTML}</td>
-            <td colspan="7">
-                <div class="overall-progress-bar">
-    <div class="overall-progress-fill" style="width:${group.overallProgress}%; background: ${group.overallProgress === 100 ? '#3498db' : '#22c55e'};"></div>
-</div>
+        // Calculate color BEFORE template string
+const progressColor2 = (group.overallProgress === 100) ? '#3498db' : '#22c55e';
+
+groupRow.innerHTML = `
+    <td colspan="3">
+        <span class="collapse-icon">▼</span>
+        <strong>${group.equipment}</strong>
+        <span style="font-size:10px;opacity:0.8;">(${group.tasks.length} tasks)</span>
+    </td>
+    <td>${group.vendor}</td>
+    <td colspan="2">${phaseHTML}</td>
+    <td colspan="7">
+        <div class="overall-progress-bar">
+            <div class="overall-progress-fill" style="width:${group.overallProgress}%; background:${progressColor2};"></div>
+        </div>
                 <span style="margin-left:10px;font-weight:700;">${group.overallProgress}%</span>
             </td>
             <td colspan="3" style="text-align:center;color:#7f8c8d;font-size:11px;">Overall Progress</td>
@@ -7361,24 +7367,27 @@ return `<span class="phase-badge ${data.status}" style="font-size:10px; backgrou
         // Get group number from data attribute or calculate it
         const groupNumber = parseInt(groupRow.dataset.groupNumber) || groupIdx + 1;
         
-        groupRow.innerHTML = `
-            <td style="width:3%;text-align:center;font-weight:600;">${groupNumber}</td>
-            <td style="width:35%;">
-                <span class="collapse-icon">▶</span>
-                <strong>${group.equipment}</strong>
-                <span style="font-size:10px;opacity:0.8;margin-left:5px;">(${group.tasks.length} tasks)</span>
-            </td>
-            <td style="width:20%;">${group.vendor}</td>
-            <td style="width:22%;">${phaseHTML}</td>
-            <td style="width:20%;">
-                <div style="display:flex;align-items:center;">
-                    <div class="overall-progress-bar" style="flex:1;margin-right:8px;">
-                        <div class="overall-progress-fill" style="width:${group.overallProgress}%;"></div>
-                    </div>
-                    <span style="font-weight:700;min-width:35px;text-align:right;">${group.overallProgress}%</span>
-                </div>
-            </td>
-        `;
+        // Calculate color BEFORE template string
+const progressColor3 = (group.overallProgress === 100) ? '#3498db' : '#22c55e';
+
+groupRow.innerHTML = `
+    <td style="width:3%;text-align:center;font-weight:600;">${groupNumber}</td>
+    <td style="width:35%;">
+        <span class="collapse-icon">▶</span>
+        <strong>${group.equipment}</strong>
+        <span style="font-size:10px;opacity:0.8;margin-left:5px;">(${group.tasks.length} tasks)</span>
+    </td>
+    <td style="width:20%;">${group.vendor}</td>
+    <td style="width:22%;">${phaseHTML}</td>
+    <td style="width:20%;">
+        <div style="display:flex;align-items:center;">
+            <div class="overall-progress-bar" style="flex:1;margin-right:8px;">
+                <div class="overall-progress-fill" style="width:${group.overallProgress}%; background:${progressColor3};"></div>
+            </div>
+            <span style="font-weight:700;min-width:35px;text-align:right;">${group.overallProgress}%</span>
+        </div>
+    </td>
+`;
     }
     
     // Re-bind onclick event
