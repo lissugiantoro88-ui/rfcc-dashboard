@@ -1562,13 +1562,13 @@ body.grouped-view-active #tablePagination {
     <div class="stat-number" id="totalCount">0</div>
     <div class="stat-label">Total Items</div>
                     <div class="filter-controls">
-                        <button class="filter-btn active" data-filter="all">All</button>
-                        <button class="filter-btn" data-filter="1st">1st</button>
-                        <button class="filter-btn" data-filter="2nd">2nd</button>
-                        <button class="filter-btn" data-filter="3rd">3rd</button>
-                        <button class="filter-btn" data-filter="OSBL">OSBL</button>
-<button class="filter-btn" data-filter="highlighted" style="background: #e74c3c; color: white; border-color: #e74c3c;">⚠️ Critical</button>
-                    </div>
+    <button class="filter-btn active" data-filter="all" onclick="filterByPriority('all')">All</button>
+    <button class="filter-btn" data-filter="1st" onclick="filterByPriority('1st')">1st</button>
+    <button class="filter-btn" data-filter="2nd" onclick="filterByPriority('2nd')">2nd</button>
+    <button class="filter-btn" data-filter="3rd" onclick="filterByPriority('3rd')">3rd</button>
+    <button class="filter-btn" data-filter="OSBL" onclick="filterByPriority('OSBL')">OSBL</button>
+    <button class="filter-btn" data-filter="highlighted" onclick="filterByPriority('highlighted')" style="background: #e74c3c; color: white; border-color: #e74c3c;">⚠️ Critical</button>
+</div>
                 </div>
 
                 <div class="stat-card belum-onsite" onclick="filterByStatus('notonsite')" style="cursor: pointer;">
@@ -2120,6 +2120,7 @@ body.grouped-view-active #tablePagination {
 <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.css">
     <script>
+
 // Update current date automatically
         function updateCurrentDate() {
             const options = { 
@@ -2183,6 +2184,7 @@ database.ref('onlineUsers').on('value', (snapshot) => {
         let currentFilter = 'all';
 let searchResults = []; // Menyimpan hasil pencarian
 let isSearching = false; // Status sedang search atau tidak
+window.isGroupedView = false; // ✅ TAMBAHKAN INI
  // ===== AUTO-SORT SETTINGS =====
         let autoSortEnabled = true; // Set false untuk disable auto-sort
 
@@ -2388,13 +2390,15 @@ onsiteTasksRef.on('value', (snapshot) => {
 
     // ===== EVENT LISTENERS =====
    function setupEventListeners() {
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            filterByPriority(this.getAttribute('data-filter'));
-        });
-    });
+    // DISABLED: Conflict dengan onclick di HTML
+    // document.querySelectorAll('.filter-btn').forEach(btn => {
+    //     btn.addEventListener('click', function() {
+    //         filterByPriority(this.getAttribute('data-filter'));
+    //     });
+    // });
     
     const searchBox = document.getElementById('searchBox');
+
     if (searchBox) {
         searchBox.addEventListener('input', searchTable);
         searchBox.addEventListener('keyup', function(e) {
@@ -3519,6 +3523,9 @@ function exportGanttPDFSafe() {
 
     // ===== FILTER AND SEARCH =====
     function filterByPriority(priority) {
+    console.log('🔵 filterByPriority called:', priority);
+    console.log('🔵 window.isGroupedView:', window.isGroupedView);
+    
     currentFilter = priority;
     currentTablePage = 1; // Reset to page 1
     
@@ -3530,8 +3537,18 @@ function exportGanttPDFSafe() {
     }
     
     document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelector(`[data-filter="${priority}"]`).classList.add('active');
-    populateTable();
+    document.querySelector ( `[data-filter="${priority}"]`).classList.add('active');
+    
+    // ✅ CHECK VIEW MODE DULU
+    if (window.isGroupedView) {
+        console.log('✅ Calling renderGroupedView()');
+        renderGroupedView(); // Tetap di group view
+    } else {
+        console.log('✅ Calling populateTable()');
+        populateTable(); // Normal view
+    }
+    
+    console.log('🔵 After filter, window.isGroupedView:', window.isGroupedView);
     updateStats();
 }
 
@@ -3579,8 +3596,12 @@ function exportGanttPDFSafe() {
     // Set temporary filter
     window.tempIssueFilter = issueType;
     
-    // Repopulate table with filter
-    populateTable();
+// ✅ CHECK VIEW MODE DULU
+    if (window.isGroupedView) {
+        renderGroupedView(); // Tetap di group view
+    } else {
+        populateTable(); // Normal view
+    }
     
     // Update title based on issue type
     let titleText = '';
@@ -3620,9 +3641,14 @@ function filterByStatus(statusType) {
     
     // Set temporary status filter
     window.tempStatusFilter = statusType;
+
+// ✅ CHECK VIEW MODE DULU
+    if (window.isGroupedView) {
+        renderGroupedView(); // Tetap di group view
+    } else {
+        populateTable(); // Normal view
+    }
     
-    // Repopulate table with filter
-    populateTable();
     
     // Update title based on filter type
     let titleText = 'Detailed Task List';
@@ -3740,6 +3766,9 @@ function updatePaginationInfo(displayedCount, totalCount) {
 
     // ===== TABLE POPULATION =====
     function populateTable() {
+console.log('⚠️ populateTable() called - WHO CALLED ME?');
+    console.trace('⚠️ Call stack:');
+
 // Remove grouped view class from body
     document.body.classList.remove('grouped-view-active');
 
@@ -4140,7 +4169,7 @@ function updateTablePagination(totalItems, totalPages) {
 }
 
   function changeTablePage(direction) {
-    // ✅ UBAH JADI window.isGroupedView
+    // ✅ UBAH JADI window.window.isGroupedView
     if (window.isGroupedView) {
         return; // Mode group tidak pakai pagination
     }
@@ -4163,7 +4192,7 @@ function goToTablePage(pageNumber) {
         pageNumber = parseInt(pageInput.value);
     }
     
-    if (isGroupedView) {
+    if (window.isGroupedView) {
         return;
     }
     
@@ -6836,19 +6865,19 @@ window.closeAllDropdowns = closeAllDropdowns;
 window.createDropdownBackdrop = createDropdownBackdrop;
 window.removeDropdownBackdrop = removeDropdownBackdrop;
 
-let isGroupedView = false;
+
 let currentEquipmentGroups = [];
 
 function toggleGroupedView() {
-    isGroupedView = !isGroupedView;
+    console.log('🟣 BEFORE toggle, window.isGroupedView:', window.isGroupedView);
+    window.isGroupedView = !window.isGroupedView;
+    console.log('🟣 AFTER toggle, window.isGroupedView:', window.isGroupedView);
+    
     const btn = document.getElementById('groupViewBtn');
     
-    // Debug log
-    console.log('Toggle Group View - isGroupedView:', isGroupedView);
-    
-    if (isGroupedView) {
+    if (window.isGroupedView) {
         // === ENTERING GROUP MODE ===
-        console.log('Entering Group Mode');
+        console.log('🟢 Entering Group Mode');
         
         btn.style.background = '#27ae60';
         btn.innerHTML = '📋 Normal View';
@@ -6925,7 +6954,10 @@ function toggleGroupedView() {
 }
 
 function renderGroupedView() {
-    // Add class to body for CSS targeting
+    console.log('🟢 renderGroupedView() CALLED');
+    console.log('🟢 Setting window.window.isGroupedView = true');
+
+// Add class to body for CSS targeting
     document.body.classList.add('grouped-view-active');
 
 // Force hide pagination IMMEDIATELY
@@ -6936,7 +6968,8 @@ function renderGroupedView() {
     
     // Set flag untuk track current view
     window.isGroupedView = true;
-    
+    console.log('🟢 window.window.isGroupedView is now:', window.window.isGroupedView);
+
     // Group tasks by equipment
     const equipmentMap = new Map();
     
@@ -6981,12 +7014,51 @@ function renderGroupedView() {
     currentEquipmentGroups = Array.from(equipmentMap.values());
 
 // ✅ TAMBAHKAN FILTERING BERDASARKAN SEARCH
-const searchBox = document.getElementById('searchBox');
+// ✅ FILTERING BERDASARKAN PRIORITY - FILTER TASKS DALAM GROUP
 let filteredGroups = currentEquipmentGroups;
 
+// Filter tasks within each group based on priority
+if (currentFilter !== 'all' && currentFilter !== 'highlighted') {
+    filteredGroups = currentEquipmentGroups.map(group => {
+        const filteredTasks = group.tasks.filter(task => task.priority === currentFilter);
+        
+        if (filteredTasks.length === 0) return null; // Exclude group if no matching tasks
+        
+        // Recalculate progress for filtered tasks
+        const total = filteredTasks.reduce((sum, t) => sum + (t.progress || 0), 0);
+        const newProgress = Math.round(total / filteredTasks.length);
+        
+        return {
+            ...group,
+            tasks: filteredTasks,
+            overallProgress: newProgress
+        };
+    }).filter(group => group !== null); // Remove null groups
+}
+
+// Filter by highlighted
+if (currentFilter === 'highlighted') {
+    filteredGroups = currentEquipmentGroups.map(group => {
+        const filteredTasks = group.tasks.filter(task => task.highlighted);
+        
+        if (filteredTasks.length === 0) return null;
+        
+        const total = filteredTasks.reduce((sum, t) => sum + (t.progress || 0), 0);
+        const newProgress = Math.round(total / filteredTasks.length);
+        
+        return {
+            ...group,
+            tasks: filteredTasks,
+            overallProgress: newProgress
+        };
+    }).filter(group => group !== null);
+}
+
+// Filter by search term
+const searchBox = document.getElementById('searchBox');
 if (searchBox && searchBox.value.trim() !== '') {
     const searchTerm = searchBox.value.trim().toLowerCase();
-    filteredGroups = currentEquipmentGroups.filter(group => {
+    filteredGroups = filteredGroups.filter(group => {
         return (
             group.equipment.toLowerCase().includes(searchTerm) ||
             group.vendor.toLowerCase().includes(searchTerm)
@@ -6995,15 +7067,30 @@ if (searchBox && searchBox.value.trim() !== '') {
 }
 
 // Show "no results" message if nothing found
-if (searchBox && searchBox.value.trim() !== '' && filteredGroups.length === 0) {
+if (filteredGroups.length === 0) {
     const tableBody = document.getElementById('tableBody');
+    
+    let message = '';
+    const searchTerm = searchBox ? searchBox.value.trim() : '';
+    
+    if (searchTerm !== '') {
+        // Search tidak ada hasil
+        message = `No equipment match "<strong>${searchTerm}</strong>"`;
+    } else if (currentFilter !== 'all') {
+        // Filter priority tidak ada hasil
+        message = `No equipment with priority "<strong>${currentFilter}</strong>"`;
+    } else {
+        // Tidak ada data sama sekali
+        message = 'No equipment data available';
+    }
+    
     tableBody.innerHTML = `
         <tr>
             <td colspan="5" style="text-align: center; padding: 60px 20px; color: #95a5a6;">
                 <div style="font-size: 48px; margin-bottom: 15px;">🔍</div>
                 <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #7f8c8d;">No results found</div>
-                <div style="font-size: 14px; color: #95a5a6;">No equipment match "<strong>${searchBox.value}</strong>"</div>
-                <div style="font-size: 13px; color: #bdc3c7; margin-top: 10px;">Try different keywords or clear the search</div>
+                <div style="font-size: 14px; color: #95a5a6;">${message}</div>
+                <div style="font-size: 13px; color: #bdc3c7; margin-top: 10px;">Try different keywords or clear the filter</div>
             </td>
         </tr>
     `;
@@ -7253,7 +7340,7 @@ function updateGroupTableHeader() {
     if (!headerRow) return;
     
     // ✅ MODE NORMAL: Header 16 kolom lengkap
-    if (!isGroupedView) {
+    if (!window.isGroupedView) {
         headerRow.innerHTML = `
             <th style="width:3%;">No</th>
             <th style="width:5%;">Priority</th>
