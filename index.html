@@ -1559,8 +1559,11 @@ body.grouped-view-active #tablePagination {
         <div class="stats-overview">
             <div class="stats-grid">
                 <div class="stat-card total" onclick="filterByStatus('all')" style="cursor: pointer;">
-    <div class="stat-number" id="totalCount">0</div>
-    <div class="stat-label">Total Items</div>
+    <div class="stat-number">
+    <span id="totalCount">0</span>
+    <span id="totalCountLabel" style="font-size: 14px; font-weight: 400; margin-left: 5px;"></span>
+</div>
+<div class="stat-label">Total Items</div>
                     <div class="filter-controls">
     <button class="filter-btn active" data-filter="all" onclick="filterByPriority('all')">All</button>
     <button class="filter-btn" data-filter="1st" onclick="filterByPriority('1st')">1st</button>
@@ -4245,6 +4248,12 @@ function goToTablePage(pageNumber) {
 
     // ===== STATISTICS =====
     function updateStats() {
+// ✅ CHECK: Apakah di Group View?
+    if (window.isGroupedView && window.currentFilteredGroups) {
+        updateStatsForGroupView();
+        return;
+    }
+
     let filteredData;
     if (currentFilter === 'highlighted') {
         filteredData = projectData.filter(item => item.highlighted);
@@ -4293,10 +4302,76 @@ document.getElementById('criticalContract').textContent = contractIssues;
 document.getElementById('criticalVisa').textContent = visaProcessing;
 document.getElementById('criticalPayment').textContent = paymentIssues;
 document.getElementById('criticalWorkDelayed').textContent = workDelayed;
+// Hide label in normal view
+document.getElementById('totalCountLabel').textContent = '';
 
 // Update upcoming mobilizations
 updateUpcomingMobilizations();
     }
+
+function updateStatsForGroupView() {
+    const groups = window.currentFilteredGroups || [];
+    
+    // Total groups
+    document.getElementById('totalCount').textContent = groups.length;
+document.getElementById('totalCountLabel').textContent = 'groups'; // ✅ TAMBAHKAN INI
+    
+    // Count by aggregating tasks from all groups
+    let allTasks = [];
+    groups.forEach(group => {
+        allTasks = allTasks.concat(group.tasks);
+    });
+    
+    const belumOnsite = allTasks.filter(item => !item.status.includes('Completed') && !item.status.includes('Onsite')).length;
+    const sudahOnsite = allTasks.length - belumOnsite;
+    const contractIssues = allTasks.filter(item => item.status === 'Contract Issue' || item.status === 'Contract Review' || item.contract === 'Quotation' || item.contract === 'Under Review' || item.contract === 'Reviewing').length;
+    const paymentIssues = allTasks.filter(item => item.status === 'Payment Issue' || item.contract === 'Waiting AP').length;
+    const visaProcessing = allTasks.filter(item => item.status === 'VISA Processing' || item.visa === 'Processing' || item.visa === 'Ongoing').length;
+    const inProgress = allTasks.filter(item => item.status.includes('Onsite') && !item.status.includes('Completed')).length;
+    const completed = allTasks.filter(item => item.status.includes('Completed')).length;
+    
+    const onTime = allTasks.filter(item => {
+        const dateStatus = getDateStatus(item.targetDate, item.mobDate);
+        return dateStatus.status === 'ON TIME';
+    }).length;
+    
+    const delayed = allTasks.filter(item => {
+        const dateStatus = getDateStatus(item.targetDate, item.mobDate);
+        return dateStatus.status.includes('DELAYED');
+    }).length;
+    
+    const workDelayed = allTasks.filter(item => {
+        if (!item.targetCompDate || !item.prognosaCompDate) return false;
+        return new Date(item.prognosaCompDate) >= new Date(item.targetCompDate);
+    }).length;
+
+    // Update UI with labels
+document.getElementById('totalCount').textContent = groups.length;
+document.getElementById('totalCountLabel').textContent = 'groups';
+
+document.getElementById('belumOnsiteCount').textContent = belumOnsite;
+document.getElementById('belumOnsiteCount').innerHTML = `${belumOnsite} <span style="font-size:11px;font-weight:400;opacity:0.8;">tasks</span>`;
+
+document.getElementById('sudahOnsiteCount').textContent = sudahOnsite;
+document.getElementById('sudahOnsiteCount').innerHTML = `${sudahOnsite} <span style="font-size:11px;font-weight:400;opacity:0.8;">tasks</span>`;
+
+document.getElementById('contractIssueCount').innerHTML = `${contractIssues} <span style="font-size:11px;font-weight:400;opacity:0.8;">tasks</span>`;
+document.getElementById('paymentIssueCount').innerHTML = `${paymentIssues} <span style="font-size:11px;font-weight:400;opacity:0.8;">tasks</span>`;
+document.getElementById('visaProcessingCount').innerHTML = `${visaProcessing} <span style="font-size:11px;font-weight:400;opacity:0.8;">tasks</span>`;
+document.getElementById('inProgressCount').innerHTML = `${inProgress} <span style="font-size:11px;font-weight:400;opacity:0.8;">tasks</span>`;
+document.getElementById('completedCount').innerHTML = `${completed} <span style="font-size:11px;font-weight:400;opacity:0.8;">tasks</span>`;
+document.getElementById('onTimeCount').innerHTML = `${onTime} <span style="font-size:11px;font-weight:400;opacity:0.8;">tasks</span>`;
+document.getElementById('delayedCount').innerHTML = `${delayed} <span style="font-size:11px;font-weight:400;opacity:0.8;">tasks</span>`;
+
+// Critical stats
+document.getElementById('criticalContract').innerHTML = `${contractIssues} <span style="font-size:11px;font-weight:400;opacity:0.8;">tasks</span>`;
+document.getElementById('criticalVisa').innerHTML = `${visaProcessing} <span style="font-size:11px;font-weight:400;opacity:0.8;">tasks</span>`;
+document.getElementById('criticalPayment').innerHTML = `${paymentIssues} <span style="font-size:11px;font-weight:400;opacity:0.8;">tasks</span>`;
+document.getElementById('criticalWorkDelayed').innerHTML = `${workDelayed} <span style="font-size:11px;font-weight:400;opacity:0.8;">tasks</span>`;
+    
+    // Upcoming mobilizations tetap sama
+    updateUpcomingMobilizations();
+}
 
 // ===== UPCOMING MOBILIZATIONS =====
     function updateUpcomingMobilizations() {
