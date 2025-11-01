@@ -5239,7 +5239,7 @@ function getFilteredHistory() {
         filtered = filtered.filter(item => item.category === reportFilterType);
     }
     
-    return filtered.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    return filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 }
 
 function renderReportPageNumbers(totalPages) {
