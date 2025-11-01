@@ -3687,23 +3687,38 @@ function filterByStatus(statusType) {
     }
 
     function clearAllFilters() {
-        // Remove all temporary filters
-        window.tempIssueFilter = null;
-        window.tempStatusFilter = null;
-        
-        // Reset to page 1
-        currentTablePage = 1;
-        
-        // Repopulate table without filter
-        populateTable();
-        
-        // Reset title
-        document.querySelector('.table-title').textContent = 'Detailed Task List';
-        
-        // Remove clear button
-        const clearBtn = document.getElementById('clearFilterBtn');
-        if (clearBtn) clearBtn.remove();
+    // Remove all temporary filters
+    window.tempIssueFilter = null;
+    window.tempStatusFilter = null;
+    currentFilter = 'all'; // ✅ Reset filter
+    
+    // Reset to page 1
+    currentTablePage = 1;
+    
+    // Reset search
+    const searchBox = document.getElementById('searchBox');
+    if (searchBox) searchBox.value = '';
+    isSearching = false;
+    searchResults = [];
+    
+    // ✅ CHECK VIEW MODE
+    if (window.isGroupedView) {
+        renderGroupedView(); // Tetap di group view
+    } else {
+        populateTable(); // Normal view
     }
+    
+    // Reset title
+    document.querySelector('.table-title').textContent = 'Detailed Task List';
+    
+    // Remove clear button
+    const clearBtn = document.getElementById('clearFilterBtn');
+    if (clearBtn) clearBtn.remove();
+    
+    // Reset filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector('[data-filter="all"]').classList.add('active');
+}
 
 // ===== PAGINATION INFO DISPLAY =====
 function updatePaginationInfo(displayedCount, totalCount) {
@@ -7012,6 +7027,15 @@ function renderGroupedView() {
     });
     
     currentEquipmentGroups = Array.from(equipmentMap.values());
+// ✅ SORT groups by latest update (auto-sort feature)
+if (autoSortEnabled) {
+    currentEquipmentGroups.sort((a, b) => {
+        // Find most recent update in each group
+        const latestA = Math.max(...a.tasks.map(t => new Date(t.lastUpdated || 0).getTime()));
+        const latestB = Math.max(...b.tasks.map(t => new Date(t.lastUpdated || 0).getTime()));
+        return latestB - latestA; // Descending (newest first)
+    });
+}
 
 // ✅ TAMBAHKAN FILTERING BERDASARKAN SEARCH
 // ✅ FILTERING BERDASARKAN PRIORITY - FILTER TASKS DALAM GROUP
