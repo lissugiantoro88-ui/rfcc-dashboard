@@ -4061,10 +4061,10 @@ row.innerHTML = `
     <td class="wrap-text" style="font-weight: ${item.highlighted ? '700' : '500'}; padding-right: 8px;">
     ${item.highlighted ? '<span class="warning-badge">⚠️</span>' : ''}
     <span style="cursor: help; text-decoration: underline dotted;" 
-          onmouseenter="showTasksTooltip(event, '${item.equipment.replace(/'/g, "\\'")}')" 
-          onmouseleave="hideTasksTooltip()">
-        ${item.equipment}
-    </span>
+      onmouseenter="showTasksTooltip(event, '${item.equipment.replace(/'/g, "\\'")}', '${item.disc || item.task}')" 
+      onmouseleave="hideTasksTooltip()">
+    ${item.equipment}
+</span>
     ${isRecentlyUpdated ? `<span class="recent-update-badge">🔄 NEW</span><span class="recent-update-time">${timeSinceUpdate}</span>` : ''}
 </td>
     <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.vendor}"><strong>${item.vendor}</strong></td>
@@ -7340,10 +7340,10 @@ groupRow.innerHTML = `
                 <td><span class="priority-badge priority-${task.priority}">${task.priority}</span></td>
                 <td>
     <span style="cursor: help; text-decoration: underline dotted;" 
-          onmouseenter="showTasksTooltip(event, '${task.equipment.replace(/'/g, "\\'")}')" 
-          onmouseleave="hideTasksTooltip()">
-        ${task.equipment}
-    </span>
+      onmouseenter="showTasksTooltip(event, '${task.equipment.replace(/'/g, "\\'")}', '${task.disc || task.task}')" 
+      onmouseleave="hideTasksTooltip()">
+    ${task.equipment}
+</span>
 </td>
                 <td>${task.vendor}</td>
                 <td><span class="status-badge">${task.disc || '-'}</span></td>
@@ -7446,34 +7446,68 @@ groupRow.innerHTML = `
 
 let tasksTooltip = null;
 
-function showTasksTooltip(event, equipmentName) {
-    // Get all tasks for this equipment
-    const tasks = projectData.filter(t => t.equipment === equipmentName);
+function showTasksTooltip(event, equipmentName, disc) {
+    // Find the main equipment data
+    const mainEquipment = projectData.find(t => t.equipment === equipmentName && (t.disc === disc || t.task === disc));
+    if (!mainEquipment || !mainEquipment.firebaseKey) {
+        console.warn('Equipment not found or no firebaseKey');
+        return;
+    }
     
-    // Group by status
-    const inProgress = tasks.filter(t => {
+    // Get onsite tasks for this specific equipment + disc
+    const onsiteTasksList = onsiteTasks[mainEquipment.firebaseKey] || [];
+    
+    if (onsiteTasksList.length === 0) {
+        // No onsite tasks - show simple message
+        let content = `<div style="font-weight: 600; margin-bottom: 8px;">${equipmentName} - ${disc}</div>`;
+        content += '<div style="font-size: 11px; color: #95a5a6;">No onsite tasks created yet</div>';
+        
+        if (!tasksTooltip) {
+            tasksTooltip = document.createElement('div');
+            tasksTooltip.style.cssText = `
+                position: fixed;
+                background: white;
+                border: 2px solid #3498db;
+                border-radius: 8px;
+                padding: 12px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                z-index: 10000;
+                min-width: 250px;
+                font-size: 12px;
+            `;
+            document.body.appendChild(tasksTooltip);
+        }
+        
+        tasksTooltip.innerHTML = content;
+        tasksTooltip.style.display = 'block';
+        tasksTooltip.style.left = (event.clientX + 15) + 'px';
+        tasksTooltip.style.top = (event.clientY + 15) + 'px';
+        return;
+    }
+    
+    // Group tasks by status
+    const inProgress = onsiteTasksList.filter(t => {
         const prog = parseInt(t.progress) || 0;
-        return prog > 0 && prog < 100;
+        return prog > 0 && prog < 100 && t.status !== 'completed';
     });
     
-    const pending = tasks.filter(t => {
+    const pending = onsiteTasksList.filter(t => {
         const prog = parseInt(t.progress) || 0;
-        return prog === 0;
+        return prog === 0 && t.status !== 'completed';
     });
     
-    const completed = tasks.filter(t => {
-        const prog = parseInt(t.progress) || 0;
-        return prog === 100;
+    const completed = onsiteTasksList.filter(t => {
+        return t.status === 'completed' || parseInt(t.progress) === 100;
     });
     
     // Build tooltip
-    let content = `<div style="font-weight: 600; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">${equipmentName}</div>`;
+    let content = `<div style="font-weight: 600; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">${equipmentName} - ${disc}</div>`;
     
     // In Progress
     if (inProgress.length > 0) {
         content += '<div style="font-size: 11px; margin: 8px 0 5px 0; font-weight: 600; color: #f39c12;">🔄 IN PROGRESS:</div>';
         inProgress.forEach(t => {
-            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px;">• ${t.disc} - ${t.taskName || 'Task'}: <strong>${t.progress || 0}%</strong></div>`;
+            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px;">• ${t.name}: <strong>${t.progress || 0}%</strong></div>`;
         });
     }
     
@@ -7481,7 +7515,15 @@ function showTasksTooltip(event, equipmentName) {
     if (pending.length > 0) {
         content += '<div style="font-size: 11px; margin: 8px 0 5px 0; font-weight: 600; color: #95a5a6;">⏳ PENDING:</div>';
         pending.forEach(t => {
-            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px; color: #7f8c8d;">• ${t.disc} - ${t.taskName || 'Task'}: ${t.progress || 0}%</div>`;
+            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px; color: #7f8c8d;">• ${t.name}: ${t.progress || 0}%</div>`;
+        });
+    }
+    
+    // Completed
+    if (completed.length > 0) {
+        content += '<div style="font-size: 11px; margin: 8px 0 5px 0; font-weight: 600; color: #27ae60;">✅ COMPLETED:</div>';
+        completed.forEach(t => {
+            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px; color: #27ae60;">• ${t.name}: 100%</div>`;
         });
     }
     
