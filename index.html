@@ -4059,7 +4059,12 @@ row.innerHTML = `
     <td style="text-align: center;">${rowNumber}</td>
     <td style="text-align: center;"><span class="priority-badge priority-${item.priority}">${item.priority}</span></td>
     <td class="wrap-text" style="font-weight: ${item.highlighted ? '700' : '500'}; padding-right: 8px;">
-    ${item.highlighted ? '<span class="warning-badge">⚠️</span>' : ''}${item.equipment}
+    ${item.highlighted ? '<span class="warning-badge">⚠️</span>' : ''}
+    <span style="cursor: help; text-decoration: underline dotted;" 
+          onmouseenter="showTasksTooltip(event, '${item.equipment.replace(/'/g, "\\'")}')" 
+          onmouseleave="hideTasksTooltip()">
+        ${item.equipment}
+    </span>
     ${isRecentlyUpdated ? `<span class="recent-update-badge">🔄 NEW</span><span class="recent-update-time">${timeSinceUpdate}</span>` : ''}
 </td>
     <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.vendor}"><strong>${item.vendor}</strong></td>
@@ -4632,6 +4637,14 @@ document.getElementById('modalHighlight').checked = item.highlighted || false;
 document.getElementById('modalMitigationPlan').value = item.mitigationPlan || '';
 document.getElementById('modalNotes').value = '';
         document.getElementById('updateModal').style.display = 'block';
+    // ✅ Attach Save button event IMMEDIATELY after modal shown
+const saveBtn = document.getElementById('saveButton');
+if (saveBtn) {
+    saveBtn.onclick = saveUpdate;
+    console.log('✅ Save button onclick attached');
+} else {
+    console.error('❌ saveButton not found!');
+}
     }
 
     function clearForm() {
@@ -4708,7 +4721,7 @@ function getDiscValue() {
     vendor: vendor,
     priority: document.getElementById('modalPriority').value,
     disc: getDiscValue(),
-    task: document.getElementById('modalDisc').value, // Keep for backward compatibility
+    task: document.getElementById('modalDisc').value,
     taskName: document.getElementById('modalTask').value,
     status: document.getElementById('modalStatus').value,
     contract: document.getElementById('modalContract').value,
@@ -4717,11 +4730,15 @@ function getDiscValue() {
     mobDate: mobDateFormatted,
     targetCompDate: document.getElementById('modalTargetCompDate').value,
     prognosaCompDate: document.getElementById('modalPrognosaCompDate').value,
-    progress: parseInt(document.getElementById('modalProgress').value) || 0,
+    progress: parseInt(document.getElementById('modalProgress').value.toString().replace('%', '')) || 0,
     highlighted: document.getElementById('modalHighlight').checked,
     mitigationPlan: document.getElementById('modalMitigationPlan').value,
-    lastUpdated: new Date().toISOString() // ⭐ TAMBAHKAN TIMESTAMP
+    lastUpdated: new Date().toISOString()
 };
+
+// Debug log
+console.log('💾 taskData.progress:', taskData.progress);
+console.log('💾 Full taskData:', taskData);
 
         if (currentEditId) {
             // Update existing item
@@ -4749,11 +4766,13 @@ if (item.mitigationPlan !== taskData.mitigationPlan) changes.push(`Mitigation Pl
             const detailedNotes = userNotes ? `${userNotes} | Changes: ${changeDescription}` : `Changes: ${changeDescription}`;
             
             projectDataRef.child(currentEditId).update(taskData).then(() => {
-    // ⭐ UPDATE LOCAL DATA IMMEDIATELY
+console.log('✅ Firebase update SUCCESS, progress:', taskData.progress);
+
+   // ⭐ UPDATE LOCAL DATA IMMEDIATELY
     const itemIndex = projectData.findIndex(p => p.firebaseKey === currentEditId);
     if (itemIndex !== -1) {
         projectData[itemIndex] = { ...projectData[itemIndex], ...taskData };
-        console.log('✅ Local data updated:', projectData[itemIndex].lastUpdated);
+        console.log('✅ Local data updated, new progress:', projectData[itemIndex].progress);
     }
     
     // Add to history
@@ -4821,6 +4840,7 @@ if (item.mitigationPlan !== taskData.mitigationPlan) changes.push(`Mitigation Pl
             });
         }
     }
+
 
     function deleteItem(firebaseKey) {
         const item = projectData.find(p => p.firebaseKey === firebaseKey);
@@ -7078,8 +7098,16 @@ function renderGroupedView() {
     
     // Calculate progress for each group
     equipmentMap.forEach((group) => {
-        const total = group.tasks.reduce((sum, t) => sum + (t.progress || 0), 0);
-        group.overallProgress = Math.round(total / group.tasks.length);
+        const total = group.tasks.reduce((sum, t) => {
+    let progress = 0;
+    if (t.progress) {
+        progress = typeof t.progress === 'string' ? 
+                   parseInt(t.progress.replace('%', '')) : 
+                   parseInt(t.progress);
+    }
+    return sum + (progress || 0);
+}, 0);
+group.overallProgress = group.tasks.length > 0 ? Math.round(total / group.tasks.length) : 0;
         
         // Phase breakdown
         group.phases = {};
@@ -7087,9 +7115,15 @@ function renderGroupedView() {
             const disc = t.disc || 'OTHER';
             if (!group.phases[disc]) {
                 group.phases[disc] = { count: 0, progress: 0 };
-            }
+            }// Calculate overall progress
             group.phases[disc].count++;
-            group.phases[disc].progress += (t.progress || 0);
+            let taskProgress = 0;
+if (t.progress) {
+    taskProgress = typeof t.progress === 'string' ? 
+                   parseInt(t.progress.replace('%', '')) : 
+                   parseInt(t.progress);
+}
+group.phases[disc].progress += (taskProgress || 0);
         });
         
         // Calculate phase status
@@ -7304,7 +7338,13 @@ groupRow.innerHTML = `
             childRow.innerHTML = `
                 <td>${tIdx + 1}</td>
                 <td><span class="priority-badge priority-${task.priority}">${task.priority}</span></td>
-                <td>${task.equipment}</td>
+                <td>
+    <span style="cursor: help; text-decoration: underline dotted;" 
+          onmouseenter="showTasksTooltip(event, '${task.equipment.replace(/'/g, "\\'")}')" 
+          onmouseleave="hideTasksTooltip()">
+        ${task.equipment}
+    </span>
+</td>
                 <td>${task.vendor}</td>
                 <td><span class="status-badge">${task.disc || '-'}</span></td>
                 <td class="wrap-text">${task.taskName || '-'}</td>
@@ -7402,6 +7442,83 @@ groupRow.innerHTML = `
     
     updateGroupTableHeader();
 }, 100);
+}
+
+let tasksTooltip = null;
+
+function showTasksTooltip(event, equipmentName) {
+    // Get all tasks for this equipment
+    const tasks = projectData.filter(t => t.equipment === equipmentName);
+    
+    // Group by status
+    const inProgress = tasks.filter(t => {
+        const prog = parseInt(t.progress) || 0;
+        return prog > 0 && prog < 100;
+    });
+    
+    const pending = tasks.filter(t => {
+        const prog = parseInt(t.progress) || 0;
+        return prog === 0;
+    });
+    
+    const completed = tasks.filter(t => {
+        const prog = parseInt(t.progress) || 0;
+        return prog === 100;
+    });
+    
+    // Build tooltip
+    let content = `<div style="font-weight: 600; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">${equipmentName}</div>`;
+    
+    // In Progress
+    if (inProgress.length > 0) {
+        content += '<div style="font-size: 11px; margin: 8px 0 5px 0; font-weight: 600; color: #f39c12;">🔄 IN PROGRESS:</div>';
+        inProgress.forEach(t => {
+            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px;">• ${t.disc} - ${t.taskName || 'Task'}: <strong>${t.progress || 0}%</strong></div>`;
+        });
+    }
+    
+    // Pending
+    if (pending.length > 0) {
+        content += '<div style="font-size: 11px; margin: 8px 0 5px 0; font-weight: 600; color: #95a5a6;">⏳ PENDING:</div>';
+        pending.forEach(t => {
+            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px; color: #7f8c8d;">• ${t.disc} - ${t.taskName || 'Task'}: ${t.progress || 0}%</div>`;
+        });
+    }
+    
+    // Summary
+    content += `<div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #ddd; font-size: 11px;">
+        <strong>Summary:</strong> ${completed.length} completed, ${inProgress.length} in progress, ${pending.length} pending
+    </div>`;
+    
+    // Create/show tooltip
+    if (!tasksTooltip) {
+        tasksTooltip = document.createElement('div');
+        tasksTooltip.style.cssText = `
+            position: fixed;
+            background: white;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 10000;
+            min-width: 300px;
+            max-width: 450px;
+            font-size: 12px;
+            line-height: 1.6;
+        `;
+        document.body.appendChild(tasksTooltip);
+    }
+    
+    tasksTooltip.innerHTML = content;
+    tasksTooltip.style.display = 'block';
+    tasksTooltip.style.left = (event.clientX + 15) + 'px';
+    tasksTooltip.style.top = (event.clientY + 15) + 'px';
+}
+
+function hideTasksTooltip() {
+    if (tasksTooltip) {
+        tasksTooltip.style.display = 'none';
+    }
 }
 
 function toggleGroup(groupIdx) {
