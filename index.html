@@ -1997,8 +1997,7 @@ body.grouped-view-active #tablePagination {
                 <input type="date" id="taskEndInput" class="form-control">
             </div>
             <div class="form-group">
-                <label class="form-label">Estimated Duration (days):</label>
-                <input type="number" id="taskDurationInput" class="form-control" min="1" placeholder="e.g., 3">
+                <label class="form-label">Duration (auto-calculated):</label>                <input type="number" id="taskDurationInput" class="form-control" min="1" placeholder="Auto-calculated" readonly style="background: #f8f9fa; cursor: not-allowed;">
             </div>
             <div class="form-group">
                 <label class="form-label">Assigned To:</label>
@@ -5963,7 +5962,36 @@ function openTaskEditModal(taskId = null) {
     handleExecutionModeChange(initialMode);
     
     document.getElementById('taskEditModal').style.display = 'block';
+// ✅ Auto-calculate duration when dates change
+const startInput = document.getElementById('taskStartInput');
+const endInput = document.getElementById('taskEndInput');
+const durationInput = document.getElementById('taskDurationInput');
+
+function calculateDuration() {
+    const start = startInput.value;
+    const end = endInput.value;
+    
+    if (start && end) {
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+        const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+        
+        if (days >= 0) {
+            durationInput.value = days;
+            durationInput.style.backgroundColor = '#e8f5e9';
+        } else {
+            durationInput.value = '';
+            durationInput.style.backgroundColor = '#ffebee';
+        }
+    }
 }
+
+if (startInput && endInput) {
+    startInput.addEventListener('change', calculateDuration);
+    endInput.addEventListener('change', calculateDuration);
+}
+}  // ← Ini closing brace dari openTaskEditModal()
+
 
 // ✅ NEW: Setup event listener for execution mode
 function setupExecutionModeListener() {
@@ -7658,23 +7686,72 @@ function showTasksTooltip(event, equipmentName, disc) {
         return;
     }
     
-    // Calculate task statuses
+    // Calculate task statuses with time-based indicators
     const tasksWithStatus = onsiteTasksList.map(task => {
         const progress = parseInt(task.progress) || 0;
         let status = 'pending';
         let statusIcon = '⏳';
         let statusColor = '#95a5a6';
+        let timeStatus = '';
+        let timeIcon = '';
+        
+        // Calculate time-based status
+        const today = new Date();
+        const targetStart = task.targetStart ? new Date(task.targetStart) : null;
+        const targetEnd = task.targetEnd ? new Date(task.targetEnd) : null;
+        const startDate = task.startDate ? new Date(task.startDate) : null;
+        const completedDate = task.completedDate ? new Date(task.completedDate) : null;
         
         if (progress === 100 || task.status === 'completed') {
             status = 'completed';
             statusIcon = '✅';
             statusColor = '#27ae60';
+            
+            if (completedDate && targetEnd) {
+                const daysDiff = Math.ceil((targetEnd - completedDate) / (1000 * 60 * 60 * 24));
+                if (daysDiff > 0) {
+                    timeStatus = `${daysDiff}d early`;
+                    timeIcon = '🔵';
+                } else if (daysDiff < 0) {
+                    timeStatus = `${Math.abs(daysDiff)}d late`;
+                    timeIcon = '🔴';
+                } else {
+                    timeStatus = 'on time';
+                    timeIcon = '🟢';
+                }
+            }
         } else if (progress > 0) {
             status = 'inProgress';
             statusIcon = '🔄';
             statusColor = '#f39c12';
+            
+            if (targetStart && targetEnd) {
+                const totalDuration = (targetEnd - targetStart) / (1000 * 60 * 60 * 24);
+                const elapsed = startDate ? (today - startDate) / (1000 * 60 * 60 * 24) : 0;
+                const expectedProgress = totalDuration > 0 ? Math.round((elapsed / totalDuration) * 100) : 0;
+                const progressDiff = progress - expectedProgress;
+                
+                if (progressDiff >= 10) {
+                    timeStatus = 'ahead';
+                    timeIcon = '🔵';
+                } else if (progressDiff >= -10) {
+                    timeStatus = 'on track';
+                    timeIcon = '🟢';
+                } else if (progressDiff >= -25) {
+                    timeStatus = 'at risk';
+                    timeIcon = '🟡';
+                } else {
+                    timeStatus = 'delayed';
+                    timeIcon = '🔴';
+                }
+            }
+            
+            if (targetEnd && today > targetEnd) {
+                const daysOverdue = Math.ceil((today - targetEnd) / (1000 * 60 * 60 * 24));
+                timeStatus = `${daysOverdue}d overdue`;
+                timeIcon = '🔴';
+            }
         } else {
-            // Check if task is ready or blocked
             const isBlocked = checkIfBlocked(task, onsiteTasksList);
             if (isBlocked) {
                 status = 'blocked';
@@ -7685,9 +7762,21 @@ function showTasksTooltip(event, equipmentName, disc) {
                 statusIcon = '🎯';
                 statusColor = '#3498db';
             }
+            
+            if (targetStart && today > targetStart) {
+                const daysLate = Math.ceil((today - targetStart) / (1000 * 60 * 60 * 24));
+                timeStatus = `${daysLate}d late start`;
+                timeIcon = '🟡';
+            } else if (targetStart) {
+                const daysUntil = Math.ceil((targetStart - today) / (1000 * 60 * 60 * 24));
+                if (daysUntil <= 3) {
+                    timeStatus = `starts in ${daysUntil}d`;
+                    timeIcon = '⏰';
+                }
+            }
         }
         
-        return { ...task, status, statusIcon, statusColor };
+        return { ...task, status, statusIcon, statusColor, timeStatus, timeIcon };
     });
     
     // Sort by sequence
@@ -7707,7 +7796,10 @@ function showTasksTooltip(event, equipmentName, disc) {
     if (ready.length > 0) {
         content += '<div style="font-size: 11px; margin: 8px 0 5px 0; font-weight: 600; color: #3498db;">🎯 READY TO START:</div>';
         ready.forEach(t => {
-            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px;">• Step ${t.sequence || '?'}: ${t.name}</div>`;
+            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px;">
+                • Step ${t.sequence || '?'}: ${t.name}
+                ${t.timeStatus ? `<span style="margin-left: 8px; color: #7f8c8d;">${t.timeIcon} ${t.timeStatus}</span>` : ''}
+            </div>`;
         });
     }
     
@@ -7715,7 +7807,10 @@ function showTasksTooltip(event, equipmentName, disc) {
     if (inProgress.length > 0) {
         content += '<div style="font-size: 11px; margin: 8px 0 5px 0; font-weight: 600; color: #f39c12;">🔄 IN PROGRESS:</div>';
         inProgress.forEach(t => {
-            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px;">• Step ${t.sequence || '?'}: ${t.name} - <strong>${t.progress}%</strong></div>`;
+            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px;">
+                • Step ${t.sequence || '?'}: ${t.name} - <strong>${t.progress}%</strong>
+                ${t.timeStatus ? `<span style="margin-left: 8px;">${t.timeIcon} ${t.timeStatus}</span>` : ''}
+            </div>`;
         });
     }
     
@@ -7724,7 +7819,11 @@ function showTasksTooltip(event, equipmentName, disc) {
         content += '<div style="font-size: 11px; margin: 8px 0 5px 0; font-weight: 600; color: #e74c3c;">🔒 BLOCKED:</div>';
         blocked.forEach(t => {
             const blockingTasks = getBlockingTasks(t, onsiteTasksList);
-            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px;">• Step ${t.sequence || '?'}: ${t.name}<br><span style="margin-left: 15px; color: #e74c3c; font-size: 10px;">Waiting: ${blockingTasks}</span></div>`;
+            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px;">
+                • Step ${t.sequence || '?'}: ${t.name}
+                ${t.timeStatus ? `<span style="margin-left: 8px; color: #7f8c8d;">${t.timeIcon} ${t.timeStatus}</span>` : ''}
+                <br><span style="margin-left: 15px; color: #e74c3c; font-size: 10px;">Waiting: ${blockingTasks}</span>
+            </div>`;
         });
     }
     
@@ -7732,7 +7831,10 @@ function showTasksTooltip(event, equipmentName, disc) {
     if (pending.length > 0) {
         content += '<div style="font-size: 11px; margin: 8px 0 5px 0; font-weight: 600; color: #95a5a6;">⏳ PENDING:</div>';
         pending.forEach(t => {
-            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px; color: #7f8c8d;">• Step ${t.sequence || '?'}: ${t.name}</div>`;
+            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px; color: #7f8c8d;">
+                • Step ${t.sequence || '?'}: ${t.name}
+                ${t.timeStatus ? `<span style="margin-left: 8px;">${t.timeIcon} ${t.timeStatus}</span>` : ''}
+            </div>`;
         });
     }
     
@@ -7740,7 +7842,10 @@ function showTasksTooltip(event, equipmentName, disc) {
     if (completed.length > 0) {
         content += '<div style="font-size: 11px; margin: 8px 0 5px 0; font-weight: 600; color: #27ae60;">✅ COMPLETED:</div>';
         completed.forEach(t => {
-            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px; color: #27ae60;">• Step ${t.sequence || '?'}: ${t.name} - 100%</div>`;
+            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px; color: #27ae60;">
+                • Step ${t.sequence || '?'}: ${t.name} - 100%
+                ${t.timeStatus ? `<span style="margin-left: 8px;">${t.timeIcon} ${t.timeStatus}</span>` : ''}
+            </div>`;
         });
     }
     
