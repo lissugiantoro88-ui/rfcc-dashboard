@@ -2020,6 +2020,45 @@ body.grouped-view-active #tablePagination {
                 <label class="form-label">Notes:</label>
                 <textarea id="taskNotesInput" class="form-control" rows="3" placeholder="Additional notes..."></textarea>
             </div>
+<!-- ✅ TAMBAHKAN MULAI DARI SINI -->
+
+<!-- Sequence Number -->
+<div class="form-group">
+    <label class="form-label">Sequence Number:</label>
+    <input type="number" id="taskSequenceInput" class="form-control" min="1" placeholder="1, 2, 3..." value="1">
+    <small style="color: #7f8c8d; font-size: 11px;">Order of execution (1 = first, 2 = second, etc.)</small>
+</div>
+
+<!-- Execution Mode -->
+<div class="form-group">
+    <label class="form-label">Execution Mode:</label>
+    <select id="taskExecutionModeInput" class="form-control">
+        <option value="sequential">Sequential (wait for dependencies)</option>
+        <option value="independent">Independent (can start anytime)</option>
+        <option value="parallel">Parallel (can run with others)</option>
+    </select>
+    <small style="color: #7f8c8d; font-size: 11px;">How this task relates to other tasks</small>
+</div>
+
+<!-- Dependencies (shown only for sequential mode) -->
+<div class="form-group" id="taskDependenciesGroup" style="display: none;">
+    <label class="form-label">Dependencies (must complete first):</label>
+    <div id="taskDependenciesList" style="max-height: 150px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px; background: #f8f9fa;">
+        <div style="color: #95a5a6; font-size: 12px;">Select sequential mode to set dependencies</div>
+    </div>
+    <small style="color: #7f8c8d; font-size: 11px;">This task will be blocked until selected tasks are completed</small>
+</div>
+
+<!-- Parallel Tasks (shown only for parallel mode) -->
+<div class="form-group" id="taskParallelGroup" style="display: none;">
+    <label class="form-label">Can run parallel with:</label>
+    <div id="taskParallelTasksList" style="max-height: 150px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px; background: #f8f9fa;">
+        <div style="color: #95a5a6; font-size: 12px;">Select parallel mode to choose tasks</div>
+    </div>
+    <small style="color: #7f8c8d; font-size: 11px;">These tasks can be executed at the same time</small>
+</div>
+
+<!-- ✅ AKHIR TAMBAHAN -->
         </div>
         <div class="btn-group">
             <button class="btn btn-secondary" onclick="closeTaskEditModal()">Cancel</button>
@@ -5564,9 +5603,14 @@ function renderTaskTracker() {
         });
     };
     
-    const sortedCompleted = sortTasksByUpdate([...completedTasks]);
-    const sortedInProgress = sortTasksByUpdate([...inProgressTasks]);
-    const sortedPending = sortTasksByUpdate([...pendingTasks]);
+    // Sort by sequence instead of update time
+const sortBySequence = (taskArray) => {
+    return taskArray.sort((a, b) => (a.sequence || 999) - (b.sequence || 999));
+};
+
+const sortedCompleted = sortBySequence([...completedTasks]);
+const sortedInProgress = sortBySequence([...inProgressTasks]);
+const sortedPending = sortBySequence([...pendingTasks]);
     
     const totalTasks = tasks.length;
     const completedCount = completedTasks.length;
@@ -5738,11 +5782,27 @@ function renderTaskGroup(status, title, tasks, icon, collapsed) {
 
 function renderTaskItem(task, status) {
     const progressPercent = task.progress || 0;
+    const sequence = task.sequence || '?';
+    const executionMode = task.executionMode || 'independent';
+    
+    // Execution mode badge
+    let modeBadge = '';
+    if (executionMode === 'sequential') {
+        modeBadge = '<span style="background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 9px; margin-left: 5px;">🔗 Sequential</span>';
+    } else if (executionMode === 'parallel') {
+        modeBadge = '<span style="background: #f39c12; color: white; padding: 2px 6px; border-radius: 3px; font-size: 9px; margin-left: 5px;">⚡ Parallel</span>';
+    } else {
+        modeBadge = '<span style="background: #27ae60; color: white; padding: 2px 6px; border-radius: 3px; font-size: 9px; margin-left: 5px;">🎯 Independent</span>';
+    }
     
     return `
         <div class="task-item ${status}">
             <div class="task-header">
-                <div class="task-title">${task.name}</div>
+                <div class="task-title">
+                    <span style="display: inline-block; min-width: 30px; font-weight: 700; color: #3498db; font-size: 14px;">#${sequence}</span>
+                    ${task.name}
+                    ${modeBadge}
+                </div>
                 <span class="task-status-badge ${status}">
                     ${status === 'completed' ? '✅ DONE' : 
                       status === 'inprogress' ? `⏳ ${progressPercent}%` : 
@@ -5751,12 +5811,12 @@ function renderTaskItem(task, status) {
             </div>
             
             ${task.description ? `
-                <div style="font-size: 11px; color: #6c757d; margin-bottom: 8px;">
+                <div style="font-size: 11px; color: #6c757d; margin-bottom: 8px; margin-left: 35px;">
                     ${task.description}
                 </div>
             ` : ''}
             
-            <div class="task-meta">
+            <div class="task-meta" style="margin-left: 35px;">
                 ${task.startDate ? `
                     <div class="task-meta-item">
                         <span>📅</span>
@@ -5788,18 +5848,18 @@ function renderTaskItem(task, status) {
             </div>
             
             ${status === 'inprogress' && progressPercent < 100 ? `
-                <div class="task-progress-bar">
+                <div class="task-progress-bar" style="margin-left: 35px;">
                     <div class="task-progress-fill" style="width: ${progressPercent}%;"></div>
                 </div>
             ` : ''}
             
             ${task.notes ? `
-                <div class="task-notes">
+                <div class="task-notes" style="margin-left: 35px;">
                     📝 ${task.notes}
                 </div>
             ` : ''}
             
-            <div class="task-actions">
+            <div class="task-actions" style="margin-left: 35px;">
                 ${status === 'pending' ? `
                     <button class="task-btn task-btn-start" onclick="startTask('${task.id}')">
                         ▶️ Start Task
@@ -5863,6 +5923,10 @@ function openTaskEditModal(taskId = null) {
         document.getElementById('taskProgressInput').value = task.progress || 0;
         document.getElementById('taskNotesInput').value = task.notes || '';
         
+        // ✅ NEW: Set sequence & execution mode
+        document.getElementById('taskSequenceInput').value = task.sequence || 999;
+        document.getElementById('taskExecutionModeInput').value = task.executionMode || 'independent';
+        
         // Show/hide progress based on status
         const status = task.status || 'pending';
         document.getElementById('taskProgressGroup').style.display = 
@@ -5882,10 +5946,133 @@ function openTaskEditModal(taskId = null) {
         document.getElementById('taskProgressInput').value = 0;
         document.getElementById('taskNotesInput').value = '';
         
+        // ✅ NEW: Auto-suggest next sequence number
+        const tasks = onsiteTasks[currentEquipmentTasks.firebaseKey] || [];
+        const maxSeq = tasks.length > 0 ? Math.max(...tasks.map(t => t.sequence || 0)) : 0;
+        document.getElementById('taskSequenceInput').value = maxSeq + 1;
+        document.getElementById('taskExecutionModeInput').value = 'independent';
+        
         document.getElementById('taskProgressGroup').style.display = 'none';
     }
     
+    // ✅ NEW: Setup execution mode event listener
+    setupExecutionModeListener();
+    
+    // ✅ NEW: Trigger initial display based on mode
+    const initialMode = document.getElementById('taskExecutionModeInput').value;
+    handleExecutionModeChange(initialMode);
+    
     document.getElementById('taskEditModal').style.display = 'block';
+}
+
+// ✅ NEW: Setup event listener for execution mode
+function setupExecutionModeListener() {
+    const modeSelect = document.getElementById('taskExecutionModeInput');
+    
+    // Remove old listener if exists
+    const newModeSelect = modeSelect.cloneNode(true);
+    modeSelect.parentNode.replaceChild(newModeSelect, modeSelect);
+    
+    // Add new listener
+    newModeSelect.addEventListener('change', function() {
+        handleExecutionModeChange(this.value);
+    });
+}
+
+// ✅ NEW: Handle execution mode change
+function handleExecutionModeChange(mode) {
+    const depGroup = document.getElementById('taskDependenciesGroup');
+    const parGroup = document.getElementById('taskParallelGroup');
+    
+    if (mode === 'sequential') {
+        depGroup.style.display = 'block';
+        parGroup.style.display = 'none';
+        populateTaskDependencies();
+    } else if (mode === 'parallel') {
+        depGroup.style.display = 'none';
+        parGroup.style.display = 'block';
+        populateTaskParallel();
+    } else {
+        depGroup.style.display = 'none';
+        parGroup.style.display = 'none';
+    }
+}
+
+// ✅ NEW: Populate dependencies checkboxes
+function populateTaskDependencies() {
+    const container = document.getElementById('taskDependenciesList');
+    if (!container) return;
+    
+    const tasks = onsiteTasks[currentEquipmentTasks.firebaseKey] || [];
+    
+    // Exclude current task if editing
+    const availableTasks = tasks.filter(t => t.id !== currentTaskEditId);
+    
+    if (availableTasks.length === 0) {
+        container.innerHTML = '<div style="color: #95a5a6; font-size: 12px; padding: 10px;">No other tasks available</div>';
+        return;
+    }
+    
+    // Sort by sequence
+    availableTasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999));
+    
+    // Get current task dependencies if editing
+    let currentDeps = [];
+    if (currentTaskEditId) {
+        const currentTask = tasks.find(t => t.id === currentTaskEditId);
+        currentDeps = currentTask?.dependencies || [];
+    }
+    
+    container.innerHTML = availableTasks.map(task => {
+        const isChecked = currentDeps.includes(task.id);
+        const progressIcon = task.progress === 100 ? '✅' : task.progress > 0 ? '🔄' : '⏳';
+        return `
+            <label style="display: block; padding: 5px; font-size: 12px; cursor: pointer; border-radius: 4px;" 
+                   onmouseover="this.style.background='#e3f2fd'" 
+                   onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="task-dep-checkbox" value="${task.id}" 
+                       ${isChecked ? 'checked' : ''} 
+                       style="margin-right: 8px; cursor: pointer;">
+                ${progressIcon} ${task.sequence || '?'}. ${task.name} ${task.progress > 0 ? `(${task.progress}%)` : ''}
+            </label>
+        `;
+    }).join('');
+}
+
+// ✅ NEW: Populate parallel tasks checkboxes
+function populateTaskParallel() {
+    const container = document.getElementById('taskParallelTasksList');
+    if (!container) return;
+    
+    const tasks = onsiteTasks[currentEquipmentTasks.firebaseKey] || [];
+    const availableTasks = tasks.filter(t => t.id !== currentTaskEditId);
+    
+    if (availableTasks.length === 0) {
+        container.innerHTML = '<div style="color: #95a5a6; font-size: 12px; padding: 10px;">No other tasks available</div>';
+        return;
+    }
+    
+    availableTasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999));
+    
+    let currentParallel = [];
+    if (currentTaskEditId) {
+        const currentTask = tasks.find(t => t.id === currentTaskEditId);
+        currentParallel = currentTask?.parallelWith || [];
+    }
+    
+    container.innerHTML = availableTasks.map(task => {
+        const isChecked = currentParallel.includes(task.id);
+        return `
+            <label style="display: block; padding: 5px; font-size: 12px; cursor: pointer; border-radius: 4px;" 
+                   onmouseover="this.style.background='#fff3cd'" 
+                   onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="task-parallel-checkbox" value="${task.id}" 
+                       ${isChecked ? 'checked' : ''} 
+                       style="margin-right: 8px; cursor: pointer;">
+                ${task.sequence || '?'}. ${task.name}
+            </label>
+        `;
+    }).join('');
 }
 
 function closeTaskEditModal() {
@@ -5901,6 +6088,10 @@ function saveTask() {
         return;
     }
     
+    // Get dependencies and parallel tasks
+    const selectedDeps = Array.from(document.querySelectorAll('.task-dep-checkbox:checked')).map(cb => cb.value);
+    const selectedParallel = Array.from(document.querySelectorAll('.task-parallel-checkbox:checked')).map(cb => cb.value);
+    
     const taskData = {
         name: name,
         description: document.getElementById('taskDescInput').value.trim(),
@@ -5911,7 +6102,11 @@ function saveTask() {
         status: document.getElementById('taskStatusInput').value,
         progress: parseInt(document.getElementById('taskProgressInput').value) || 0,
         notes: document.getElementById('taskNotesInput').value.trim(),
-        lastTaskUpdate: new Date().toISOString() // ⭐ TIMESTAMP
+        lastTaskUpdate: new Date().toISOString(),
+        sequence: parseInt(document.getElementById('taskSequenceInput').value) || 999,
+        executionMode: document.getElementById('taskExecutionModeInput').value || 'independent',
+        dependencies: selectedDeps,
+        parallelWith: selectedParallel
     };
     
     // Add timestamps based on status
@@ -5926,86 +6121,87 @@ function saveTask() {
     }
     
     const equipmentKey = currentEquipmentTasks.firebaseKey;
-    const tasks = onsiteTasks[equipmentKey] || [];
     
-    if (currentTaskEditId) {
-    // Update existing task
-    const taskIndex = tasks.findIndex(t => t.id === currentTaskEditId);
-    if (taskIndex !== -1) {
-        // ⭐ TAMBAHAN BARU - Deteksi UNDO (completed → status lain)
-        const oldStatus = tasks[taskIndex].status;
-        const newStatus = taskData.status;
-        const isUndo = (oldStatus === 'completed' && newStatus !== 'completed');
-        // ⭐ AKHIR TAMBAHAN
+    // Get current tasks from Firebase (fresh read)
+    database.ref(`onsiteTasks/${equipmentKey}`).once('value').then(snapshot => {
+        let tasks = snapshot.val() || [];
         
-        tasks[taskIndex] = { ...tasks[taskIndex], ...taskData };
-        
-        // ⭐ TAMBAHAN BARU - Flag untuk reset timestamp jika undo
-        if (isUndo) {
-            console.log('🔄 UNDO detected - checking if timestamp reset needed');
-            
-            // ⭐ Cek apakah masih ada task aktif (inprogress atau completed) selain yang di-undo
-const hasOtherActiveTasks = tasks.some(t => 
-    (t.status === 'inprogress' || t.status === 'completed') && 
-    t.id !== currentTaskEditId
-);
-
-if (!hasOtherActiveTasks) {
-    console.log('🔄 No active tasks left - will reset timestamp after save');
-    window._resetTimestampAfterSave = equipmentKey;
-}
-        }
-        // ⭐ AKHIR TAMBAHAN
-    }
-} else {
-    // Add new task
-    taskData.id = Date.now().toString();
-    taskData.createdAt = new Date().toISOString();
-    tasks.push(taskData);
-}
-
-    // Save to Firebase
-database.ref(`onsiteTasks/${equipmentKey}`).set(tasks).then(() => {
-    showNotification(currentTaskEditId ? 'Task updated successfully' : 'Task added successfully', 'success');
-    closeTaskEditModal();
-    renderTaskTracker();
-    updateEquipmentProgress(equipmentKey);
-    
-    // ⭐ TAMBAHAN BARU - Reset timestamp jika ada flag undo
-    if (window._resetTimestampAfterSave === equipmentKey) {
-        console.log('🔄 Resetting timestamp after undo');
-        resetEquipmentUpdateTime(equipmentKey);
-        showNotification('Task reverted. Equipment returned to original position.', 'info');
-        delete window._resetTimestampAfterSave;
-    }
-    // ⭐ AKHIR TAMBAHAN
-    
-    // Add to activity history
-    const equipment = currentEquipmentTasks.equipment;
-        
-        // Get the saved task for detailed logging
-        let savedTask;
         if (currentTaskEditId) {
-            savedTask = tasks.find(t => t.id === currentTaskEditId);
+            // Update existing task
+            const taskIndex = tasks.findIndex(t => t.id === currentTaskEditId);
+            if (taskIndex !== -1) {
+                const oldStatus = tasks[taskIndex].status;
+                const newStatus = taskData.status;
+                const isUndo = (oldStatus === 'completed' && newStatus !== 'completed');
+                
+                tasks[taskIndex] = { ...tasks[taskIndex], ...taskData };
+                
+                if (isUndo) {
+                    const hasOtherActiveTasks = tasks.some(t => 
+                        (t.status === 'inprogress' || t.status === 'completed') && 
+                        t.id !== currentTaskEditId
+                    );
+                    if (!hasOtherActiveTasks) {
+                        window._resetTimestampAfterSave = equipmentKey;
+                    }
+                }
+            }
         } else {
-            savedTask = tasks[tasks.length - 1];
+            // Add new task
+            taskData.id = Date.now().toString();
+            taskData.createdAt = new Date().toISOString();
+            tasks.push(taskData);
         }
         
-        activityHistoryRef.push({
-            timestamp: new Date().toISOString(),
-            type: currentTaskEditId ? 'update' : 'add',
-            category: currentTaskEditId ? 'TASK UPDATE' : 'TASK ADD',
-            title: equipment.vendor + ' - ' + equipment.equipment,
-            equipmentId: equipment.id,
-            equipment: equipment.equipment,
-            vendor: equipment.vendor,
-            description: `${currentTaskEditId ? 'Updated' : 'Added'} task: ${name}`,
-            notes: `${savedTask.description ? savedTask.description + '\n\n' : ''}Target: ${savedTask.targetStart || 'TBD'} to ${savedTask.targetEnd || 'TBD'}${savedTask.duration ? ' (' + savedTask.duration + ' days)' : ''}\nAssigned to: ${savedTask.assignedTo || 'Unassigned'}\nStatus: ${savedTask.status} | Progress: ${savedTask.progress}%\n${savedTask.notes ? '\nTask Notes: ' + savedTask.notes : ''}`,
-            user: savedTask.assignedTo || prompt('Enter your name:') || 'Anonymous',
-            icon: currentTaskEditId ? '📝' : '➕',
-            color: currentTaskEditId ? '#17a2b8' : '#28a745'
+        // Save back to Firebase
+        return database.ref(`onsiteTasks/${equipmentKey}`).set(tasks);
+        
+    }).then(() => {
+        showNotification(currentTaskEditId ? 'Task updated successfully' : 'Task added successfully', 'success');
+        
+        // Update local cache
+        database.ref(`onsiteTasks/${equipmentKey}`).once('value').then(snapshot => {
+            onsiteTasks[equipmentKey] = snapshot.val() || [];
+            closeTaskEditModal();
+            renderTaskTracker();
+            updateEquipmentProgress(equipmentKey);
+            
+            if (window._resetTimestampAfterSave === equipmentKey) {
+                resetEquipmentUpdateTime(equipmentKey);
+                showNotification('Task reverted. Equipment returned to original position.', 'info');
+                delete window._resetTimestampAfterSave;
+            }
+            
+            // Add to activity history
+            const equipment = currentEquipmentTasks.equipment;
+            const tasks = onsiteTasks[equipmentKey];
+            let savedTask;
+            if (currentTaskEditId) {
+                savedTask = tasks.find(t => t.id === currentTaskEditId);
+            } else {
+                savedTask = tasks[tasks.length - 1];
+            }
+            
+            if (savedTask) {
+                activityHistoryRef.push({
+                    timestamp: new Date().toISOString(),
+                    type: currentTaskEditId ? 'update' : 'add',
+                    category: currentTaskEditId ? 'TASK UPDATE' : 'TASK ADD',
+                    title: equipment.vendor + ' - ' + equipment.equipment,
+                    equipmentId: equipment.id,
+                    equipment: equipment.equipment,
+                    vendor: equipment.vendor,
+                    description: `${currentTaskEditId ? 'Updated' : 'Added'} task: ${savedTask.name}`,
+                    notes: `${savedTask.description ? savedTask.description + '\n\n' : ''}Target: ${savedTask.targetStart || 'TBD'} to ${savedTask.targetEnd || 'TBD'}${savedTask.duration ? ' (' + savedTask.duration + ' days)' : ''}\nAssigned to: ${savedTask.assignedTo || 'Unassigned'}\nStatus: ${savedTask.status} | Progress: ${savedTask.progress}%\nSequence: ${savedTask.sequence}\nMode: ${savedTask.executionMode}\n${savedTask.notes ? '\nTask Notes: ' + savedTask.notes : ''}`,
+                    user: savedTask.assignedTo || 'System',
+                    icon: currentTaskEditId ? '📝' : '➕',
+                    color: currentTaskEditId ? '#17a2b8' : '#28a745'
+                });
+            }
         });
+        
     }).catch((error) => {
+        console.error('Error saving task:', error);
         showNotification('Error saving task: ' + error.message, 'error');
     });
 }
@@ -7447,67 +7643,88 @@ groupRow.innerHTML = `
 let tasksTooltip = null;
 
 function showTasksTooltip(event, equipmentName, disc) {
-    // Find the main equipment data
     const mainEquipment = projectData.find(t => t.equipment === equipmentName && (t.disc === disc || t.task === disc));
     if (!mainEquipment || !mainEquipment.firebaseKey) {
-        console.warn('Equipment not found or no firebaseKey');
+        console.warn('Equipment not found');
         return;
     }
     
-    // Get onsite tasks for this specific equipment + disc
     const onsiteTasksList = onsiteTasks[mainEquipment.firebaseKey] || [];
     
     if (onsiteTasksList.length === 0) {
-        // No onsite tasks - show simple message
         let content = `<div style="font-weight: 600; margin-bottom: 8px;">${equipmentName} - ${disc}</div>`;
         content += '<div style="font-size: 11px; color: #95a5a6;">No onsite tasks created yet</div>';
-        
-        if (!tasksTooltip) {
-            tasksTooltip = document.createElement('div');
-            tasksTooltip.style.cssText = `
-                position: fixed;
-                background: white;
-                border: 2px solid #3498db;
-                border-radius: 8px;
-                padding: 12px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-                z-index: 10000;
-                min-width: 250px;
-                font-size: 12px;
-            `;
-            document.body.appendChild(tasksTooltip);
-        }
-        
-        tasksTooltip.innerHTML = content;
-        tasksTooltip.style.display = 'block';
-        tasksTooltip.style.left = (event.clientX + 15) + 'px';
-        tasksTooltip.style.top = (event.clientY + 15) + 'px';
+        showTooltipElement(content, event);
         return;
     }
     
-    // Group tasks by status
-    const inProgress = onsiteTasksList.filter(t => {
-        const prog = parseInt(t.progress) || 0;
-        return prog > 0 && prog < 100 && t.status !== 'completed';
+    // Calculate task statuses
+    const tasksWithStatus = onsiteTasksList.map(task => {
+        const progress = parseInt(task.progress) || 0;
+        let status = 'pending';
+        let statusIcon = '⏳';
+        let statusColor = '#95a5a6';
+        
+        if (progress === 100 || task.status === 'completed') {
+            status = 'completed';
+            statusIcon = '✅';
+            statusColor = '#27ae60';
+        } else if (progress > 0) {
+            status = 'inProgress';
+            statusIcon = '🔄';
+            statusColor = '#f39c12';
+        } else {
+            // Check if task is ready or blocked
+            const isBlocked = checkIfBlocked(task, onsiteTasksList);
+            if (isBlocked) {
+                status = 'blocked';
+                statusIcon = '🔒';
+                statusColor = '#e74c3c';
+            } else {
+                status = 'ready';
+                statusIcon = '🎯';
+                statusColor = '#3498db';
+            }
+        }
+        
+        return { ...task, status, statusIcon, statusColor };
     });
     
-    const pending = onsiteTasksList.filter(t => {
-        const prog = parseInt(t.progress) || 0;
-        return prog === 0 && t.status !== 'completed';
-    });
+    // Sort by sequence
+    tasksWithStatus.sort((a, b) => (a.sequence || 999) - (b.sequence || 999));
     
-    const completed = onsiteTasksList.filter(t => {
-        return t.status === 'completed' || parseInt(t.progress) === 100;
-    });
+    // Group by status
+    const ready = tasksWithStatus.filter(t => t.status === 'ready');
+    const inProgress = tasksWithStatus.filter(t => t.status === 'inProgress');
+    const blocked = tasksWithStatus.filter(t => t.status === 'blocked');
+    const pending = tasksWithStatus.filter(t => t.status === 'pending');
+    const completed = tasksWithStatus.filter(t => t.status === 'completed');
     
     // Build tooltip
     let content = `<div style="font-weight: 600; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">${equipmentName} - ${disc}</div>`;
+    
+    // Ready to start
+    if (ready.length > 0) {
+        content += '<div style="font-size: 11px; margin: 8px 0 5px 0; font-weight: 600; color: #3498db;">🎯 READY TO START:</div>';
+        ready.forEach(t => {
+            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px;">• Step ${t.sequence || '?'}: ${t.name}</div>`;
+        });
+    }
     
     // In Progress
     if (inProgress.length > 0) {
         content += '<div style="font-size: 11px; margin: 8px 0 5px 0; font-weight: 600; color: #f39c12;">🔄 IN PROGRESS:</div>';
         inProgress.forEach(t => {
-            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px;">• ${t.name}: <strong>${t.progress || 0}%</strong></div>`;
+            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px;">• Step ${t.sequence || '?'}: ${t.name} - <strong>${t.progress}%</strong></div>`;
+        });
+    }
+    
+    // Blocked
+    if (blocked.length > 0) {
+        content += '<div style="font-size: 11px; margin: 8px 0 5px 0; font-weight: 600; color: #e74c3c;">🔒 BLOCKED:</div>';
+        blocked.forEach(t => {
+            const blockingTasks = getBlockingTasks(t, onsiteTasksList);
+            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px;">• Step ${t.sequence || '?'}: ${t.name}<br><span style="margin-left: 15px; color: #e74c3c; font-size: 10px;">Waiting: ${blockingTasks}</span></div>`;
         });
     }
     
@@ -7515,7 +7732,7 @@ function showTasksTooltip(event, equipmentName, disc) {
     if (pending.length > 0) {
         content += '<div style="font-size: 11px; margin: 8px 0 5px 0; font-weight: 600; color: #95a5a6;">⏳ PENDING:</div>';
         pending.forEach(t => {
-            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px; color: #7f8c8d;">• ${t.name}: ${t.progress || 0}%</div>`;
+            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px; color: #7f8c8d;">• Step ${t.sequence || '?'}: ${t.name}</div>`;
         });
     }
     
@@ -7523,16 +7740,54 @@ function showTasksTooltip(event, equipmentName, disc) {
     if (completed.length > 0) {
         content += '<div style="font-size: 11px; margin: 8px 0 5px 0; font-weight: 600; color: #27ae60;">✅ COMPLETED:</div>';
         completed.forEach(t => {
-            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px; color: #27ae60;">• ${t.name}: 100%</div>`;
+            content += `<div style="margin: 3px 0 3px 10px; font-size: 11px; color: #27ae60;">• Step ${t.sequence || '?'}: ${t.name} - 100%</div>`;
         });
     }
     
     // Summary
+    const totalTasks = tasksWithStatus.length;
+    const canProceed = ready.length + inProgress.length;
     content += `<div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #ddd; font-size: 11px;">
-        <strong>Summary:</strong> ${completed.length} completed, ${inProgress.length} in progress, ${pending.length} pending
+        <strong>Summary:</strong> ${completed.length} completed, ${canProceed} can proceed, ${blocked.length} blocked
     </div>`;
     
-    // Create/show tooltip
+    showTooltipElement(content, event);
+}
+
+// Helper function to check if task is blocked
+function checkIfBlocked(task, allTasks) {
+    if (task.executionMode === 'independent') return false;
+    if (!task.dependencies || task.dependencies.length === 0) return false;
+    
+    return task.dependencies.some(depId => {
+        const depTask = allTasks.find(t => t.id === depId);
+        if (!depTask) return false;
+        const progress = parseInt(depTask.progress) || 0;
+        return progress < 100 && depTask.status !== 'completed';
+    });
+}
+
+// Helper function to get blocking tasks names
+function getBlockingTasks(task, allTasks) {
+    if (!task.dependencies || task.dependencies.length === 0) return 'None';
+    
+    const blocking = task.dependencies
+        .map(depId => {
+            const depTask = allTasks.find(t => t.id === depId);
+            if (!depTask) return null;
+            const progress = parseInt(depTask.progress) || 0;
+            if (progress < 100 && depTask.status !== 'completed') {
+                return `${depTask.name} (${progress}%)`;
+            }
+            return null;
+        })
+        .filter(t => t !== null);
+    
+    return blocking.length > 0 ? blocking.join(', ') : 'None';
+}
+
+// Helper to show tooltip element
+function showTooltipElement(content, event) {
     if (!tasksTooltip) {
         tasksTooltip = document.createElement('div');
         tasksTooltip.style.cssText = `
