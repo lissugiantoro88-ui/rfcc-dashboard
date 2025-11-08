@@ -1962,11 +1962,9 @@ body.grouped-view-active #tablePagination {
         <div id="taskTrackerContent">
             <!-- Content will be populated by JavaScript -->
         </div>
-        
         <div style="margin-top: 20px; text-align: center; padding-top: 15px; border-top: 1px solid #ecf0f1;">
-            <button onclick="exportTaskReport()" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; margin-right: 10px;">📄 Export Report</button>
-            <button onclick="closeTaskTracker()" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;">Close</button>
-        </div>
+    <button onclick="closeTaskTracker()" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;">Close</button>
+</div>
     </div>
 </div>
 
@@ -2066,6 +2064,45 @@ body.grouped-view-active #tablePagination {
     </div>
 </div>
 
+<!-- Report Generation Modal -->
+<div id="reportModal" class="modal" style="display: none;">
+    <div class="modal-content" style="width: 600px; max-width: 90%;">
+        <div class="modal-header">
+            <h3 class="modal-title">📊 Generate Progress Report</h3>
+            <span class="close" onclick="closeProgressReportModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Equipment Base:</label>
+                <input type="text" id="reportEquipmentBase" class="form-control" readonly style="background: #f8f9fa;">
+                <small style="color: #7f8c8d; font-size: 11px;">System will find all related groups automatically</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Related Groups Found:</label>
+                <div id="reportGroupsList" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px; background: #f8f9fa;">
+                    <!-- Will be populated dynamically -->
+                </div>
+                <small style="color: #7f8c8d; font-size: 11px;">Check/uncheck groups to include in report</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Report Date:</label>
+                <input type="date" id="reportDate" class="form-control" readonly style="background: #f8f9fa;">
+            </div>
+        </div>
+        <div class="btn-group">
+    <button class="btn btn-secondary" onclick="closeProgressReportModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="previewReport()" style="background: #2ecc71;">
+        👁️ Preview Report
+    </button>
+    <button class="btn btn-primary" onclick="generateReport()" style="background: #3498db;">
+        📥 Download PDF
+    </button>
+</div>
+    </div>
+</div>
+
 <!-- Gantt Chart Modal -->
 <div id="ganttModal" class="modal">
 
@@ -2160,6 +2197,11 @@ body.grouped-view-active #tablePagination {
 <!-- Frappe Gantt Library -->
 <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.css">
+
+<!-- ✅ TAMBAHKAN INI - jsPDF Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
     <script>
 
 // Update current date automatically
@@ -5745,14 +5787,609 @@ const sortedPending = sortBySequence([...pendingTasks]);
         ${renderTaskGroup('pending', 'Pending', sortedPending, '⚪', false)}
 
         <!-- Add Task Button -->
-        <div style="text-align: center; margin-top: 20px;">
-            <button onclick="openTaskEditModal()" style="padding: 12px 24px; background: #28a745; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
-                ➕ Add New Task
-            </button>
-        </div>
+        <div style="text-align: center; margin-top: 20px; display: flex; gap: 10px; justify-content: center;">
+    <button onclick="openProgressReportModal()" style="padding: 12px 24px; background: #3498db; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+        📊 Generate Report
+    </button>
+    <button onclick="openTaskEditModal()" style="padding: 12px 24px; background: #28a745; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+        ➕ Add New Task
+    </button>
+</div>
     `;
 
     document.getElementById('taskTrackerContent').innerHTML = content;
+}
+
+// ===== REPORT GENERATION FUNCTIONS =====
+
+function openProgressReportModal() {
+    if (!currentEquipmentTasks || !currentEquipmentTasks.equipment) {
+        showNotification('Please open a task tracker first', 'error');
+        return;
+    }
+    
+    const equipment = currentEquipmentTasks.equipment;
+    
+    // Extract base equipment name (remove disc suffix)
+    // Example: "Turbine For Compressor (K-3-02 D) - MR" → "K-3-02"
+    const equipmentName = equipment.equipment || '';
+    const match = equipmentName.match(/\(([^)]+)\)/); // Extract text in parentheses
+    const baseName = match ? match[1].replace(/\s+[A-Z]$/, '').trim() : equipmentName;
+    
+    // Set base name
+    document.getElementById('reportEquipmentBase').value = baseName;
+    
+    // Set today's date
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('reportDate').value = today;
+    
+    // Find and display related groups
+    populateRelatedGroups(baseName);
+    
+    // Show modal
+    document.getElementById('reportModal').style.display = 'block';
+}
+
+function closeProgressReportModal() {
+    document.getElementById('reportModal').style.display = 'none';
+}
+
+function populateRelatedGroups(baseName) {
+    const container = document.getElementById('reportGroupsList');
+    
+    // Find all equipment that contains base name
+    const relatedEquipment = projectData.filter(item => {
+        const itemName = item.equipment || '';
+        return itemName.includes(baseName);
+    });
+    
+    // Group by unique equipment + disc combination
+    const groupMap = new Map();
+    relatedEquipment.forEach(item => {
+        const key = `${item.equipment}-${item.disc || item.task}`;
+        if (!groupMap.has(key)) {
+            groupMap.set(key, {
+                equipment: item.equipment,
+                disc: item.disc || item.task,
+                vendor: item.vendor,
+                firebaseKey: item.firebaseKey
+            });
+        }
+    });
+    
+    const groups = Array.from(groupMap.values());
+    
+    if (groups.length === 0) {
+        container.innerHTML = '<div style="color: #95a5a6; font-size: 12px; padding: 10px;">No related groups found</div>';
+        return;
+    }
+    
+    // Render checkboxes
+    container.innerHTML = groups.map((group, idx) => `
+        <label style="display: block; padding: 8px; font-size: 12px; cursor: pointer; border-radius: 4px; margin-bottom: 5px;" 
+               onmouseover="this.style.background='#e3f2fd'" 
+               onmouseout="this.style.background='transparent'">
+            <input type="checkbox" class="report-group-checkbox" 
+                   value="${group.firebaseKey}" 
+                   data-equipment="${group.equipment}"
+                   data-disc="${group.disc}"
+                   data-vendor="${group.vendor}"
+                   ${idx === 0 ? 'checked' : ''} 
+                   style="margin-right: 8px; cursor: pointer;">
+            <strong>${group.equipment}</strong> - ${group.disc}
+            <span style="color: #7f8c8d; font-size: 11px; margin-left: 5px;">(${group.vendor})</span>
+        </label>
+    `).join('');
+    
+    // Show count
+    container.insertAdjacentHTML('afterbegin', 
+        `<div style="font-weight: 600; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #ddd; font-size: 13px; color: #2c3e50;">
+            Found ${groups.length} related group${groups.length > 1 ? 's' : ''}:
+        </div>`
+    );
+}
+
+function previewReport() {
+    // Get selected groups (same validation as generateReport)
+    const selectedCheckboxes = document.querySelectorAll('.report-group-checkbox:checked');
+    
+    if (selectedCheckboxes.length === 0) {
+        showNotification('Please select at least one group', 'error');
+        return;
+    }
+    
+    // Collect data (reuse same logic)
+    const reportData = {
+        equipmentBase: document.getElementById('reportEquipmentBase').value,
+        reportDate: document.getElementById('reportDate').value,
+        groups: []
+    };
+    
+    selectedCheckboxes.forEach(checkbox => {
+        const firebaseKey = checkbox.value;
+        const equipment = checkbox.dataset.equipment;
+        const disc = checkbox.dataset.disc;
+        const vendor = checkbox.dataset.vendor;
+        
+        const tasks = onsiteTasks[firebaseKey] || [];
+        
+        const completedTasks = tasks.filter(t => t.status === 'completed' || t.progress === 100);
+        const inProgressTasks = tasks.filter(t => t.status === 'inprogress' || (t.progress > 0 && t.progress < 100));
+        const pendingTasks = tasks.filter(t => (!t.status || t.status === 'pending') && (!t.progress || t.progress === 0));
+        const blockedTasks = tasks.filter(t => {
+            if (t.progress > 0) return false;
+            return checkIfBlocked(t, tasks);
+        });
+        
+        const totalTasks = tasks.length;
+        const overallProgress = totalTasks > 0 ? Math.round((completedTasks.length / totalTasks) * 100) : 0;
+        
+        let status = 'NOT YET STARTED';
+let statusColor = [149, 165, 166]; // Gray
+
+if (overallProgress === 100) {
+    status = 'COMPLETED';
+    statusColor = [39, 174, 96]; // Green
+} else if (overallProgress >= 80) {
+    status = 'ON SCHEDULE';
+    statusColor = [39, 174, 96]; // Green
+} else if (overallProgress > 0) {
+    status = 'IN PROGRESS';
+    statusColor = [52, 152, 219]; // Blue
+} else if (blockedTasks.length > 0) {
+    status = 'REQUIRES ATTENTION';
+    statusColor = [243, 156, 18]; // Orange
+}
+        
+        reportData.groups.push({
+            equipment,
+            disc,
+            vendor,
+            tasks: tasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)),
+            completedTasks,
+            inProgressTasks,
+            pendingTasks,
+            blockedTasks,
+            totalTasks,
+            overallProgress,
+            status
+        });
+    });
+    
+    const totalAllTasks = reportData.groups.reduce((sum, g) => sum + g.totalTasks, 0);
+    const totalCompleted = reportData.groups.reduce((sum, g) => sum + g.completedTasks.length, 0);
+    reportData.overallProgress = totalAllTasks > 0 ? Math.round((totalCompleted / totalAllTasks) * 100) : 0;
+    
+    // Generate HTML preview in new window
+    const previewWindow = window.open('', '_blank');
+    previewWindow.document.write(generateHTMLReport(reportData));
+    previewWindow.document.close();
+}
+
+function generateHTMLReport(data) {
+    const totalBlocked = data.groups.reduce((sum, g) => sum + g.blockedTasks.length, 0);
+    
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Progress Report Preview - ${data.equipmentBase}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { text-align: center; border-bottom: 3px solid #2c3e50; padding-bottom: 20px; margin-bottom: 30px; }
+        .header h1 { margin: 0; color: #2c3e50; font-size: 24px; }
+        .section { margin-bottom: 30px; }
+        .section-title { font-size: 16px; font-weight: bold; color: #2c3e50; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 5px; }
+        .progress-bar { background: #ecf0f1; height: 30px; border-radius: 5px; overflow: hidden; margin: 10px 0; }
+        .progress-fill { height: 100%; background: #27ae60; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
+        .group-card { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+        .task-item { padding: 8px; margin: 5px 0; border-left: 3px solid #ccc; padding-left: 10px; font-size: 14px; }
+        .completed { border-left-color: #27ae60; background: #f0fff4; }
+        .inprogress { border-left-color: #f39c12; background: #fffbf0; }
+        .blocked { border-left-color: #e74c3c; background: #fff5f5; }
+        .print-btn { background: #3498db; color: white; padding: 12px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 20px; }
+        @media print { .print-btn { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 PROGRESS REPORT</h1>
+            <h2 style="margin: 10px 0; color: #34495e;">${data.equipmentBase} System</h2>
+            <p style="color: #7f8c8d;">Report Date: ${formatDateForDisplay(data.reportDate)} | Generated: ${new Date().toLocaleString()}</p>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">EXECUTIVE SUMMARY</div>
+            <p><strong>Overall Progress:</strong> ${data.overallProgress}%</p>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: ${data.overallProgress}%; background: ${data.overallProgress >= 80 ? '#27ae60' : data.overallProgress >= 50 ? '#f39c12' : '#e74c3c'}">
+                    ${data.overallProgress}%
+                </div>
+            </div>
+            <p><strong>Critical Issues:</strong> ${totalBlocked} blocked tasks</p>
+            <p><strong>Groups Included:</strong> ${data.groups.length}</p>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">EQUIPMENT BREAKDOWN</div>
+            ${data.groups.map(group => `
+                <div class="group-card">
+                    <h3 style="margin: 0 0 10px 0; color: #2c3e50;">${group.equipment} - ${group.disc}</h3>
+                    <p style="margin: 5px 0; color: #7f8c8d;"><strong>Vendor:</strong> ${group.vendor}</p>
+                    <p style="margin: 5px 0;"><strong>Progress:</strong> ${group.overallProgress}% | <strong>Tasks:</strong> ${group.completedTasks.length}/${group.totalTasks} completed</p>
+                    <p style="margin: 5px 0;"><strong>Status:</strong> 
+<span style="color: ${
+    group.status === 'COMPLETED' ? '#27ae60' : 
+    group.status === 'ON SCHEDULE' ? '#27ae60' : 
+    group.status === 'IN PROGRESS' ? '#3498db' : 
+    group.status === 'REQUIRES ATTENTION' ? '#f39c12' : 
+    '#95a5a6'
+}; font-weight: bold;">${group.status.toUpperCase()}</span></p>
+                </div>
+            `).join('')}
+        </div>
+        
+        <div class="section">
+            <div class="section-title">TASK STATUS DETAILS</div>
+            ${data.groups.map(group => `
+                <h4 style="color: #2c3e50; margin-top: 20px;">${group.equipment} - ${group.disc}</h4>
+                
+                ${group.completedTasks.length > 0 ? `
+                    <p style="font-weight: bold; color: #27ae60; margin: 10px 0 5px 0;">✅ COMPLETED (${group.completedTasks.length})</p>
+                    ${group.completedTasks.slice(0, 5).map(task => `
+                        <div class="task-item completed">#${task.sequence || '?'} ${task.name}</div>
+                    `).join('')}
+                    ${group.completedTasks.length > 5 ? `<p style="color: #95a5a6; margin-left: 10px;">+ ${group.completedTasks.length - 5} more completed</p>` : ''}
+                ` : ''}
+                
+                ${group.inProgressTasks.length > 0 ? `
+                    <p style="font-weight: bold; color: #f39c12; margin: 10px 0 5px 0;">🔄 IN PROGRESS (${group.inProgressTasks.length})</p>
+                    ${group.inProgressTasks.map(task => `
+                        <div class="task-item inprogress">#${task.sequence || '?'} ${task.name} - ${task.progress || 0}%</div>
+                    `).join('')}
+                ` : ''}
+                
+                ${group.blockedTasks.length > 0 ? `
+                    <p style="font-weight: bold; color: #e74c3c; margin: 10px 0 5px 0;">🔒 BLOCKED (${group.blockedTasks.length})</p>
+                    ${group.blockedTasks.map(task => `
+                        <div class="task-item blocked">#${task.sequence || '?'} ${task.name}</div>
+                    `).join('')}
+                ` : ''}
+            `).join('')}
+        </div>
+        
+        <div style="text-align: center;">
+            <button class="print-btn" onclick="window.print()">🖨️ Print Report</button>
+        </div>
+    </div>
+</body>
+</html>
+    `;
+}
+
+// ===== PDF GENERATION FUNCTIONS =====
+
+function generateReport() {
+    // Get selected groups
+    const selectedCheckboxes = document.querySelectorAll('.report-group-checkbox:checked');
+    
+    if (selectedCheckboxes.length === 0) {
+        showNotification('Please select at least one group', 'error');
+        return;
+    }
+    
+    // Collect data from selected groups
+    const reportData = {
+        equipmentBase: document.getElementById('reportEquipmentBase').value,
+        reportDate: document.getElementById('reportDate').value,
+        groups: []
+    };
+    
+    selectedCheckboxes.forEach(checkbox => {
+        const firebaseKey = checkbox.value;
+        const equipment = checkbox.dataset.equipment;
+        const disc = checkbox.dataset.disc;
+        const vendor = checkbox.dataset.vendor;
+        
+        const tasks = onsiteTasks[firebaseKey] || [];
+        
+        // Calculate metrics for this group
+        const completedTasks = tasks.filter(t => t.status === 'completed' || t.progress === 100);
+        const inProgressTasks = tasks.filter(t => t.status === 'inprogress' || (t.progress > 0 && t.progress < 100));
+        const pendingTasks = tasks.filter(t => (!t.status || t.status === 'pending') && (!t.progress || t.progress === 0));
+        const blockedTasks = tasks.filter(t => {
+            if (t.progress > 0) return false;
+            return checkIfBlocked(t, tasks);
+        });
+        
+        const totalTasks = tasks.length;
+        const overallProgress = totalTasks > 0 ? Math.round((completedTasks.length / totalTasks) * 100) : 0;
+        
+        // Determine status
+        let status = 'NOT YET STARTED';
+let statusColor = [149, 165, 166]; // Gray
+
+if (overallProgress === 100) {
+    status = 'COMPLETED';
+    statusColor = [39, 174, 96]; // Green
+} else if (overallProgress >= 80) {
+    status = 'ON SCHEDULE';
+    statusColor = [39, 174, 96]; // Green
+} else if (overallProgress > 0) {
+    status = 'IN PROGRESS';
+    statusColor = [52, 152, 219]; // Blue
+} else if (blockedTasks.length > 0) {
+    status = 'REQUIRES ATTENTION';
+    statusColor = [243, 156, 18]; // Orange
+}
+        
+        reportData.groups.push({
+            equipment,
+            disc,
+            vendor,
+            firebaseKey,
+            tasks: tasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)),
+            completedTasks,
+            inProgressTasks,
+            pendingTasks,
+            blockedTasks,
+            totalTasks,
+            overallProgress,
+            status
+        });
+    });
+    
+    // Calculate overall metrics
+    const totalAllTasks = reportData.groups.reduce((sum, g) => sum + g.totalTasks, 0);
+    const totalCompleted = reportData.groups.reduce((sum, g) => sum + g.completedTasks.length, 0);
+    reportData.overallProgress = totalAllTasks > 0 ? Math.round((totalCompleted / totalAllTasks) * 100) : 0;
+    
+    // Generate PDF
+    generatePDF(reportData);
+}
+
+function generatePDF(data) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    let yPos = 20;
+    const pageWidth = doc.internal.pageSize.width;
+    const margin = 15;
+    const contentWidth = pageWidth - (margin * 2);
+    
+    // ===== HEADER =====
+    doc.setFontSize(18);
+    doc.setFont(undefined, 'bold');
+    doc.text('PROGRESS REPORT', pageWidth / 2, yPos, { align: 'center' });
+    yPos += 10;
+    
+    doc.setFontSize(14);
+    doc.text(`${data.equipmentBase} System`, pageWidth / 2, yPos, { align: 'center' });
+    yPos += 8;
+    
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Report Date: ${formatDateForDisplay(data.reportDate)}`, pageWidth / 2, yPos, { align: 'center' });
+    yPos += 3;
+    
+    // Line separator
+    doc.setDrawColor(44, 62, 80);
+    doc.setLineWidth(0.5);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 10;
+    
+    // ===== EXECUTIVE SUMMARY =====
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text('EXECUTIVE SUMMARY', margin, yPos);
+    yPos += 8;
+    
+    // Overall progress bar
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Overall Progress: ${data.overallProgress}%`, margin, yPos);
+    
+    // Progress bar
+    const barWidth = 60;
+    const barHeight = 6;
+    const barX = margin + 50;
+    const barY = yPos - 4;
+    
+    doc.setDrawColor(200);
+    doc.setFillColor(240);
+    doc.rect(barX, barY, barWidth, barHeight, 'FD');
+    
+    const fillWidth = (data.overallProgress / 100) * barWidth;
+    const fillColor = data.overallProgress >= 80 ? [39, 174, 96] : data.overallProgress >= 50 ? [243, 156, 18] : [231, 76, 60];
+    doc.setFillColor(...fillColor);
+    doc.rect(barX, barY, fillWidth, barHeight, 'F');
+    
+    yPos += 10;
+    
+    // Critical issues count
+    const totalBlocked = data.groups.reduce((sum, g) => sum + g.blockedTasks.length, 0);
+    doc.text(`Critical Issues: ${totalBlocked} blocked tasks`, margin, yPos);
+    yPos += 6;
+    
+    doc.text(`Groups Included: ${data.groups.length}`, margin, yPos);
+    yPos += 12;
+    
+    // ===== EQUIPMENT BREAKDOWN =====
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text('EQUIPMENT BREAKDOWN', margin, yPos);
+    yPos += 8;
+    
+    data.groups.forEach((group, idx) => {
+        // Check if need new page
+        if (yPos > 250) {
+            doc.addPage();
+            yPos = 20;
+        }
+        
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        doc.text(`${idx + 1}. ${group.equipment} - ${group.disc}`, margin + 3, yPos);
+        yPos += 5;
+        
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(9);
+        doc.text(`Vendor: ${group.vendor}`, margin + 5, yPos);
+        yPos += 4;
+        
+        doc.text(`Progress: ${group.overallProgress}% | Tasks: ${group.completedTasks.length}/${group.totalTasks} completed`, margin + 5, yPos);
+        yPos += 4;
+        
+        // Status indicator
+        const statusText = group.status.toUpperCase();
+        const statusColor = 
+    group.status === 'COMPLETED' ? [39, 174, 96] : 
+    group.status === 'ON SCHEDULE' ? [39, 174, 96] : 
+    group.status === 'IN PROGRESS' ? [52, 152, 219] : 
+    group.status === 'REQUIRES ATTENTION' ? [243, 156, 18] : 
+    [149, 165, 166];
+        doc.setTextColor(...statusColor);
+        doc.text(`Status: ${statusText}`, margin + 5, yPos);
+        doc.setTextColor(0, 0, 0);
+        yPos += 8;
+    });
+    
+    yPos += 5;
+    
+    // ===== TASK STATUS DETAILS =====
+    if (yPos > 230) {
+        doc.addPage();
+        yPos = 20;
+    }
+    
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text('TASK STATUS DETAILS', margin, yPos);
+    yPos += 8;
+    
+    data.groups.forEach((group, groupIdx) => {
+        if (yPos > 250) {
+            doc.addPage();
+            yPos = 20;
+        }
+        
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        doc.text(`${group.equipment} - ${group.disc}`, margin + 3, yPos);
+        yPos += 6;
+        
+        // COMPLETED
+        if (group.completedTasks.length > 0) {
+            doc.setFontSize(9);
+            doc.setTextColor(39, 174, 96);
+            doc.text(`COMPLETED (${group.completedTasks.length})`, margin + 5, yPos);
+            doc.setTextColor(0, 0, 0);
+            yPos += 5;
+            
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(8);
+            
+            group.completedTasks.slice(0, 3).forEach(task => {
+                if (yPos > 270) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+                
+                const taskText = `#${task.sequence || '?'} ${task.name}`;
+                doc.text(taskText, margin + 7, yPos, { maxWidth: contentWidth - 12 });
+                yPos += 4;
+            });
+            
+            if (group.completedTasks.length > 3) {
+                doc.setTextColor(150);
+                doc.text(`+ ${group.completedTasks.length - 3} more completed`, margin + 7, yPos);
+                doc.setTextColor(0);
+                yPos += 4;
+            }
+            yPos += 3;
+        }
+        
+        // IN PROGRESS
+        if (group.inProgressTasks.length > 0) {
+            if (yPos > 260) {
+                doc.addPage();
+                yPos = 20;
+            }
+            
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(243, 156, 18);
+            doc.text(`IN PROGRESS (${group.inProgressTasks.length})`, margin + 5, yPos);
+            doc.setTextColor(0, 0, 0);
+            yPos += 5;
+            
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(8);
+            
+            group.inProgressTasks.forEach(task => {
+                if (yPos > 270) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+                
+                const taskText = `#${task.sequence || '?'} ${task.name} - ${task.progress || 0}%`;
+                doc.text(taskText, margin + 7, yPos, { maxWidth: contentWidth - 12 });
+                yPos += 4;
+            });
+            yPos += 3;
+        }
+        
+        // BLOCKED
+        if (group.blockedTasks.length > 0) {
+            if (yPos > 260) {
+                doc.addPage();
+                yPos = 20;
+            }
+            
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(231, 76, 60);
+            doc.text(`BLOCKED (${group.blockedTasks.length})`, margin + 5, yPos);
+            doc.setTextColor(0, 0, 0);
+            yPos += 5;
+            
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(8);
+            
+            group.blockedTasks.forEach(task => {
+                if (yPos > 270) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+                
+                const taskText = `#${task.sequence || '?'} ${task.name}`;
+                doc.text(taskText, margin + 7, yPos, { maxWidth: contentWidth - 12 });
+                yPos += 4;
+            });
+            yPos += 3;
+        }
+        
+        yPos += 5;
+    });
+    
+    // ===== FOOTER =====
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.height - 10, { align: 'center' });
+        doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - margin, doc.internal.pageSize.height - 10, { align: 'right' });
+    }
+    
+    // Save PDF
+    const fileName = `Progress_Report_${data.equipmentBase}_${data.reportDate}.pdf`;
+    doc.save(fileName);
+    
+    showNotification('PDF Report generated successfully!', 'success');
+    closeProgressReportModal();
 }
 
 function renderTaskGroup(status, title, tasks, icon, collapsed) {
@@ -6500,188 +7137,7 @@ renderTaskTracker();
     });
 }
 
-function exportTaskReport() {
-    if (!currentEquipmentTasks) return;
 
-    const { equipment, firebaseKey } = currentEquipmentTasks;
-    const tasks = onsiteTasks[firebaseKey] || [];
-    
-    const completedTasks = tasks.filter(t => t.status === 'completed');
-    const inProgressTasks = tasks.filter(t => t.status === 'inprogress');
-    const pendingTasks = tasks.filter(t => t.status === 'pending');
-    
-    const printWindow = window.open('', '_blank');
-    const currentDate = new Date().toLocaleString();
-    
-    const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Onsite Task Report - ${equipment.equipment}</title>
-        <style>
-            body { 
-                font-family: Arial, sans-serif; 
-                margin: 20px; 
-                font-size: 11px; 
-                background: white; 
-                color: #333; 
-            }
-            .header { 
-                text-align: center; 
-                margin-bottom: 30px; 
-                border-bottom: 2px solid #333; 
-                padding-bottom: 15px; 
-            }
-            .header h1 { 
-                margin: 0; 
-                font-size: 18px; 
-                color: #333; 
-            }
-            .info-box { 
-                background: #f8f9fa; 
-                padding: 15px; 
-                margin-bottom: 20px; 
-                border-radius: 6px; 
-            }
-            .info-grid { 
-                display: grid; 
-                grid-template-columns: repeat(2, 1fr); 
-                gap: 10px; 
-            }
-            .section { 
-                margin-bottom: 30px; 
-            }
-            .section-title { 
-                font-size: 14px; 
-                font-weight: bold; 
-                margin-bottom: 15px; 
-                padding-bottom: 5px; 
-                border-bottom: 2px solid #333; 
-            }
-            .task-item { 
-                border: 1px solid #ddd; 
-                padding: 12px; 
-                margin-bottom: 10px; 
-                border-radius: 4px; 
-                page-break-inside: avoid; 
-            }
-            .task-item.completed { 
-                border-left: 4px solid #28a745; 
-                background: #f8fff9; 
-            }
-            .task-item.inprogress { 
-                border-left: 4px solid #ffc107; 
-                background: #fffef8; 
-            }
-            .task-item.pending { 
-                border-left: 4px solid #6c757d; 
-                background: #f8f9fa; 
-            }
-            .task-name { 
-                font-weight: bold; 
-                font-size: 12px; 
-                margin-bottom: 5px; 
-            }
-            .task-meta { 
-                font-size: 10px; 
-                color: #666; 
-                margin: 5px 0; 
-            }
-            .task-notes { 
-                font-size: 10px; 
-                background: white; 
-                padding: 8px; 
-                margin-top: 8px; 
-                border-radius: 3px; 
-            }
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <h1>📋 Onsite Task Report</h1>
-            <p>${equipmentTitle || (equipment.disc ? `${equipment.equipment} (${equipment.vendor}) - ${equipment.disc}` : `${equipment.equipment} (${equipment.vendor})`)}</p>
-            <p style="font-size: 10px;">Vendor: ${equipment.vendor} | Generated on: ${currentDate}</p>
-        </div>
-        
-        <div class="info-box">
-            <div class="info-grid">
-<div><strong>MOB Date:</strong> ${equipment.mobDate}</div>
-                <div><strong>Target Completion:</strong> ${equipment.targetCompDate ? formatDateForDisplay(equipment.targetCompDate) : 'N/A'}</div>
-                <div><strong>Total Tasks:</strong> ${tasks.length}</div>
-                <div><strong>Completed:</strong> ${completedTasks.length} (${tasks.length > 0 ? Math.round((completedTasks.length/tasks.length)*100) : 0}%)</div>
-            </div>
-        </div>
-
-${completedTasks.length > 0 ? `
-    <div class="section">
-        <div class="section-title">✅ Completed Tasks (${completedTasks.length})</div>
-        ${completedTasks.map(task => `
-            <div class="task-item completed">
-                <div class="task-name">✅ ${task.name}</div>
-                ${task.description ? `<div style="font-size: 10px; color: #666; margin: 3px 0;">${task.description}</div>` : ''}
-                <div class="task-meta">
-                    ${task.startDate ? `Started: ${formatDateForDisplay(task.startDate)}` : ''} 
-                    ${task.completedDate ? `| Completed: ${formatDateForDisplay(task.completedDate)}` : ''}
-                    ${task.duration ? `| Duration: ${task.duration} days` : ''}
-                    ${task.assignedTo ? `| By: ${task.assignedTo}` : ''}
-                </div>
-                ${task.notes ? `<div class="task-notes">📝 ${task.notes}</div>` : ''}
-            </div>
-        `).join('')}
-    </div>
-    ` : ''}
-
-    ${inProgressTasks.length > 0 ? `
-    <div class="section">
-        <div class="section-title">⏳ In Progress (${inProgressTasks.length})</div>
-        ${inProgressTasks.map(task => `
-            <div class="task-item inprogress">
-                <div class="task-name">⏳ ${task.name} - ${task.progress || 0}%</div>
-                ${task.description ? `<div style="font-size: 10px; color: #666; margin: 3px 0;">${task.description}</div>` : ''}
-                <div class="task-meta">
-                    ${task.startDate ? `Started: ${formatDateForDisplay(task.startDate)}` : ''}
-                    ${task.targetEnd ? `| Target: ${formatDateForDisplay(task.targetEnd)}` : ''}
-                    ${task.assignedTo ? `| By: ${task.assignedTo}` : ''}
-                </div>
-                ${task.notes ? `<div class="task-notes">📝 ${task.notes}</div>` : ''}
-            </div>
-        `).join('')}
-    </div>
-    ` : ''}
-
-    ${pendingTasks.length > 0 ? `
-    <div class="section">
-        <div class="section-title">⬜ Pending (${pendingTasks.length})</div>
-        ${pendingTasks.map(task => `
-            <div class="task-item pending">
-                <div class="task-name">⬜ ${task.name}</div>
-                ${task.description ? `<div style="font-size: 10px; color: #666; margin: 3px 0;">${task.description}</div>` : ''}
-                <div class="task-meta">
-                    ${task.targetStart ? `Target Start: ${formatDateForDisplay(task.targetStart)}` : ''}
-                    ${task.targetEnd ? `| Target End: ${formatDateForDisplay(task.targetEnd)}` : ''}
-                    ${task.duration ? `| Est. ${task.duration} days` : ''}
-                    ${task.assignedTo ? `| Assigned: ${task.assignedTo}` : ''}
-                </div>
-                ${task.notes ? `<div class="task-notes">📝 ${task.notes}</div>` : ''}
-            </div>
-        `).join('')}
-    </div>
-    ` : ''}
-
-    <div style="margin-top: 30px; padding-top: 15px; border-top: 2px solid #333; text-align: center;">
-        <p style="margin: 0; font-size: 11px; font-weight: bold;">Developed by TS-KPB</p>
-        <p style="margin: 5px 0 0 0; font-size: 9px; color: #999;">© 2025 All Rights Reserved</p>
-    </div>
-</body>
-</html>
-`;
-
-printWindow.document.write(htmlContent);
-printWindow.document.close();
-printWindow.onload = function() {
-    printWindow.print();
-};
-}
 
 // ===== UPDATE EQUIPMENT PROGRESS BASED ON TASKS =====
 
@@ -7175,7 +7631,7 @@ window.startTask = startTask;
 window.completeTask = completeTask;
 window.updateTaskProgress = updateTaskProgress;
 window.revertTaskToPending = revertTaskToPending; // ⭐ TAMBAH INI
-window.exportTaskReport = exportTaskReport;
+window.openProgressReportModal = openProgressReportModal;
 // Dropdown Global Functions
 window.initDropdowns = initDropdowns;
 window.toggleDropdown = toggleDropdown;
