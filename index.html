@@ -5889,6 +5889,115 @@ function populateRelatedGroups(baseName) {
     );
 }
 
+// Helper function to calculate task timeline status
+function getTaskTimelineStatus(task) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const progress = parseInt(task.progress) || 0;
+    const targetStart = task.targetStart ? new Date(task.targetStart) : null;
+    const targetEnd = task.targetEnd ? new Date(task.targetEnd) : null;
+    const startDate = task.startDate ? new Date(task.startDate) : null;
+    const completedDate = task.completedDate ? new Date(task.completedDate) : null;
+    
+    let timelineStatus = '';
+    let timelineIcon = '';
+    let timelineColor = '#95a5a6'; // Default gray
+    
+    // COMPLETED TASKS
+    if (progress === 100 || task.status === 'completed') {
+        if (completedDate && targetEnd) {
+            const daysDiff = Math.ceil((targetEnd - completedDate) / (1000 * 60 * 60 * 24));
+            if (daysDiff > 0) {
+                timelineStatus = `${daysDiff}d early`;
+                timelineIcon = '🔵';
+                timelineColor = '#3498db';
+            } else if (daysDiff < 0) {
+                timelineStatus = `${Math.abs(daysDiff)}d late`;
+                timelineIcon = '🔴';
+                timelineColor = '#e74c3c';
+            } else {
+                timelineStatus = 'on time';
+                timelineIcon = '🟢';
+                timelineColor = '#27ae60';
+            }
+        } else {
+            timelineStatus = 'completed';
+            timelineIcon = '✅';
+            timelineColor = '#27ae60';
+        }
+    }
+    // IN PROGRESS TASKS
+    else if (progress > 0 && progress < 100) {
+        // Check if overdue
+        if (targetEnd && today > targetEnd) {
+            const daysOverdue = Math.ceil((today - targetEnd) / (1000 * 60 * 60 * 24));
+            timelineStatus = `${daysOverdue}d overdue`;
+            timelineIcon = '🔴';
+            timelineColor = '#e74c3c';
+        }
+        // Calculate expected progress
+        else if (targetStart && targetEnd && startDate) {
+            const totalDuration = (targetEnd - targetStart) / (1000 * 60 * 60 * 24);
+            const elapsed = (today - startDate) / (1000 * 60 * 60 * 24);
+            const expectedProgress = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
+            const progressDiff = progress - expectedProgress;
+            
+            if (progressDiff >= 10) {
+                timelineStatus = 'ahead';
+                timelineIcon = '🔵';
+                timelineColor = '#3498db';
+            } else if (progressDiff >= -10) {
+                timelineStatus = 'on track';
+                timelineIcon = '🟢';
+                timelineColor = '#27ae60';
+            } else if (progressDiff >= -25) {
+                timelineStatus = 'at risk';
+                timelineIcon = '🟡';
+                timelineColor = '#f39c12';
+            } else {
+                timelineStatus = 'delayed';
+                timelineIcon = '🔴';
+                timelineColor = '#e74c3c';
+            }
+        } else {
+            timelineStatus = `${progress}% done`;
+            timelineIcon = '🔄';
+            timelineColor = '#3498db';
+        }
+    }
+    // PENDING/READY TASKS
+    else {
+        if (targetStart) {
+            const daysUntil = Math.ceil((targetStart - today) / (1000 * 60 * 60 * 24));
+            
+            if (daysUntil < 0) {
+                timelineStatus = `${Math.abs(daysUntil)}d late start`;
+                timelineIcon = '🟡';
+                timelineColor = '#f39c12';
+            } else if (daysUntil <= 3) {
+                timelineStatus = `starts in ${daysUntil}d`;
+                timelineIcon = '⏰';
+                timelineColor = '#3498db';
+            } else {
+                timelineStatus = 'ready';
+                timelineIcon = '🎯';
+                timelineColor = '#27ae60';
+            }
+        } else {
+            timelineStatus = 'pending';
+            timelineIcon = '⏳';
+            timelineColor = '#95a5a6';
+        }
+    }
+    
+    return {
+        status: timelineStatus,
+        icon: timelineIcon,
+        color: timelineColor
+    };
+}
+
 function previewReport() {
     // Get selected groups (same validation as generateReport)
     const selectedCheckboxes = document.querySelectorAll('.report-group-checkbox:checked');
@@ -5914,46 +6023,100 @@ function previewReport() {
         const tasks = onsiteTasks[firebaseKey] || [];
         
         const completedTasks = tasks.filter(t => t.status === 'completed' || t.progress === 100);
-        const inProgressTasks = tasks.filter(t => t.status === 'inprogress' || (t.progress > 0 && t.progress < 100));
-        const pendingTasks = tasks.filter(t => (!t.status || t.status === 'pending') && (!t.progress || t.progress === 0));
-        const blockedTasks = tasks.filter(t => {
-            if (t.progress > 0) return false;
-            return checkIfBlocked(t, tasks);
-        });
+const inProgressTasks = tasks.filter(t => t.status === 'inprogress' || (t.progress > 0 && t.progress < 100));
+const pendingTasks = tasks.filter(t => (!t.status || t.status === 'pending') && (!t.progress || t.progress === 0));
+
+// Separate blocked vs ready to start
+const blockedTasks = [];
+const readyTasks = [];
+
+pendingTasks.forEach(task => {
+    if (checkIfBlocked(task, tasks)) {
+        blockedTasks.push(task);
+    } else {
+        readyTasks.push(task);
+    }
+});
         
         const totalTasks = tasks.length;
         const overallProgress = totalTasks > 0 ? Math.round((completedTasks.length / totalTasks) * 100) : 0;
         
-        let status = 'NOT YET STARTED';
+        // Determine status based on ACTUAL task conditions
+let status = 'NOT YET STARTED';
 let statusColor = [149, 165, 166]; // Gray
 
 if (overallProgress === 100) {
     status = 'COMPLETED';
     statusColor = [39, 174, 96]; // Green
-} else if (overallProgress >= 80) {
-    status = 'ON SCHEDULE';
-    statusColor = [39, 174, 96]; // Green
-} else if (overallProgress > 0) {
-    status = 'IN PROGRESS';
-    statusColor = [52, 152, 219]; // Blue
+} else if (inProgressTasks.length > 0) {
+    // Has tasks in progress - check if on track
+    const overdueTasks = inProgressTasks.filter(t => {
+        if (!t.targetEnd) return false;
+        const targetEnd = new Date(t.targetEnd);
+        const today = new Date();
+        return today > targetEnd && t.progress < 100;
+    });
+    
+    if (overdueTasks.length > 0 || blockedTasks.length > 0) {
+        status = 'REQUIRES ATTENTION';
+        statusColor = [243, 156, 18]; // Orange
+    } else {
+        status = 'IN PROGRESS';
+        statusColor = [52, 152, 219]; // Blue
+    }
+} else if (readyTasks.length > 0) {
+    status = 'READY TO START';
+    statusColor = [46, 204, 113]; // Light green
 } else if (blockedTasks.length > 0) {
     status = 'REQUIRES ATTENTION';
     statusColor = [243, 156, 18]; // Orange
+} else {
+    status = 'NOT YET STARTED';
+    statusColor = [149, 165, 166]; // Gray
 }
         
-        reportData.groups.push({
-            equipment,
-            disc,
-            vendor,
-            tasks: tasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)),
-            completedTasks,
-            inProgressTasks,
-            pendingTasks,
-            blockedTasks,
-            totalTasks,
-            overallProgress,
-            status
-        });
+        // Add timeline status to each task
+const tasksWithTimeline = tasks.map(task => ({
+    ...task,
+    timeline: getTaskTimelineStatus(task)
+})).sort((a, b) => (a.sequence || 999) - (b.sequence || 999));
+
+// Update task arrays with timeline info
+const completedWithTimeline = completedTasks.map(t => ({
+    ...t,
+    timeline: getTaskTimelineStatus(t)
+}));
+
+const inProgressWithTimeline = inProgressTasks.map(t => ({
+    ...t,
+    timeline: getTaskTimelineStatus(t)
+}));
+
+const readyWithTimeline = readyTasks.map(t => ({
+    ...t,
+    timeline: getTaskTimelineStatus(t)
+}));
+
+const blockedWithTimeline = blockedTasks.map(t => ({
+    ...t,
+    timeline: getTaskTimelineStatus(t)
+}));
+
+reportData.groups.push({
+    equipment,
+    disc,
+    vendor,
+    firebaseKey,
+    tasks: tasksWithTimeline,
+    completedTasks: completedWithTimeline,
+    inProgressTasks: inProgressWithTimeline,
+    readyTasks: readyWithTimeline,
+    blockedTasks: blockedWithTimeline,
+    totalTasks,
+    overallProgress,
+    status,
+    statusColor
+});
     });
     
     const totalAllTasks = reportData.groups.reduce((sum, g) => sum + g.totalTasks, 0);
@@ -5985,6 +6148,11 @@ function generateHTMLReport(data) {
         .progress-fill { height: 100%; background: #27ae60; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
         .group-card { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
         .task-item { padding: 8px; margin: 5px 0; border-left: 3px solid #ccc; padding-left: 10px; font-size: 14px; }
+.gantt-table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 12px; }
+.gantt-table th { background: #34495e; color: white; padding: 10px 8px; text-align: left; font-weight: 600; border: 1px solid #2c3e50; }
+.gantt-table td { padding: 8px; border: 1px solid #ddd; vertical-align: top; }
+.gantt-table tr:nth-child(even) { background: #f8f9fa; }
+.gantt-table tr:hover { background: #e8f4f8; }
         .completed { border-left-color: #27ae60; background: #f0fff4; }
         .inprogress { border-left-color: #f39c12; background: #fffbf0; }
         .blocked { border-left-color: #e74c3c; background: #fff5f5; }
@@ -6010,6 +6178,54 @@ function generateHTMLReport(data) {
             </div>
             <p><strong>Critical Issues:</strong> ${totalBlocked} blocked tasks</p>
             <p><strong>Groups Included:</strong> ${data.groups.length}</p>
+<div class="section">
+    <div class="section-title">EXECUTIVE SUMMARY</div>
+    <p><strong>Overall Progress:</strong> ${data.overallProgress}%</p>
+    <div class="progress-bar">
+        <div class="progress-fill" style="width: ${data.overallProgress}%; background: ${data.overallProgress >= 80 ? '#27ae60' : data.overallProgress >= 50 ? '#f39c12' : '#e74c3c'}">
+            ${data.overallProgress}%
+        </div>
+    </div>
+    <p><strong>Critical Issues:</strong> ${totalBlocked} blocked tasks</p>
+    <p><strong>Groups Included:</strong> ${data.groups.length}</p>
+    
+    <!-- ✅ TAMBAHKAN INI - Progress by Discipline -->
+    <div style="margin-top: 25px;">
+        <h4 style="color: #2c3e50; margin-bottom: 15px; font-size: 15px; border-bottom: 2px solid #3498db; padding-bottom: 5px;">Progress by Discipline</h4>
+        ${data.groups.map(group => {
+            const barColor = group.overallProgress >= 80 ? '#27ae60' : 
+                            group.overallProgress >= 50 ? '#3498db' : 
+                            group.overallProgress > 0 ? '#f39c12' : '#95a5a6';
+            
+            const statusColor = 
+                group.status === 'COMPLETED' ? '#27ae60' : 
+                group.status === 'ON SCHEDULE' ? '#27ae60' : 
+                group.status === 'IN PROGRESS' ? '#3498db' : 
+                group.status === 'REQUIRES ATTENTION' ? '#f39c12' : 
+                '#95a5a6';
+            
+            return `
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <div style="flex: 1;">
+                            <strong style="font-size: 13px; color: #2c3e50;">${group.disc}</strong>
+                            <span style="font-size: 11px; color: #7f8c8d; margin-left: 8px;">${group.equipment}</span>
+                        </div>
+                        <div style="text-align: right; min-width: 120px;">
+                            <span style="font-weight: 700; font-size: 14px; color: ${barColor};">${group.overallProgress}%</span>
+                            <span style="margin-left: 10px; font-size: 11px; color: ${statusColor}; font-weight: 600;">${group.status}</span>
+                        </div>
+                    </div>
+                    <div style="background: #ecf0f1; height: 20px; border-radius: 10px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="height: 100%; background: ${barColor}; width: ${group.overallProgress}%; display: flex; align-items: center; padding-left: 8px; transition: width 0.3s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                            <span style="color: white; font-size: 10px; font-weight: 600;">${group.completedTasks.length}/${group.totalTasks} tasks</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('')}
+    </div>
+</div>
         </div>
         
         <div class="section">
@@ -6037,26 +6253,125 @@ function generateHTMLReport(data) {
                 <h4 style="color: #2c3e50; margin-top: 20px;">${group.equipment} - ${group.disc}</h4>
                 
                 ${group.completedTasks.length > 0 ? `
-                    <p style="font-weight: bold; color: #27ae60; margin: 10px 0 5px 0;">✅ COMPLETED (${group.completedTasks.length})</p>
-                    ${group.completedTasks.slice(0, 5).map(task => `
-                        <div class="task-item completed">#${task.sequence || '?'} ${task.name}</div>
-                    `).join('')}
-                    ${group.completedTasks.length > 5 ? `<p style="color: #95a5a6; margin-left: 10px;">+ ${group.completedTasks.length - 5} more completed</p>` : ''}
-                ` : ''}
-                
-                ${group.inProgressTasks.length > 0 ? `
-                    <p style="font-weight: bold; color: #f39c12; margin: 10px 0 5px 0;">🔄 IN PROGRESS (${group.inProgressTasks.length})</p>
-                    ${group.inProgressTasks.map(task => `
-                        <div class="task-item inprogress">#${task.sequence || '?'} ${task.name} - ${task.progress || 0}%</div>
-                    `).join('')}
-                ` : ''}
-                
-                ${group.blockedTasks.length > 0 ? `
-                    <p style="font-weight: bold; color: #e74c3c; margin: 10px 0 5px 0;">🔒 BLOCKED (${group.blockedTasks.length})</p>
-                    ${group.blockedTasks.map(task => `
-                        <div class="task-item blocked">#${task.sequence || '?'} ${task.name}</div>
-                    `).join('')}
-                ` : ''}
+    <p style="font-weight: bold; color: #27ae60; margin: 15px 0 10px 0; font-size: 14px;">✅ COMPLETED (${group.completedTasks.length})</p>
+    <table class="gantt-table">
+        <thead>
+            <tr>
+                <th style="width: 5%;">#</th>
+                <th style="width: 25%;">Task Name</th>
+                <th style="width: 12%;">Plan Start</th>
+                <th style="width: 12%;">Plan End</th>
+                <th style="width: 12%;">Actual Start</th>
+                <th style="width: 12%;">Actual End</th>
+                <th style="width: 22%;">Timeline Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${group.completedTasks.slice(0, 10).map(task => `
+                <tr>
+                    <td style="text-align: center; font-weight: 600; color: #27ae60;">${task.sequence || '?'}</td>
+                    <td><strong>${task.name}</strong></td>
+                    <td>${task.targetStart ? formatDateForDisplay(task.targetStart) : '-'}</td>
+                    <td>${task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-'}</td>
+                    <td>${task.startDate ? formatDateForDisplay(task.startDate) : '-'}</td>
+                    <td>${task.completedDate ? formatDateForDisplay(task.completedDate) : '-'}</td>
+                    <td style="color: ${task.timeline ? task.timeline.color : '#95a5a6'}; font-weight: 600;">
+                        ${task.timeline ? `${task.timeline.icon} ${task.timeline.status}` : '-'}
+                    </td>
+                </tr>
+            `).join('')}
+        </tbody>
+    </table>
+    ${group.completedTasks.length > 10 ? `<p style="color: #95a5a6; margin: 5px 0; font-style: italic;">+ ${group.completedTasks.length - 10} more completed tasks</p>` : ''}
+` : ''}
+
+${group.inProgressTasks.length > 0 ? `
+    <p style="font-weight: bold; color: #f39c12; margin: 15px 0 10px 0; font-size: 14px;">🔄 IN PROGRESS (${group.inProgressTasks.length})</p>
+    <table class="gantt-table">
+        <thead>
+            <tr>
+                <th style="width: 5%;">#</th>
+                <th style="width: 25%;">Task Name</th>
+                <th style="width: 12%;">Plan Start</th>
+                <th style="width: 12%;">Plan End</th>
+                <th style="width: 12%;">Actual Start</th>
+                <th style="width: 12%;">Progress</th>
+                <th style="width: 22%;">Timeline Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${group.inProgressTasks.map(task => `
+                <tr>
+                    <td style="text-align: center; font-weight: 600; color: #f39c12;">${task.sequence || '?'}</td>
+                    <td><strong>${task.name}</strong></td>
+                    <td>${task.targetStart ? formatDateForDisplay(task.targetStart) : '-'}</td>
+                    <td>${task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-'}</td>
+                    <td>${task.startDate ? formatDateForDisplay(task.startDate) : '-'}</td>
+                    <td style="text-align: center; font-weight: 700; color: #3498db;">${task.progress || 0}%</td>
+                    <td style="color: ${task.timeline ? task.timeline.color : '#95a5a6'}; font-weight: 600;">
+                        ${task.timeline ? `${task.timeline.icon} ${task.timeline.status}` : '-'}
+                    </td>
+                </tr>
+            `).join('')}
+        </tbody>
+    </table>
+` : ''}
+
+${group.readyTasks && group.readyTasks.length > 0 ? `
+    <p style="font-weight: bold; color: #3498db; margin: 15px 0 10px 0; font-size: 14px;">🎯 READY TO START (${group.readyTasks.length})</p>
+    <table class="gantt-table">
+        <thead>
+            <tr>
+                <th style="width: 5%;">#</th>
+                <th style="width: 35%;">Task Name</th>
+                <th style="width: 15%;">Plan Start</th>
+                <th style="width: 15%;">Plan End</th>
+                <th style="width: 30%;">Timeline Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${group.readyTasks.map(task => `
+                <tr>
+                    <td style="text-align: center; font-weight: 600; color: #3498db;">${task.sequence || '?'}</td>
+                    <td><strong>${task.name}</strong></td>
+                    <td>${task.targetStart ? formatDateForDisplay(task.targetStart) : '-'}</td>
+                    <td>${task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-'}</td>
+                    <td style="color: ${task.timeline ? task.timeline.color : '#95a5a6'}; font-weight: 600;">
+                        ${task.timeline ? `${task.timeline.icon} ${task.timeline.status}` : '-'}
+                    </td>
+                </tr>
+            `).join('')}
+        </tbody>
+    </table>
+` : ''}
+
+${group.blockedTasks.length > 0 ? `
+    <p style="font-weight: bold; color: #e74c3c; margin: 15px 0 10px 0; font-size: 14px;">🔒 BLOCKED (${group.blockedTasks.length})</p>
+    <table class="gantt-table">
+        <thead>
+            <tr>
+                <th style="width: 5%;">#</th>
+                <th style="width: 35%;">Task Name</th>
+                <th style="width: 15%;">Plan Start</th>
+                <th style="width: 15%;">Plan End</th>
+                <th style="width: 30%;">Timeline Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${group.blockedTasks.map(task => `
+                <tr>
+                    <td style="text-align: center; font-weight: 600; color: #e74c3c;">${task.sequence || '?'}</td>
+                    <td><strong>${task.name}</strong></td>
+                    <td>${task.targetStart ? formatDateForDisplay(task.targetStart) : '-'}</td>
+                    <td>${task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-'}</td>
+                    <td style="color: ${task.timeline ? task.timeline.color : '#95a5a6'}; font-weight: 600;">
+                        ${task.timeline ? `${task.timeline.icon} ${task.timeline.status}` : 'Waiting dependencies'}
+                    </td>
+                </tr>
+            `).join('')}
+        </tbody>
+    </table>
+` : ''}
             `).join('')}
         </div>
         
@@ -6096,49 +6411,102 @@ function generateReport() {
         const tasks = onsiteTasks[firebaseKey] || [];
         
         // Calculate metrics for this group
-        const completedTasks = tasks.filter(t => t.status === 'completed' || t.progress === 100);
-        const inProgressTasks = tasks.filter(t => t.status === 'inprogress' || (t.progress > 0 && t.progress < 100));
-        const pendingTasks = tasks.filter(t => (!t.status || t.status === 'pending') && (!t.progress || t.progress === 0));
-        const blockedTasks = tasks.filter(t => {
-            if (t.progress > 0) return false;
-            return checkIfBlocked(t, tasks);
-        });
+       const completedTasks = tasks.filter(t => t.status === 'completed' || t.progress === 100);
+const inProgressTasks = tasks.filter(t => t.status === 'inprogress' || (t.progress > 0 && t.progress < 100));
+const pendingTasks = tasks.filter(t => (!t.status || t.status === 'pending') && (!t.progress || t.progress === 0));
+
+// Separate blocked vs ready to start
+const blockedTasks = [];
+const readyTasks = [];
+
+pendingTasks.forEach(task => {
+    if (checkIfBlocked(task, tasks)) {
+        blockedTasks.push(task);
+    } else {
+        readyTasks.push(task);
+    }
+});
         
         const totalTasks = tasks.length;
         const overallProgress = totalTasks > 0 ? Math.round((completedTasks.length / totalTasks) * 100) : 0;
         
         // Determine status
-        let status = 'NOT YET STARTED';
+        // Determine status based on ACTUAL task conditions
+let status = 'NOT YET STARTED';
 let statusColor = [149, 165, 166]; // Gray
 
 if (overallProgress === 100) {
     status = 'COMPLETED';
     statusColor = [39, 174, 96]; // Green
-} else if (overallProgress >= 80) {
-    status = 'ON SCHEDULE';
-    statusColor = [39, 174, 96]; // Green
-} else if (overallProgress > 0) {
-    status = 'IN PROGRESS';
-    statusColor = [52, 152, 219]; // Blue
+} else if (inProgressTasks.length > 0) {
+    // Has tasks in progress - check if on track
+    const overdueTasks = inProgressTasks.filter(t => {
+        if (!t.targetEnd) return false;
+        const targetEnd = new Date(t.targetEnd);
+        const today = new Date();
+        return today > targetEnd && t.progress < 100;
+    });
+    
+    if (overdueTasks.length > 0 || blockedTasks.length > 0) {
+        status = 'REQUIRES ATTENTION';
+        statusColor = [243, 156, 18]; // Orange
+    } else {
+        status = 'IN PROGRESS';
+        statusColor = [52, 152, 219]; // Blue
+    }
+} else if (readyTasks.length > 0) {
+    status = 'READY TO START';
+    statusColor = [46, 204, 113]; // Light green
 } else if (blockedTasks.length > 0) {
     status = 'REQUIRES ATTENTION';
     statusColor = [243, 156, 18]; // Orange
+} else {
+    status = 'NOT YET STARTED';
+    statusColor = [149, 165, 166]; // Gray
 }
         
-        reportData.groups.push({
-            equipment,
-            disc,
-            vendor,
-            firebaseKey,
-            tasks: tasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)),
-            completedTasks,
-            inProgressTasks,
-            pendingTasks,
-            blockedTasks,
-            totalTasks,
-            overallProgress,
-            status
-        });
+        // Add timeline status to each task
+const tasksWithTimeline = tasks.map(task => ({
+    ...task,
+    timeline: getTaskTimelineStatus(task)
+})).sort((a, b) => (a.sequence || 999) - (b.sequence || 999));
+
+// Update task arrays with timeline info
+const completedWithTimeline = completedTasks.map(t => ({
+    ...t,
+    timeline: getTaskTimelineStatus(t)
+}));
+
+const inProgressWithTimeline = inProgressTasks.map(t => ({
+    ...t,
+    timeline: getTaskTimelineStatus(t)
+}));
+
+const readyWithTimeline = readyTasks.map(t => ({
+    ...t,
+    timeline: getTaskTimelineStatus(t)
+}));
+
+const blockedWithTimeline = blockedTasks.map(t => ({
+    ...t,
+    timeline: getTaskTimelineStatus(t)
+}));
+
+reportData.groups.push({
+    equipment,
+    disc,
+    vendor,
+    firebaseKey,
+    tasks: tasksWithTimeline,
+    completedTasks: completedWithTimeline,
+    inProgressTasks: inProgressWithTimeline,
+    readyTasks: readyWithTimeline,
+    blockedTasks: blockedWithTimeline,
+    totalTasks,
+    overallProgress,
+    status,
+    statusColor
+});
     });
     
     // Calculate overall metrics
@@ -6214,7 +6582,81 @@ function generatePDF(data) {
     yPos += 6;
     
     doc.text(`Groups Included: ${data.groups.length}`, margin, yPos);
-    yPos += 12;
+yPos += 15;
+
+// ===== PROGRESS BY DISCIPLINE =====
+doc.setFontSize(11);
+doc.setFont(undefined, 'bold');
+doc.text('PROGRESS BY DISCIPLINE', margin, yPos);
+yPos += 8;
+
+data.groups.forEach(group => {
+    if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+    }
+    
+    // Discipline name and equipment
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text(`${group.disc}`, margin + 3, yPos);
+    
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`${group.equipment}`, margin + 20, yPos);
+    
+    // Progress percentage and status
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(9);
+    const barColor = group.overallProgress >= 80 ? [39, 174, 96] : 
+                     group.overallProgress >= 50 ? [52, 152, 219] : 
+                     group.overallProgress > 0 ? [243, 156, 18] : [149, 165, 166];
+    doc.setTextColor(...barColor);
+    doc.text(`${group.overallProgress}%`, pageWidth - margin - 40, yPos);
+    
+    const statusColor = 
+        group.status === 'COMPLETED' ? [39, 174, 96] : 
+        group.status === 'ON SCHEDULE' ? [39, 174, 96] : 
+        group.status === 'IN PROGRESS' ? [52, 152, 219] : 
+        group.status === 'REQUIRES ATTENTION' ? [243, 156, 18] : 
+        [149, 165, 166];
+    doc.setFontSize(7);
+    doc.setTextColor(...statusColor);
+    doc.text(`${group.status}`, pageWidth - margin - 15, yPos, { align: 'right' });
+    
+    yPos += 4;
+    
+    // Progress bar background
+    const barWidth = contentWidth - 6;
+    const barHeight = 6;
+    const barX = margin + 3;
+    const barY = yPos - 2;
+    
+    doc.setDrawColor(200, 200, 200);
+    doc.setFillColor(236, 240, 241);
+    doc.roundedRect(barX, barY, barWidth, barHeight, 2, 2, 'FD');
+    
+    // Progress bar fill
+    const fillWidth = (group.overallProgress / 100) * barWidth;
+    if (fillWidth > 0) {
+        doc.setFillColor(...barColor);
+        doc.roundedRect(barX, barY, fillWidth, barHeight, 2, 2, 'F');
+    }
+    
+    // Task count inside bar
+    doc.setFontSize(7);
+    doc.setTextColor(255, 255, 255);
+    if (fillWidth > 20) {
+        doc.text(`${group.completedTasks.length}/${group.totalTasks} tasks`, barX + 3, barY + 4.5);
+    }
+    
+    doc.setTextColor(0, 0, 0);
+    yPos += 10;
+});
+
+yPos += 5;
     
     // ===== EQUIPMENT BREAKDOWN =====
     doc.setFontSize(12);
@@ -6281,95 +6723,226 @@ function generatePDF(data) {
         yPos += 6;
         
         // COMPLETED
-        if (group.completedTasks.length > 0) {
-            doc.setFontSize(9);
-            doc.setTextColor(39, 174, 96);
-            doc.text(`COMPLETED (${group.completedTasks.length})`, margin + 5, yPos);
-            doc.setTextColor(0, 0, 0);
-            yPos += 5;
-            
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(8);
-            
-            group.completedTasks.slice(0, 3).forEach(task => {
-                if (yPos > 270) {
-                    doc.addPage();
-                    yPos = 20;
-                }
-                
-                const taskText = `#${task.sequence || '?'} ${task.name}`;
-                doc.text(taskText, margin + 7, yPos, { maxWidth: contentWidth - 12 });
-                yPos += 4;
-            });
-            
-            if (group.completedTasks.length > 3) {
-                doc.setTextColor(150);
-                doc.text(`+ ${group.completedTasks.length - 3} more completed`, margin + 7, yPos);
-                doc.setTextColor(0);
-                yPos += 4;
-            }
-            yPos += 3;
-        }
+if (group.completedTasks.length > 0) {
+    if (yPos > 240) {
+        doc.addPage();
+        yPos = 20;
+    }
+    
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(39, 174, 96);
+    doc.text(`COMPLETED (${group.completedTasks.length})`, margin + 5, yPos);
+    doc.setTextColor(0, 0, 0);
+    yPos += 6;
+    
+    const completedData = group.completedTasks.slice(0, 10).map(task => [
+        task.sequence || '?',
+        task.name,
+        task.targetStart ? formatDateForDisplay(task.targetStart) : '-',
+        task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-',
+        task.startDate ? formatDateForDisplay(task.startDate) : '-',
+        task.completedDate ? formatDateForDisplay(task.completedDate) : '-',
+        task.timeline ? `${task.timeline.status}` : '-'
+    ]);
+    
+    doc.autoTable({
+        startY: yPos,
+        head: [['#', 'Task Name', 'Plan Start', 'Plan End', 'Actual Start', 'Actual End', 'Timeline']],
+        body: completedData,
+        theme: 'grid',
+        headStyles: { 
+            fillColor: [39, 174, 96],
+            textColor: 255,
+            fontSize: 8,
+            fontStyle: 'bold',
+            halign: 'center'
+        },
+        bodyStyles: { 
+            fontSize: 7,
+            cellPadding: 2
+        },
+        columnStyles: {
+            0: { halign: 'center', cellWidth: 8 },
+            1: { cellWidth: 45 },
+            2: { fontSize: 7, cellWidth: 20 },
+            3: { fontSize: 7, cellWidth: 20 },
+            4: { fontSize: 7, cellWidth: 20 },
+            5: { fontSize: 7, cellWidth: 20 },
+            6: { fontSize: 7, cellWidth: 'auto' }
+        },
+        margin: { left: margin, right: margin }
+    });
+    
+    yPos = doc.lastAutoTable.finalY + 8;
+    
+    if (group.completedTasks.length > 10) {
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`+ ${group.completedTasks.length - 10} more completed tasks`, margin + 7, yPos);
+        doc.setTextColor(0);
+        yPos += 6;
+    }
+}
         
         // IN PROGRESS
-        if (group.inProgressTasks.length > 0) {
-            if (yPos > 260) {
-                doc.addPage();
-                yPos = 20;
-            }
-            
-            doc.setFontSize(9);
-            doc.setFont(undefined, 'bold');
-            doc.setTextColor(243, 156, 18);
-            doc.text(`IN PROGRESS (${group.inProgressTasks.length})`, margin + 5, yPos);
-            doc.setTextColor(0, 0, 0);
-            yPos += 5;
-            
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(8);
-            
-            group.inProgressTasks.forEach(task => {
-                if (yPos > 270) {
-                    doc.addPage();
-                    yPos = 20;
-                }
-                
-                const taskText = `#${task.sequence || '?'} ${task.name} - ${task.progress || 0}%`;
-                doc.text(taskText, margin + 7, yPos, { maxWidth: contentWidth - 12 });
-                yPos += 4;
-            });
-            yPos += 3;
-        }
+if (group.inProgressTasks.length > 0) {
+    if (yPos > 240) {
+        doc.addPage();
+        yPos = 20;
+    }
+    
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(243, 156, 18);
+    doc.text(`IN PROGRESS (${group.inProgressTasks.length})`, margin + 5, yPos);
+    doc.setTextColor(0, 0, 0);
+    yPos += 6;
+    
+    const inProgressData = group.inProgressTasks.map(task => [
+        task.sequence || '?',
+        task.name,
+        task.targetStart ? formatDateForDisplay(task.targetStart) : '-',
+        task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-',
+        task.startDate ? formatDateForDisplay(task.startDate) : '-',
+        `${task.progress || 0}%`,
+        task.timeline ? `${task.timeline.status}` : '-'
+    ]);
+    
+    doc.autoTable({
+        startY: yPos,
+        head: [['#', 'Task Name', 'Plan Start', 'Plan End', 'Actual Start', 'Progress', 'Timeline']],
+        body: inProgressData,
+        theme: 'grid',
+        headStyles: { 
+            fillColor: [243, 156, 18],
+            textColor: 255,
+            fontSize: 8,
+            fontStyle: 'bold',
+            halign: 'center'
+        },
+        bodyStyles: { 
+            fontSize: 7,
+            cellPadding: 2
+        },
+        columnStyles: {
+            0: { halign: 'center', cellWidth: 8 },
+            1: { cellWidth: 45 },
+            2: { fontSize: 7, cellWidth: 20 },
+            3: { fontSize: 7, cellWidth: 20 },
+            4: { fontSize: 7, cellWidth: 20 },
+            5: { halign: 'center', fontStyle: 'bold', cellWidth: 15 },
+            6: { fontSize: 7, cellWidth: 'auto' }
+        },
+        margin: { left: margin, right: margin }
+    });
+    
+    yPos = doc.lastAutoTable.finalY + 8;
+}
+
+// ✅ TAMBAHKAN INI - READY TO START
+// READY TO START
+if (group.readyTasks && group.readyTasks.length > 0) {
+    if (yPos > 240) {
+        doc.addPage();
+        yPos = 20;
+    }
+    
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(52, 152, 219);
+    doc.text(`READY TO START (${group.readyTasks.length})`, margin + 5, yPos);
+    doc.setTextColor(0, 0, 0);
+    yPos += 6;
+    
+    const readyData = group.readyTasks.map(task => [
+        task.sequence || '?',
+        task.name,
+        task.targetStart ? formatDateForDisplay(task.targetStart) : '-',
+        task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-',
+        task.timeline ? `${task.timeline.status}` : '-'
+    ]);
+    
+    doc.autoTable({
+        startY: yPos,
+        head: [['#', 'Task Name', 'Plan Start', 'Plan End', 'Timeline Status']],
+        body: readyData,
+        theme: 'grid',
+        headStyles: { 
+            fillColor: [52, 152, 219],
+            textColor: 255,
+            fontSize: 8,
+            fontStyle: 'bold',
+            halign: 'center'
+        },
+        bodyStyles: { 
+            fontSize: 7,
+            cellPadding: 2
+        },
+        columnStyles: {
+            0: { halign: 'center', cellWidth: 8 },
+            1: { cellWidth: 60 },
+            2: { fontSize: 7, cellWidth: 25 },
+            3: { fontSize: 7, cellWidth: 25 },
+            4: { fontSize: 7, cellWidth: 'auto' }
+        },
+        margin: { left: margin, right: margin }
+    });
+    
+    yPos = doc.lastAutoTable.finalY + 8;
+}
+
         
         // BLOCKED
-        if (group.blockedTasks.length > 0) {
-            if (yPos > 260) {
-                doc.addPage();
-                yPos = 20;
-            }
-            
-            doc.setFontSize(9);
-            doc.setFont(undefined, 'bold');
-            doc.setTextColor(231, 76, 60);
-            doc.text(`BLOCKED (${group.blockedTasks.length})`, margin + 5, yPos);
-            doc.setTextColor(0, 0, 0);
-            yPos += 5;
-            
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(8);
-            
-            group.blockedTasks.forEach(task => {
-                if (yPos > 270) {
-                    doc.addPage();
-                    yPos = 20;
-                }
-                
-                const taskText = `#${task.sequence || '?'} ${task.name}`;
-                doc.text(taskText, margin + 7, yPos, { maxWidth: contentWidth - 12 });
-                yPos += 4;
-            });
-            yPos += 3;
-        }
+if (group.blockedTasks.length > 0) {
+    if (yPos > 240) {
+        doc.addPage();
+        yPos = 20;
+    }
+    
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(231, 76, 60);
+    doc.text(`BLOCKED (${group.blockedTasks.length})`, margin + 5, yPos);
+    doc.setTextColor(0, 0, 0);
+    yPos += 6;
+    
+    const blockedData = group.blockedTasks.map(task => [
+        task.sequence || '?',
+        task.name,
+        task.targetStart ? formatDateForDisplay(task.targetStart) : '-',
+        task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-',
+        'Waiting dependencies'
+    ]);
+    
+    doc.autoTable({
+        startY: yPos,
+        head: [['#', 'Task Name', 'Plan Start', 'Plan End', 'Status']],
+        body: blockedData,
+        theme: 'grid',
+        headStyles: { 
+            fillColor: [231, 76, 60],
+            textColor: 255,
+            fontSize: 8,
+            fontStyle: 'bold',
+            halign: 'center'
+        },
+        bodyStyles: { 
+            fontSize: 7,
+            cellPadding: 2
+        },
+        columnStyles: {
+            0: { halign: 'center', cellWidth: 8 },
+            1: { cellWidth: 60 },
+            2: { fontSize: 7, cellWidth: 25 },
+            3: { fontSize: 7, cellWidth: 25 },
+            4: { fontSize: 7, cellWidth: 'auto' }
+        },
+        margin: { left: margin, right: margin }
+    });
+    
+    yPos = doc.lastAutoTable.finalY + 8;
+}
         
         yPos += 5;
     });
