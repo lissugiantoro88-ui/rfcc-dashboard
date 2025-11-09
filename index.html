@@ -6168,16 +6168,7 @@ function generateHTMLReport(data) {
             <p style="color: #7f8c8d;">Report Date: ${formatDateForDisplay(data.reportDate)} | Generated: ${new Date().toLocaleString()}</p>
         </div>
         
-        <div class="section">
-            <div class="section-title">EXECUTIVE SUMMARY</div>
-            <p><strong>Overall Progress:</strong> ${data.overallProgress}%</p>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: ${data.overallProgress}%; background: ${data.overallProgress >= 80 ? '#27ae60' : data.overallProgress >= 50 ? '#f39c12' : '#e74c3c'}">
-                    ${data.overallProgress}%
-                </div>
-            </div>
-            <p><strong>Critical Issues:</strong> ${totalBlocked} blocked tasks</p>
-            <p><strong>Groups Included:</strong> ${data.groups.length}</p>
+        
 <div class="section">
     <div class="section-title">EXECUTIVE SUMMARY</div>
     <p><strong>Overall Progress:</strong> ${data.overallProgress}%</p>
@@ -6226,7 +6217,6 @@ function generateHTMLReport(data) {
         }).join('')}
     </div>
 </div>
-        </div>
         
         <div class="section">
             <div class="section-title">EQUIPMENT BREAKDOWN</div>
