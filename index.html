@@ -2211,6 +2211,8 @@ body.grouped-view-active #tablePagination {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
+<!-- ✅ TAMBAHKAN INI - html2pdf for converting HTML to PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
 
 // Update current date automatically
@@ -6179,11 +6181,48 @@ function generateHTMLReport(data) {
         .progress-fill { height: 100%; background: #27ae60; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
         .group-card { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
         .task-item { padding: 8px; margin: 5px 0; border-left: 3px solid #ccc; padding-left: 10px; font-size: 14px; }
-.gantt-table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 12px; }
-.gantt-table th { background: #34495e; color: white; padding: 10px 8px; text-align: left; font-weight: 600; border: 1px solid #2c3e50; }
-.gantt-table td { padding: 8px; border: 1px solid #ddd; vertical-align: top; }
-.gantt-table tr:nth-child(even) { background: #f8f9fa; }
-.gantt-table tr:hover { background: #e8f4f8; }
+.gantt-table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    margin: 15px 0; 
+    font-size: 11px; 
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.gantt-table th { 
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+    color: white; 
+    padding: 12px 8px; 
+    text-align: center; 
+    font-weight: 600; 
+    font-size: 10px;
+    border: none;
+    line-height: 1.4;
+}
+.gantt-table td { 
+    padding: 10px 8px; 
+    border: 1px solid #e8e8e8; 
+    vertical-align: top; 
+    line-height: 1.5;
+}
+.gantt-table tbody tr:nth-child(odd) { background: white; }
+.gantt-table tbody tr:nth-child(even) { background: #f8f9fa; }
+.gantt-table tbody tr:hover { 
+    background: #e3f2fd; 
+    transition: background 0.2s ease;
+}
+.mode-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 600;
+    margin-left: 5px;
+}
+.mode-sequential { background: #e74c3c; color: white; }
+.mode-parallel { background: #f39c12; color: white; }
+.mode-independent { background: #27ae60; color: white; }
         .completed { border-left-color: #27ae60; background: #f0fff4; }
         .inprogress { border-left-color: #f39c12; background: #fffbf0; }
         .blocked { border-left-color: #e74c3c; background: #fff5f5; }
@@ -6283,122 +6322,199 @@ function generateHTMLReport(data) {
         </div>
                 
                 ${group.completedTasks.length > 0 ? `
-    <p style="font-weight: bold; color: #27ae60; margin: 15px 0 10px 0; font-size: 14px;">✅ COMPLETED (${group.completedTasks.length})</p>
+    <p style="font-weight: bold; color: #27ae60; margin: 20px 0 10px 0; font-size: 14px;">✅ COMPLETED (${group.completedTasks.length})</p>
     <table class="gantt-table">
         <thead>
             <tr>
-                <th style="width: 5%;">#</th>
-                <th style="width: 25%;">Task Name</th>
-                <th style="width: 12%;">Plan Start</th>
-                <th style="width: 12%;">Plan End</th>
-                <th style="width: 12%;">Actual Start</th>
-                <th style="width: 12%;">Actual End</th>
-                <th style="width: 22%;">Timeline Status</th>
+                <th style="width: 8%;">Seq<br>Mode</th>
+                <th style="width: 28%;">Task Name & Description</th>
+                <th style="width: 11%;">Plan<br>Start</th>
+                <th style="width: 11%;">Plan<br>End</th>
+                <th style="width: 11%;">Actual<br>Start</th>
+                <th style="width: 11%;">Actual<br>End</th>
+                <th style="width: 20%;">Timeline<br>Status</th>
             </tr>
         </thead>
         <tbody>
-            ${group.completedTasks.slice(0, 10).map(task => `
+            ${group.completedTasks.slice(0, 10).map(task => {
+                const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
+                                task.executionMode === 'parallel' ? 'Parallel' : 'Independent';
+                const modeClass = `mode-${task.executionMode || 'independent'}`;
+                
+                return `
                 <tr>
-                    <td style="text-align: center; font-weight: 600; color: #27ae60;">${task.sequence || '?'}</td>
-                    <td><strong>${task.name}</strong></td>
-                    <td>${task.targetStart ? formatDateForDisplay(task.targetStart) : '-'}</td>
-                    <td>${task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-'}</td>
-                    <td>${task.startDate ? formatDateForDisplay(task.startDate) : '-'}</td>
-                    <td>${task.completedDate ? formatDateForDisplay(task.completedDate) : '-'}</td>
-                    <td style="color: ${task.timeline ? task.timeline.color : '#95a5a6'}; font-weight: 600;">
+                    <td style="text-align: center; font-weight: 700; color: #27ae60; font-size: 13px;">
+                        #${task.sequence || '?'}
+                        <span class="mode-badge ${modeClass}">${modeLabel}</span>
+                    </td>
+                    <td>
+                        <strong style="color: #2c3e50;">${task.name}</strong>
+                        ${task.description ? `<div style="font-size: 10px; color: #7f8c8d; margin-top: 3px; font-style: italic;">${task.description.substring(0, 80)}${task.description.length > 80 ? '...' : ''}</div>` : ''}
+                    </td>
+                    <td style="text-align: center; font-size: 10px;">${task.targetStart ? formatDateForDisplay(task.targetStart) : '-'}</td>
+                    <td style="text-align: center; font-size: 10px;">${task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-'}</td>
+                    <td style="text-align: center; font-size: 10px;">${task.startDate ? formatDateForDisplay(task.startDate) : '-'}</td>
+                    <td style="text-align: center; font-size: 10px;">${task.completedDate ? formatDateForDisplay(task.completedDate) : '-'}</td>
+                    <td style="color: ${task.timeline ? task.timeline.color : '#95a5a6'}; font-weight: 600; text-align: center; font-size: 11px;">
                         ${task.timeline ? `${task.timeline.icon} ${task.timeline.status}` : '-'}
                     </td>
                 </tr>
-            `).join('')}
+                `;
+            }).join('')}
         </tbody>
     </table>
-    ${group.completedTasks.length > 10 ? `<p style="color: #95a5a6; margin: 5px 0; font-style: italic;">+ ${group.completedTasks.length - 10} more completed tasks</p>` : ''}
+    ${group.completedTasks.length > 10 ? `<p style="color: #95a5a6; margin: 5px 0; font-style: italic; font-size: 11px;">+ ${group.completedTasks.length - 10} more completed tasks</p>` : ''}
 ` : ''}
-
 ${group.inProgressTasks.length > 0 ? `
-    <p style="font-weight: bold; color: #f39c12; margin: 15px 0 10px 0; font-size: 14px;">🔄 IN PROGRESS (${group.inProgressTasks.length})</p>
+    <p style="font-weight: bold; color: #f39c12; margin: 20px 0 10px 0; font-size: 14px;">🔄 IN PROGRESS (${group.inProgressTasks.length})</p>
     <table class="gantt-table">
         <thead>
             <tr>
-                <th style="width: 5%;">#</th>
-                <th style="width: 25%;">Task Name</th>
-                <th style="width: 12%;">Plan Start</th>
-                <th style="width: 12%;">Plan End</th>
-                <th style="width: 12%;">Actual Start</th>
-                <th style="width: 12%;">Progress</th>
-                <th style="width: 22%;">Timeline Status</th>
+                <th style="width: 8%;">Seq<br>Mode</th>
+                <th style="width: 30%;">Task Name & Description</th>
+                <th style="width: 11%;">Plan<br>Start</th>
+                <th style="width: 11%;">Plan<br>End</th>
+                <th style="width: 11%;">Actual<br>Start</th>
+                <th style="width: 9%;">Progress</th>
+                <th style="width: 20%;">Timeline<br>Status</th>
             </tr>
         </thead>
         <tbody>
-            ${group.inProgressTasks.map(task => `
+            ${group.inProgressTasks.map(task => {
+                const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
+                                task.executionMode === 'parallel' ? 'Parallel' : 'Independent';
+                const modeClass = `mode-${task.executionMode || 'independent'}`;
+                
+                return `
                 <tr>
-                    <td style="text-align: center; font-weight: 600; color: #f39c12;">${task.sequence || '?'}</td>
-                    <td><strong>${task.name}</strong></td>
-                    <td>${task.targetStart ? formatDateForDisplay(task.targetStart) : '-'}</td>
-                    <td>${task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-'}</td>
-                    <td>${task.startDate ? formatDateForDisplay(task.startDate) : '-'}</td>
-                    <td style="text-align: center; font-weight: 700; color: #3498db;">${task.progress || 0}%</td>
-                    <td style="color: ${task.timeline ? task.timeline.color : '#95a5a6'}; font-weight: 600;">
+                    <td style="text-align: center; font-weight: 700; color: #f39c12; font-size: 13px;">
+                        #${task.sequence || '?'}
+                        <span class="mode-badge ${modeClass}">${modeLabel}</span>
+                    </td>
+                    <td>
+                        <strong style="color: #2c3e50;">${task.name}</strong>
+                        ${task.description ? `<div style="font-size: 10px; color: #7f8c8d; margin-top: 3px; font-style: italic;">${task.description.substring(0, 80)}${task.description.length > 80 ? '...' : ''}</div>` : ''}
+                    </td>
+                    <td style="text-align: center; font-size: 10px;">${task.targetStart ? formatDateForDisplay(task.targetStart) : '-'}</td>
+                    <td style="text-align: center; font-size: 10px;">${task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-'}</td>
+                    <td style="text-align: center; font-size: 10px;">${task.startDate ? formatDateForDisplay(task.startDate) : '-'}</td>
+                    <td style="text-align: center; font-weight: 700; color: #3498db; font-size: 13px;">${task.progress || 0}%</td>
+                    <td style="color: ${task.timeline ? task.timeline.color : '#95a5a6'}; font-weight: 600; text-align: center; font-size: 11px;">
                         ${task.timeline ? `${task.timeline.icon} ${task.timeline.status}` : '-'}
                     </td>
                 </tr>
-            `).join('')}
+                `;
+            }).join('')}
         </tbody>
     </table>
 ` : ''}
 
 ${group.readyTasks && group.readyTasks.length > 0 ? `
-    <p style="font-weight: bold; color: #3498db; margin: 15px 0 10px 0; font-size: 14px;">🎯 READY TO START (${group.readyTasks.length})</p>
+    <p style="font-weight: bold; color: #3498db; margin: 20px 0 10px 0; font-size: 14px;">🎯 READY TO START (${group.readyTasks.length})</p>
     <table class="gantt-table">
         <thead>
             <tr>
-                <th style="width: 5%;">#</th>
-                <th style="width: 35%;">Task Name</th>
-                <th style="width: 15%;">Plan Start</th>
-                <th style="width: 15%;">Plan End</th>
-                <th style="width: 30%;">Timeline Status</th>
+                <th style="width: 8%;">Seq<br>Mode</th>
+                <th style="width: 35%;">Task Name & Description</th>
+                <th style="width: 12%;">Plan<br>Start</th>
+                <th style="width: 12%;">Plan<br>End</th>
+                <th style="width: 18%;">Dependencies</th>
+                <th style="width: 15%;">Status</th>
             </tr>
         </thead>
         <tbody>
-            ${group.readyTasks.map(task => `
+            ${group.readyTasks.map(task => {
+                const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
+                                task.executionMode === 'parallel' ? 'Parallel' : 'Independent';
+                const modeClass = `mode-${task.executionMode || 'independent'}`;
+                
+                // Dependencies info
+                let depsInfo = '<span style="color: #95a5a6;">None</span>';
+                if (task.executionMode === 'sequential' && task.dependencies && task.dependencies.length > 0) {
+                    const depTasks = task.dependencies.map(depId => {
+                        const depTask = group.tasks.find(t => t.id === depId);
+                        return depTask ? `#${depTask.sequence || '?'}` : '?';
+                    }).join(', ');
+                    depsInfo = `<span style="color: #e74c3c; font-weight: 600;">Waits: ${depTasks}</span>`;
+                } else if (task.executionMode === 'parallel' && task.parallelWith && task.parallelWith.length > 0) {
+                    depsInfo = `<span style="color: #f39c12; font-weight: 600;">With: ${task.parallelWith.length} task(s)</span>`;
+                }
+                
+                return `
                 <tr>
-                    <td style="text-align: center; font-weight: 600; color: #3498db;">${task.sequence || '?'}</td>
-                    <td><strong>${task.name}</strong></td>
-                    <td>${task.targetStart ? formatDateForDisplay(task.targetStart) : '-'}</td>
-                    <td>${task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-'}</td>
-                    <td style="color: ${task.timeline ? task.timeline.color : '#95a5a6'}; font-weight: 600;">
-                        ${task.timeline ? `${task.timeline.icon} ${task.timeline.status}` : '-'}
+                    <td style="text-align: center; font-weight: 700; color: #3498db; font-size: 13px;">
+                        #${task.sequence || '?'}
+                        <span class="mode-badge ${modeClass}">${modeLabel}</span>
+                    </td>
+                    <td>
+                        <strong style="color: #2c3e50;">${task.name}</strong>
+                        ${task.description ? `<div style="font-size: 10px; color: #7f8c8d; margin-top: 3px; font-style: italic;">${task.description.substring(0, 80)}${task.description.length > 80 ? '...' : ''}</div>` : ''}
+                    </td>
+                    <td style="text-align: center; font-size: 10px;">${task.targetStart ? formatDateForDisplay(task.targetStart) : '-'}</td>
+                    <td style="text-align: center; font-size: 10px;">${task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-'}</td>
+                    <td style="text-align: center; font-size: 10px;">${depsInfo}</td>
+                    <td style="color: ${task.timeline ? task.timeline.color : '#3498db'}; font-weight: 600; text-align: center; font-size: 11px;">
+                        ${task.timeline ? `${task.timeline.icon} ${task.timeline.status}` : '🎯 Ready'}
                     </td>
                 </tr>
-            `).join('')}
+                `;
+            }).join('')}
         </tbody>
     </table>
 ` : ''}
 
 ${group.blockedTasks.length > 0 ? `
-    <p style="font-weight: bold; color: #e74c3c; margin: 15px 0 10px 0; font-size: 14px;">🔒 BLOCKED (${group.blockedTasks.length})</p>
+    <p style="font-weight: bold; color: #e74c3c; margin: 20px 0 10px 0; font-size: 14px;">🔒 BLOCKED (${group.blockedTasks.length})</p>
     <table class="gantt-table">
         <thead>
             <tr>
-                <th style="width: 5%;">#</th>
-                <th style="width: 35%;">Task Name</th>
-                <th style="width: 15%;">Plan Start</th>
-                <th style="width: 15%;">Plan End</th>
-                <th style="width: 30%;">Timeline Status</th>
+                <th style="width: 8%;">Seq<br>Mode</th>
+                <th style="width: 40%;">Task Name & Description</th>
+                <th style="width: 12%;">Plan<br>Start</th>
+                <th style="width: 12%;">Plan<br>End</th>
+                <th style="width: 28%;">Blocking Issue</th>
             </tr>
         </thead>
         <tbody>
-            ${group.blockedTasks.map(task => `
+            ${group.blockedTasks.map(task => {
+                const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
+                                task.executionMode === 'parallel' ? 'Parallel' : 'Independent';
+                const modeClass = `mode-${task.executionMode || 'independent'}`;
+                
+                // Get blocking tasks info
+                let blockingInfo = '<span style="color: #e74c3c; font-style: italic;">Waiting dependencies</span>';
+                if (task.dependencies && task.dependencies.length > 0) {
+                    const blockingTasks = task.dependencies.map(depId => {
+                        const depTask = group.tasks.find(t => t.id === depId);
+                        if (!depTask) return null;
+                        const progress = parseInt(depTask.progress) || 0;
+                        if (progress < 100) {
+                            return `<span style="font-weight: 600;">#${depTask.sequence || '?'}</span> ${depTask.name} (${progress}%)`;
+                        }
+                        return null;
+                    }).filter(t => t !== null);
+                    
+                    if (blockingTasks.length > 0) {
+                        blockingInfo = `<span style="color: #c0392b; font-weight: 600;">Waiting:</span><br>${blockingTasks.join('<br>')}`;
+                    }
+                }
+                
+                return `
                 <tr>
-                    <td style="text-align: center; font-weight: 600; color: #e74c3c;">${task.sequence || '?'}</td>
-                    <td><strong>${task.name}</strong></td>
-                    <td>${task.targetStart ? formatDateForDisplay(task.targetStart) : '-'}</td>
-                    <td>${task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-'}</td>
-                    <td style="color: ${task.timeline ? task.timeline.color : '#95a5a6'}; font-weight: 600;">
-                        ${task.timeline ? `${task.timeline.icon} ${task.timeline.status}` : 'Waiting dependencies'}
+                    <td style="text-align: center; font-weight: 700; color: #e74c3c; font-size: 13px;">
+                        #${task.sequence || '?'}
+                        <span class="mode-badge ${modeClass}">${modeLabel}</span>
                     </td>
+                    <td>
+                        <strong style="color: #2c3e50;">${task.name}</strong>
+                        ${task.description ? `<div style="font-size: 10px; color: #7f8c8d; margin-top: 3px; font-style: italic;">${task.description.substring(0, 80)}${task.description.length > 80 ? '...' : ''}</div>` : ''}
+                    </td>
+                    <td style="text-align: center; font-size: 10px;">${task.targetStart ? formatDateForDisplay(task.targetStart) : '-'}</td>
+                    <td style="text-align: center; font-size: 10px;">${task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-'}</td>
+                    <td style="font-size: 10px; color: #e74c3c;">${blockingInfo}</td>
                 </tr>
-            `).join('')}
+                `;
+            }).join('')}
         </tbody>
     </table>
 ` : ''}
@@ -6406,8 +6522,11 @@ ${group.blockedTasks.length > 0 ? `
         </div>
         
         <div style="text-align: center;">
-            <button class="print-btn" onclick="window.print()">🖨️ Print Report</button>
-        </div>
+    <button class="print-btn" onclick="window.print()">🖨️ Print Report</button>
+    <button class="print-btn" onclick="downloadPreviewAsPDF()" style="background: #e74c3c; margin-left: 10px;">
+        📥 Download as PDF
+    </button>
+</div>
     </div>
 </body>
 </html>
@@ -6777,8 +6896,9 @@ yPos += 5;
     yPos += 15;
         
         // COMPLETED
+// COMPLETED
 if (group.completedTasks.length > 0) {
-    if (yPos > 240) {
+    if (yPos > 235) {
         doc.addPage();
         yPos = 20;
     }
@@ -6790,40 +6910,77 @@ if (group.completedTasks.length > 0) {
     doc.setTextColor(0, 0, 0);
     yPos += 6;
     
-    const completedData = group.completedTasks.slice(0, 10).map(task => [
-        task.sequence || '?',
-        task.name,
-        task.targetStart ? formatDateForDisplay(task.targetStart) : '-',
-        task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-',
-        task.startDate ? formatDateForDisplay(task.startDate) : '-',
-        task.completedDate ? formatDateForDisplay(task.completedDate) : '-',
-        task.timeline ? `${task.timeline.status}` : '-'
-    ]);
+    const completedData = group.completedTasks.slice(0, 10).map(task => {
+        // Mode icon
+        const modeIcon = task.executionMode === 'sequential' ? '>' : 
+                        task.executionMode === 'parallel' ? '||' : 'o';
+        
+        // Task info with description
+        let taskInfo = task.name;
+        if (task.description && task.description.trim()) {
+            const shortDesc = task.description.length > 60 ? 
+                            task.description.substring(0, 60) + '...' : 
+                            task.description;
+            taskInfo += `\n${shortDesc}`;
+        }
+        
+        return [
+            `${task.sequence || '?'}\n${modeIcon}`,
+            taskInfo,
+            task.targetStart ? formatDateForDisplay(task.targetStart) : '-',
+            task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-',
+            task.startDate ? formatDateForDisplay(task.startDate) : '-',
+            task.completedDate ? formatDateForDisplay(task.completedDate) : '-',
+            task.timeline ? task.timeline.status : '-'
+        ];
+    });
     
     doc.autoTable({
         startY: yPos,
-        head: [['#', 'Task Name', 'Plan Start', 'Plan End', 'Actual Start', 'Actual End', 'Timeline']],
+        head: [['Seq\nMode', 'Task Name & Description', 'Plan\nStart', 'Plan\nEnd', 'Actual\nStart', 'Actual\nEnd', 'Timeline\nStatus']],
         body: completedData,
-        theme: 'grid',
+        theme: 'striped',
         headStyles: { 
             fillColor: [39, 174, 96],
             textColor: 255,
-            fontSize: 8,
+            fontSize: 7,
             fontStyle: 'bold',
-            halign: 'center'
+            halign: 'center',
+            cellPadding: { top: 3, right: 2, bottom: 3, left: 2 },
+            lineWidth: 0.1,
+            lineColor: [200, 200, 200]
         },
         bodyStyles: { 
-            fontSize: 7,
-            cellPadding: 2
+            fontSize: 6.5,
+            cellPadding: { top: 3, right: 2, bottom: 3, left: 2 },
+            valign: 'top',
+            lineWidth: 0.1,
+            lineColor: [220, 220, 220]
+        },
+        alternateRowStyles: {
+            fillColor: [245, 250, 245]
         },
         columnStyles: {
-            0: { halign: 'center', cellWidth: 8 },
-            1: { cellWidth: 45 },
-            2: { fontSize: 7, cellWidth: 20 },
-            3: { fontSize: 7, cellWidth: 20 },
-            4: { fontSize: 7, cellWidth: 20 },
-            5: { fontSize: 7, cellWidth: 20 },
-            6: { fontSize: 7, cellWidth: 'auto' }
+            0: { halign: 'center', cellWidth: 10, fontSize: 6 },
+            1: { cellWidth: 48, fontSize: 6.5 },
+            2: { halign: 'center', cellWidth: 17, fontSize: 6 },
+            3: { halign: 'center', cellWidth: 17, fontSize: 6 },
+            4: { halign: 'center', cellWidth: 17, fontSize: 6 },
+            5: { halign: 'center', cellWidth: 17, fontSize: 6 },
+            6: { cellWidth: 'auto', fontSize: 6, fontStyle: 'bold' }
+        },
+        didParseCell: function(data) {
+            // Add color to timeline status
+            if (data.column.index === 6 && data.section === 'body') {
+                const status = data.cell.text[0];
+                if (status && status.includes('early')) {
+                    data.cell.styles.textColor = [52, 152, 219]; // Blue
+                } else if (status && status.includes('on time')) {
+                    data.cell.styles.textColor = [39, 174, 96]; // Green
+                } else if (status && status.includes('late')) {
+                    data.cell.styles.textColor = [231, 76, 60]; // Red
+                }
+            }
         },
         margin: { left: margin, right: margin }
     });
@@ -6831,8 +6988,8 @@ if (group.completedTasks.length > 0) {
     yPos = doc.lastAutoTable.finalY + 8;
     
     if (group.completedTasks.length > 10) {
-        doc.setFontSize(8);
-        doc.setTextColor(150);
+        doc.setFontSize(7);
+        doc.setTextColor(120);
         doc.text(`+ ${group.completedTasks.length - 10} more completed tasks`, margin + 7, yPos);
         doc.setTextColor(0);
         yPos += 6;
@@ -6840,8 +6997,9 @@ if (group.completedTasks.length > 0) {
 }
         
         // IN PROGRESS
+// IN PROGRESS
 if (group.inProgressTasks.length > 0) {
-    if (yPos > 240) {
+    if (yPos > 235) {
         doc.addPage();
         yPos = 20;
     }
@@ -6853,40 +7011,77 @@ if (group.inProgressTasks.length > 0) {
     doc.setTextColor(0, 0, 0);
     yPos += 6;
     
-    const inProgressData = group.inProgressTasks.map(task => [
-        task.sequence || '?',
-        task.name,
-        task.targetStart ? formatDateForDisplay(task.targetStart) : '-',
-        task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-',
-        task.startDate ? formatDateForDisplay(task.startDate) : '-',
-        `${task.progress || 0}%`,
-        task.timeline ? `${task.timeline.status}` : '-'
-    ]);
+    const inProgressData = group.inProgressTasks.map(task => {
+        const modeIcon = task.executionMode === 'sequential' ? '>' : 
+                        task.executionMode === 'parallel' ? '||' : 'o';
+        
+        let taskInfo = task.name;
+        if (task.description && task.description.trim()) {
+            const shortDesc = task.description.length > 60 ? 
+                            task.description.substring(0, 60) + '...' : 
+                            task.description;
+            taskInfo += `\n${shortDesc}`;
+        }
+        
+        return [
+            `${task.sequence || '?'}\n${modeIcon}`,
+            taskInfo,
+            task.targetStart ? formatDateForDisplay(task.targetStart) : '-',
+            task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-',
+            task.startDate ? formatDateForDisplay(task.startDate) : '-',
+            `${task.progress || 0}%`,
+            task.timeline ? task.timeline.status : '-'
+        ];
+    });
     
     doc.autoTable({
         startY: yPos,
-        head: [['#', 'Task Name', 'Plan Start', 'Plan End', 'Actual Start', 'Progress', 'Timeline']],
+        head: [['Seq\nMode', 'Task Name & Description', 'Plan\nStart', 'Plan\nEnd', 'Actual\nStart', 'Progress', 'Timeline\nStatus']],
         body: inProgressData,
-        theme: 'grid',
+        theme: 'striped',
         headStyles: { 
             fillColor: [243, 156, 18],
             textColor: 255,
-            fontSize: 8,
+            fontSize: 7,
             fontStyle: 'bold',
-            halign: 'center'
+            halign: 'center',
+            cellPadding: { top: 3, right: 2, bottom: 3, left: 2 },
+            lineWidth: 0.1,
+            lineColor: [200, 200, 200]
         },
         bodyStyles: { 
-            fontSize: 7,
-            cellPadding: 2
+            fontSize: 6.5,
+            cellPadding: { top: 3, right: 2, bottom: 3, left: 2 },
+            valign: 'top',
+            lineWidth: 0.1,
+            lineColor: [220, 220, 220]
+        },
+        alternateRowStyles: {
+            fillColor: [255, 250, 245]
         },
         columnStyles: {
-            0: { halign: 'center', cellWidth: 8 },
-            1: { cellWidth: 45 },
-            2: { fontSize: 7, cellWidth: 20 },
-            3: { fontSize: 7, cellWidth: 20 },
-            4: { fontSize: 7, cellWidth: 20 },
-            5: { halign: 'center', fontStyle: 'bold', cellWidth: 15 },
-            6: { fontSize: 7, cellWidth: 'auto' }
+            0: { halign: 'center', cellWidth: 10, fontSize: 6 },
+            1: { cellWidth: 50, fontSize: 6.5 },
+            2: { halign: 'center', cellWidth: 17, fontSize: 6 },
+            3: { halign: 'center', cellWidth: 17, fontSize: 6 },
+            4: { halign: 'center', cellWidth: 17, fontSize: 6 },
+            5: { halign: 'center', cellWidth: 12, fontSize: 7, fontStyle: 'bold', textColor: [52, 152, 219] },
+            6: { cellWidth: 'auto', fontSize: 6, fontStyle: 'bold' }
+        },
+        didParseCell: function(data) {
+            if (data.column.index === 6 && data.section === 'body') {
+                const status = data.cell.text[0];
+                if (status && status.includes('ahead')) {
+                    data.cell.styles.textColor = [52, 152, 219];
+                } else if (status && status.includes('on track')) {
+                    data.cell.styles.textColor = [39, 174, 96];
+                } else if (status && (status.includes('at risk') || status.includes('delayed'))) {
+                    data.cell.styles.textColor = [231, 76, 60];
+                } else if (status && status.includes('overdue')) {
+                    data.cell.styles.textColor = [192, 57, 43];
+                    data.cell.styles.fontStyle = 'bold';
+                }
+            }
         },
         margin: { left: margin, right: margin }
     });
@@ -6896,8 +7091,9 @@ if (group.inProgressTasks.length > 0) {
 
 // ✅ TAMBAHKAN INI - READY TO START
 // READY TO START
+// READY TO START
 if (group.readyTasks && group.readyTasks.length > 0) {
-    if (yPos > 240) {
+    if (yPos > 235) {
         doc.addPage();
         yPos = 20;
     }
@@ -6909,36 +7105,68 @@ if (group.readyTasks && group.readyTasks.length > 0) {
     doc.setTextColor(0, 0, 0);
     yPos += 6;
     
-    const readyData = group.readyTasks.map(task => [
-        task.sequence || '?',
-        task.name,
-        task.targetStart ? formatDateForDisplay(task.targetStart) : '-',
-        task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-',
-        task.timeline ? `${task.timeline.status}` : '-'
-    ]);
+    const readyData = group.readyTasks.map(task => {
+        const modeIcon = task.executionMode === 'sequential' ? '>' : 
+                        task.executionMode === 'parallel' ? '||' : 'o';
+        
+        let taskInfo = task.name;
+        if (task.description && task.description.trim()) {
+            const shortDesc = task.description.length > 60 ? 
+                            task.description.substring(0, 60) + '...' : 
+                            task.description;
+            taskInfo += `\n${shortDesc}`;
+        }
+        
+        // Dependencies info
+        let depsInfo = '-';
+        if (task.executionMode === 'sequential' && task.dependencies && task.dependencies.length > 0) {
+            depsInfo = `Waits: ${task.dependencies.length} task(s)`;
+        } else if (task.executionMode === 'parallel' && task.parallelWith && task.parallelWith.length > 0) {
+            depsInfo = `With: ${task.parallelWith.length} task(s)`;
+        }
+        
+        return [
+            `${task.sequence || '?'}\n${modeIcon}`,
+            taskInfo,
+            task.targetStart ? formatDateForDisplay(task.targetStart) : '-',
+            task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-',
+            depsInfo,
+            task.timeline ? task.timeline.status : 'Ready'
+        ];
+    });
     
     doc.autoTable({
         startY: yPos,
-        head: [['#', 'Task Name', 'Plan Start', 'Plan End', 'Timeline Status']],
+        head: [['Seq\nMode', 'Task Name & Description', 'Plan\nStart', 'Plan\nEnd', 'Dependencies', 'Status']],
         body: readyData,
-        theme: 'grid',
+        theme: 'striped',
         headStyles: { 
             fillColor: [52, 152, 219],
             textColor: 255,
-            fontSize: 8,
+            fontSize: 7,
             fontStyle: 'bold',
-            halign: 'center'
+            halign: 'center',
+            cellPadding: { top: 3, right: 2, bottom: 3, left: 2 },
+            lineWidth: 0.1,
+            lineColor: [200, 200, 200]
         },
         bodyStyles: { 
-            fontSize: 7,
-            cellPadding: 2
+            fontSize: 6.5,
+            cellPadding: { top: 3, right: 2, bottom: 3, left: 2 },
+            valign: 'top',
+            lineWidth: 0.1,
+            lineColor: [220, 220, 220]
+        },
+        alternateRowStyles: {
+            fillColor: [240, 248, 255]
         },
         columnStyles: {
-            0: { halign: 'center', cellWidth: 8 },
-            1: { cellWidth: 60 },
-            2: { fontSize: 7, cellWidth: 25 },
-            3: { fontSize: 7, cellWidth: 25 },
-            4: { fontSize: 7, cellWidth: 'auto' }
+            0: { halign: 'center', cellWidth: 10, fontSize: 6 },
+            1: { cellWidth: 60, fontSize: 6.5 },
+            2: { halign: 'center', cellWidth: 20, fontSize: 6 },
+            3: { halign: 'center', cellWidth: 20, fontSize: 6 },
+            4: { cellWidth: 25, fontSize: 6, textColor: [100, 100, 100] },
+            5: { cellWidth: 'auto', fontSize: 6, fontStyle: 'bold', textColor: [52, 152, 219] }
         },
         margin: { left: margin, right: margin }
     });
@@ -6948,8 +7176,9 @@ if (group.readyTasks && group.readyTasks.length > 0) {
 
         
         // BLOCKED
+// BLOCKED
 if (group.blockedTasks.length > 0) {
-    if (yPos > 240) {
+    if (yPos > 235) {
         doc.addPage();
         yPos = 20;
     }
@@ -6961,36 +7190,68 @@ if (group.blockedTasks.length > 0) {
     doc.setTextColor(0, 0, 0);
     yPos += 6;
     
-    const blockedData = group.blockedTasks.map(task => [
-        task.sequence || '?',
-        task.name,
-        task.targetStart ? formatDateForDisplay(task.targetStart) : '-',
-        task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-',
-        'Waiting dependencies'
-    ]);
+    const blockedData = group.blockedTasks.map(task => {
+        const modeIcon = task.executionMode === 'sequential' ? '>' : 
+                        task.executionMode === 'parallel' ? '||' : 'o';
+        
+        let taskInfo = task.name;
+        if (task.description && task.description.trim()) {
+            const shortDesc = task.description.length > 60 ? 
+                            task.description.substring(0, 60) + '...' : 
+                            task.description;
+            taskInfo += `\n${shortDesc}`;
+        }
+        
+        // Get blocking tasks info
+        let blockingInfo = 'Waiting dependencies';
+        if (task.dependencies && task.dependencies.length > 0) {
+            const blockingTasks = task.dependencies.map(depId => {
+                const depTask = group.tasks.find(t => t.id === depId);
+                return depTask ? `#${depTask.sequence || '?'}` : '?';
+            }).join(', ');
+            blockingInfo = `Waiting: ${blockingTasks}`;
+        }
+        
+        return [
+            `${task.sequence || '?'}\n${modeIcon}`,
+            taskInfo,
+            task.targetStart ? formatDateForDisplay(task.targetStart) : '-',
+            task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-',
+            blockingInfo
+        ];
+    });
     
     doc.autoTable({
         startY: yPos,
-        head: [['#', 'Task Name', 'Plan Start', 'Plan End', 'Status']],
+        head: [['Seq\nMode', 'Task Name & Description', 'Plan\nStart', 'Plan\nEnd', 'Blocking Issue']],
         body: blockedData,
-        theme: 'grid',
+        theme: 'striped',
         headStyles: { 
             fillColor: [231, 76, 60],
             textColor: 255,
-            fontSize: 8,
+            fontSize: 7,
             fontStyle: 'bold',
-            halign: 'center'
+            halign: 'center',
+            cellPadding: { top: 3, right: 2, bottom: 3, left: 2 },
+            lineWidth: 0.1,
+            lineColor: [200, 200, 200]
         },
         bodyStyles: { 
-            fontSize: 7,
-            cellPadding: 2
+            fontSize: 6.5,
+            cellPadding: { top: 3, right: 2, bottom: 3, left: 2 },
+            valign: 'top',
+            lineWidth: 0.1,
+            lineColor: [220, 220, 220]
+        },
+        alternateRowStyles: {
+            fillColor: [255, 245, 245]
         },
         columnStyles: {
-            0: { halign: 'center', cellWidth: 8 },
-            1: { cellWidth: 60 },
-            2: { fontSize: 7, cellWidth: 25 },
-            3: { fontSize: 7, cellWidth: 25 },
-            4: { fontSize: 7, cellWidth: 'auto' }
+            0: { halign: 'center', cellWidth: 10, fontSize: 6 },
+            1: { cellWidth: 65, fontSize: 6.5 },
+            2: { halign: 'center', cellWidth: 20, fontSize: 6 },
+            3: { halign: 'center', cellWidth: 20, fontSize: 6 },
+            4: { cellWidth: 'auto', fontSize: 6, textColor: [192, 57, 43], fontStyle: 'italic' }
         },
         margin: { left: margin, right: margin }
     });
@@ -8823,13 +9084,51 @@ function showTasksTooltip(event, equipmentName, disc) {
     
     const onsiteTasksList = onsiteTasks[mainEquipment.firebaseKey] || [];
     
+    // ✅ LANGSUNG KE SINI - Cek onsite tasks
     if (onsiteTasksList.length === 0) {
         let content = `<div style="font-weight: 600; margin-bottom: 8px;">${equipmentName} - ${disc}</div>`;
-        content += '<div style="font-size: 11px; color: #95a5a6;">No onsite tasks created yet</div>';
-        showTooltipElement(content, event);
+        content += '<div style="font-size: 11px; color: #95a5a6; margin-bottom: 10px;">Onsite work not started yet</div>';
+        
+        // Get last update from activity history
+        activityHistoryRef.orderByChild('equipmentId').equalTo(mainEquipment.id).limitToLast(3).once('value').then(snapshot => {
+            const activities = [];
+            snapshot.forEach(child => {
+                activities.push(child.val());
+            });
+            
+            if (activities.length > 0) {
+                content += '<div style="border-top: 1px solid #ddd; padding-top: 8px; margin-top: 8px;">';
+                content += '<div style="font-weight: 600; font-size: 11px; color: #3498db; margin-bottom: 5px;">📋 Recent Updates:</div>';
+                
+                // Show only last 2 activities
+activities.reverse().slice(0, 2).forEach(activity => {
+    const date = new Date(activity.timestamp);
+    const dateStr = date.toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: '2-digit'});
+    
+    // Get notes content
+    const notes = activity.notes || activity.description || 'No details available';
+    
+    // Truncate if too long
+    const displayNotes = notes.length > 200 ? notes.substring(0, 200) + '...' : notes;
+    
+    content += `<div style="font-size: 10px; margin: 5px 0; padding: 8px; background: #f8f9fa; border-radius: 4px; border-left: 3px solid #3498db;">
+        <div style="font-weight: 600; color: #2c3e50; margin-bottom: 3px;">
+            ${activity.icon || '📝'} ${dateStr}
+            ${activity.user ? `<span style="color: #7f8c8d; font-weight: normal;"> by ${activity.user}</span>` : ''}
+        </div>
+        <div style="color: #34495e; line-height: 1.4; white-space: pre-wrap;">
+            ${displayNotes}
+        </div>
+    </div>`;
+});
+                content += '</div>';
+            }
+            
+            showTooltipElement(content, event);
+        });
         return;
     }
-    
+       
     // Calculate task statuses with time-based indicators
     const tasksWithStatus = onsiteTasksList.map(task => {
         const progress = parseInt(task.progress) || 0;
