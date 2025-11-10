@@ -2048,7 +2048,7 @@ body.grouped-view-active #tablePagination {
 
 <!-- Dependencies (shown only for sequential mode) -->
 <div class="form-group" id="taskDependenciesGroup" style="display: none;">
-    <label class="form-label">Dependencies (must complete first):</label>
+    <label class="form-label" id="taskDependenciesLabel">Dependencies (must complete first):</label>
     <div id="taskDependenciesList" style="max-height: 150px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px; background: #f8f9fa;">
         <div style="color: #95a5a6; font-size: 12px;">Select sequential mode to set dependencies</div>
     </div>
@@ -2057,7 +2057,7 @@ body.grouped-view-active #tablePagination {
 
 <!-- Parallel Tasks (shown only for parallel mode) -->
 <div class="form-group" id="taskParallelGroup" style="display: none;">
-    <label class="form-label">Can run parallel with:</label>
+    <label class="form-label" id="taskParallelLabel">Can run parallel with:</label>
     <div id="taskParallelTasksList" style="max-height: 150px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px; background: #f8f9fa;">
         <div style="color: #95a5a6; font-size: 12px;">Select parallel mode to choose tasks</div>
     </div>
@@ -7555,6 +7555,22 @@ document.getElementById('taskStatusInput').addEventListener('change', function()
         actualEndGroup.style.display = 'none';
     }
 });
+// ✅ Add visual indicators for required fields based on execution mode
+document.getElementById('taskExecutionModeInput').addEventListener('change', function() {
+    const mode = this.value;
+    const depGroup = document.getElementById('taskDependenciesGroup');
+    const parGroup = document.getElementById('taskParallelGroup');
+    
+    // Update labels to show required/optional
+    const depLabel = document.querySelector('label[for="taskDependenciesGroup"]');
+    const parLabel = document.querySelector('label[for="taskParallelGroup"]');
+    
+    if (mode === 'sequential' && depGroup.style.display === 'block') {
+        if (depLabel) depLabel.innerHTML = 'Dependencies (must complete first): <span style="color: #e74c3c;">*Required</span>';
+    } else if (mode === 'parallel' && parGroup.style.display === 'block') {
+        if (parLabel) parLabel.innerHTML = 'Can run parallel with: <span style="color: #e74c3c;">*Required</span>';
+    }
+});
 }  // ← Ini closing brace dari openTaskEditModal()
 
 
@@ -7578,15 +7594,19 @@ function setupExecutionModeListener() {
 function handleExecutionModeChange(mode) {
     const depGroup = document.getElementById('taskDependenciesGroup');
     const parGroup = document.getElementById('taskParallelGroup');
+    const depLabel = document.getElementById('taskDependenciesLabel');
+    const parLabel = document.getElementById('taskParallelLabel');
     
     if (mode === 'sequential') {
         depGroup.style.display = 'block';
         parGroup.style.display = 'none';
         populateTaskDependencies();
+        if (depLabel) depLabel.innerHTML = 'Dependencies (must complete first): <span style="color: #e74c3c; font-weight: 600;">*Required</span>';
     } else if (mode === 'parallel') {
         depGroup.style.display = 'none';
         parGroup.style.display = 'block';
         populateTaskParallel();
+        if (parLabel) parLabel.innerHTML = 'Can run parallel with: <span style="color: #e74c3c; font-weight: 600;">*Required</span>';
     } else {
         depGroup.style.display = 'none';
         parGroup.style.display = 'none';
@@ -7677,12 +7697,72 @@ function closeTaskEditModal() {
 
 function saveTask() {
     const name = document.getElementById('taskNameInput').value.trim();
+    const targetStart = document.getElementById('taskStartInput').value;
+    const targetEnd = document.getElementById('taskEndInput').value;
+    const actualStart = document.getElementById('taskActualStartInput').value;
+    const actualEnd = document.getElementById('taskActualEndInput').value;
+    const executionMode = document.getElementById('taskExecutionModeInput').value;
+    const description = document.getElementById('taskDescInput').value.trim();
     
+    // ✅ VALIDATION 1: Task name required
     if (!name) {
         showNotification('Please enter task name', 'error');
         return;
     }
     
+    // ✅ VALIDATION 2: Sequential mode must have dependencies
+    if (executionMode === 'sequential') {
+        const selectedDeps = document.querySelectorAll('.task-dep-checkbox:checked');
+        if (selectedDeps.length === 0) {
+            showNotification('Sequential mode requires at least one dependency task to be selected', 'error');
+            return;
+        }
+    }
+    
+    // ✅ VALIDATION 3: Parallel mode must have parallel tasks
+    if (executionMode === 'parallel') {
+        const selectedParallel = document.querySelectorAll('.task-parallel-checkbox:checked');
+        if (selectedParallel.length === 0) {
+            showNotification('Parallel mode requires at least one parallel task to be selected', 'error');
+            return;
+        }
+    }
+    
+    // ✅ VALIDATION 4: Target end date must be after start date
+    if (targetStart && targetEnd) {
+        const startDate = new Date(targetStart);
+        const endDate = new Date(targetEnd);
+        if (endDate < startDate) {
+            showNotification('Target End Date cannot be earlier than Target Start Date', 'error');
+            return;
+        }
+    }
+    
+    // ✅ VALIDATION 5: Actual end date must be after actual start date
+    if (actualStart && actualEnd) {
+        const actStartDate = new Date(actualStart);
+        const actEndDate = new Date(actualEnd);
+        if (actEndDate < actStartDate) {
+            showNotification('Actual Completion Date cannot be earlier than Actual Start Date', 'error');
+            return;
+        }
+    }
+    
+    // ✅ VALIDATION 6: Check for incomplete fields (warning, but allow save)
+    const missingFields = [];
+    if (!description) missingFields.push('Description');
+    if (!targetStart) missingFields.push('Target Start Date');
+    if (!targetEnd) missingFields.push('Target End Date');
+    
+    if (missingFields.length > 0) {
+        const confirmSave = confirm(
+            `The following fields are empty:\n- ${missingFields.join('\n- ')}\n\nDo you want to save anyway?`
+        );
+        if (!confirmSave) {
+            return;
+        }
+    }
+        
     // Get dependencies and parallel tasks
     const selectedDeps = Array.from(document.querySelectorAll('.task-dep-checkbox:checked')).map(cb => cb.value);
     const selectedParallel = Array.from(document.querySelectorAll('.task-parallel-checkbox:checked')).map(cb => cb.value);
