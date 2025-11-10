@@ -1997,10 +1997,7 @@ body.grouped-view-active #tablePagination {
             <div class="form-group">
                 <label class="form-label">Duration (auto-calculated):</label>                <input type="number" id="taskDurationInput" class="form-control" min="1" placeholder="Auto-calculated" readonly style="background: #f8f9fa; cursor: not-allowed;">
             </div>
-            <div class="form-group">
-                <label class="form-label">Assigned To:</label>
-                <input type="text" id="taskAssignedInput" class="form-control" placeholder="e.g., Ahmad R.">
-            </div>
+           
             <div class="form-group">
                 <label class="form-label">Status:</label>
                 <select id="taskStatusInput" class="form-control">
@@ -2009,6 +2006,18 @@ body.grouped-view-active #tablePagination {
                     <option value="completed">Completed</option>
                 </select>
             </div>
+<!-- Actual Dates (shown when status is inprogress or completed) -->
+<div class="form-group" id="taskActualDatesGroup" style="display: none;">
+    <label class="form-label">Actual Start Date:</label>
+    <input type="date" id="taskActualStartInput" class="form-control">
+    <small style="color: #7f8c8d; font-size: 11px;">Auto-filled when task started, can be adjusted manually</small>
+</div>
+
+<div class="form-group" id="taskActualEndGroup" style="display: none;">
+    <label class="form-label">Actual Completion Date:</label>
+    <input type="date" id="taskActualEndInput" class="form-control">
+    <small style="color: #7f8c8d; font-size: 11px;">Auto-filled when task completed, can be adjusted manually</small>
+</div>
             <div class="form-group" id="taskProgressGroup" style="display: none;">
                 <label class="form-label">Progress (%):</label>
                 <input type="number" id="taskProgressInput" class="form-control" min="0" max="100" value="0">
@@ -6142,7 +6151,29 @@ function generateHTMLReport(data) {
         .container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .header { text-align: center; border-bottom: 3px solid #2c3e50; padding-bottom: 20px; margin-bottom: 30px; }
         .header h1 { margin: 0; color: #2c3e50; font-size: 24px; }
-        .section { margin-bottom: 30px; }
+        .section { 
+    margin-bottom: 40px; 
+    padding-bottom: 30px;
+    border-bottom: 3px solid #ecf0f1;
+}
+.section:last-child {
+    border-bottom: none;
+}
+.group-separator {
+    margin: 40px 0;
+    padding: 20px 0;
+    border-top: 2px solid #3498db;
+    position: relative;
+}
+.group-separator::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: 0;
+    width: 60px;
+    height: 2px;
+    background: #e74c3c;
+}
         .section-title { font-size: 16px; font-weight: bold; color: #2c3e50; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 5px; }
         .progress-bar { background: #ecf0f1; height: 30px; border-radius: 5px; overflow: hidden; margin: 10px 0; }
         .progress-fill { height: 100%; background: #27ae60; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
@@ -6238,9 +6269,18 @@ function generateHTMLReport(data) {
         </div>
         
         <div class="section">
-            <div class="section-title">TASK STATUS DETAILS</div>
-            ${data.groups.map(group => `
-                <h4 style="color: #2c3e50; margin-top: 20px;">${group.equipment} - ${group.disc}</h4>
+    <div class="section-title">TASK STATUS DETAILS</div>
+    ${data.groups.map((group, groupIndex) => `
+        ${groupIndex > 0 ? '<div class="group-separator"></div>' : ''}
+        
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h3 style="color: white; margin: 0; font-size: 18px; font-weight: 600;">
+                ${group.equipment} - ${group.disc}
+            </h3>
+            <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 12px;">
+                ${group.vendor} | Progress: ${group.overallProgress}% | Status: ${group.status}
+            </p>
+        </div>
                 
                 ${group.completedTasks.length > 0 ? `
     <p style="font-weight: bold; color: #27ae60; margin: 15px 0 10px 0; font-size: 14px;">✅ COMPLETED (${group.completedTasks.length})</p>
@@ -6702,15 +6742,39 @@ yPos += 5;
     yPos += 8;
     
     data.groups.forEach((group, groupIdx) => {
-        if (yPos > 250) {
+    // Add separator between groups
+    if (groupIdx > 0) {
+        if (yPos > 230) {
             doc.addPage();
             yPos = 20;
         }
         
-        doc.setFontSize(10);
-        doc.setFont(undefined, 'bold');
-        doc.text(`${group.equipment} - ${group.disc}`, margin + 3, yPos);
-        yPos += 6;
+        // Separator line
+        doc.setDrawColor(52, 152, 219);
+        doc.setLineWidth(1);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 8;
+    }
+    
+    if (yPos > 240) {
+        doc.addPage();
+        yPos = 20;
+    }
+    
+    // Group header with background
+    doc.setFillColor(102, 126, 234);
+    doc.rect(margin, yPos - 5, contentWidth, 12, 'F');
+    
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(255, 255, 255);
+    doc.text(`${group.equipment} - ${group.disc}`, margin + 3, yPos + 2);
+    
+    doc.setFontSize(8);
+    doc.text(`${group.vendor} | Progress: ${group.overallProgress}% | Status: ${group.status}`, margin + 3, yPos + 7);
+    
+    doc.setTextColor(0, 0, 0);
+    yPos += 15;
         
         // COMPLETED
 if (group.completedTasks.length > 0) {
@@ -7117,19 +7181,32 @@ function openTaskEditModal(taskId = null) {
         document.getElementById('taskStartInput').value = task.targetStart || '';
         document.getElementById('taskEndInput').value = task.targetEnd || '';
         document.getElementById('taskDurationInput').value = task.duration || '';
-        document.getElementById('taskAssignedInput').value = task.assignedTo || '';
         document.getElementById('taskStatusInput').value = task.status || 'pending';
         document.getElementById('taskProgressInput').value = task.progress || 0;
-        document.getElementById('taskNotesInput').value = task.notes || '';
-        
-        // ✅ NEW: Set sequence & execution mode
-        document.getElementById('taskSequenceInput').value = task.sequence || 999;
-        document.getElementById('taskExecutionModeInput').value = task.executionMode || 'independent';
-        
-        // Show/hide progress based on status
-        const status = task.status || 'pending';
-        document.getElementById('taskProgressGroup').style.display = 
-            status === 'inprogress' ? 'block' : 'none';
+// Show/hide actual date fields based on status
+
+document.getElementById('taskNotesInput').value = task.notes || '';
+
+// ✅ NEW: Set sequence & execution mode
+document.getElementById('taskSequenceInput').value = task.sequence || 999;
+document.getElementById('taskExecutionModeInput').value = task.executionMode || 'independent';
+
+// ✅ NEW: Show/hide fields based on status
+const status = task.status || 'pending';
+
+// Actual date fields
+document.getElementById('taskActualDatesGroup').style.display = 
+    (status === 'inprogress' || status === 'completed') ? 'block' : 'none';
+document.getElementById('taskActualEndGroup').style.display = 
+    status === 'completed' ? 'block' : 'none';
+
+// Set actual dates
+document.getElementById('taskActualStartInput').value = task.startDate || '';
+document.getElementById('taskActualEndInput').value = task.completedDate || '';
+
+// Progress field
+document.getElementById('taskProgressGroup').style.display = 
+    status === 'inprogress' ? 'block' : 'none';
     } else {
         // Add new task
         currentTaskEditId = null;
@@ -7140,7 +7217,6 @@ function openTaskEditModal(taskId = null) {
         document.getElementById('taskStartInput').value = '';
         document.getElementById('taskEndInput').value = '';
         document.getElementById('taskDurationInput').value = '';
-        document.getElementById('taskAssignedInput').value = '';
         document.getElementById('taskStatusInput').value = 'pending';
         document.getElementById('taskProgressInput').value = 0;
         document.getElementById('taskNotesInput').value = '';
@@ -7190,7 +7266,37 @@ if (startInput && endInput) {
     startInput.addEventListener('change', calculateDuration);
     endInput.addEventListener('change', calculateDuration);
 }
+// Listen to status changes to show/hide date fields
+document.getElementById('taskStatusInput').addEventListener('change', function() {
+    const newStatus = this.value;
+    const actualDatesGroup = document.getElementById('taskActualDatesGroup');
+    const actualEndGroup = document.getElementById('taskActualEndGroup');
+    const actualStartInput = document.getElementById('taskActualStartInput');
+    const actualEndInput = document.getElementById('taskActualEndInput');
+    
+    if (newStatus === 'inprogress' || newStatus === 'completed') {
+        actualDatesGroup.style.display = 'block';
+        // Auto-fill start date if empty
+        if (!actualStartInput.value) {
+            actualStartInput.value = new Date().toISOString().split('T')[0];
+        }
+    } else {
+        actualDatesGroup.style.display = 'none';
+    }
+    
+    if (newStatus === 'completed') {
+        actualEndGroup.style.display = 'block';
+        // Auto-fill end date if empty
+        if (!actualEndInput.value) {
+            actualEndInput.value = new Date().toISOString().split('T')[0];
+        }
+    } else {
+        actualEndGroup.style.display = 'none';
+    }
+});
 }  // ← Ini closing brace dari openTaskEditModal()
+
+
 
 
 // ✅ NEW: Setup event listener for execution mode
@@ -7326,7 +7432,7 @@ function saveTask() {
         targetStart: document.getElementById('taskStartInput').value,
         targetEnd: document.getElementById('taskEndInput').value,
         duration: parseInt(document.getElementById('taskDurationInput').value) || null,
-        assignedTo: document.getElementById('taskAssignedInput').value.trim(),
+        assignedTo: currentEquipmentTasks.equipment.vendor || '',
         status: document.getElementById('taskStatusInput').value,
         progress: parseInt(document.getElementById('taskProgressInput').value) || 0,
         notes: document.getElementById('taskNotesInput').value.trim(),
@@ -7337,16 +7443,35 @@ function saveTask() {
         parallelWith: selectedParallel
     };
     
-    // Add timestamps based on status
-    if (taskData.status === 'inprogress' && !currentTaskEditId) {
+    // Get actual dates from input fields (manual or auto-filled)
+const actualStartInput = document.getElementById('taskActualStartInput').value;
+const actualEndInput = document.getElementById('taskActualEndInput').value;
+
+// Set actual dates based on input or auto-fill
+if (taskData.status === 'inprogress' || taskData.status === 'completed') {
+    // Use manual input if provided, otherwise auto-fill
+    if (actualStartInput) {
+        taskData.startDate = actualStartInput;
+    } else if (!currentTaskEditId) {
+        // Only auto-fill for NEW tasks starting
         taskData.startDate = new Date().toISOString().split('T')[0];
-    } else if (taskData.status === 'completed') {
-        if (!taskData.startDate) {
-            taskData.startDate = new Date().toISOString().split('T')[0];
-        }
-        taskData.completedDate = new Date().toISOString().split('T')[0];
-        taskData.progress = 100;
     }
+}
+
+if (taskData.status === 'completed') {
+    // Use manual input if provided, otherwise auto-fill
+    if (actualEndInput) {
+        taskData.completedDate = actualEndInput;
+    } else {
+        taskData.completedDate = new Date().toISOString().split('T')[0];
+    }
+    taskData.progress = 100;
+    
+    // Ensure start date exists for completed tasks
+    if (!taskData.startDate) {
+        taskData.startDate = taskData.completedDate;
+    }
+}
     
     const equipmentKey = currentEquipmentTasks.firebaseKey;
     
