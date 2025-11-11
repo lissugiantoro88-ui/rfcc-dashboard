@@ -2023,9 +2023,15 @@ body.grouped-view-active #tablePagination {
                 <input type="number" id="taskProgressInput" class="form-control" min="0" max="100" value="0">
             </div>
             <div class="form-group">
-                <label class="form-label">Notes:</label>
-                <textarea id="taskNotesInput" class="form-control" rows="3" placeholder="Additional notes..."></textarea>
-            </div>
+    <label class="form-label">Notes:</label>
+    <textarea id="taskNotesInput" class="form-control" rows="3" placeholder="Additional notes..."></textarea>
+</div>
+<!-- ✅ USER NAME FIELD (MANDATORY) -->
+<div class="form-group">
+    <label class="form-label">Updated By: <span style="color: #e74c3c; font-weight: 600;">*Required</span></label>
+    <input type="text" id="taskUpdatedByInput" class="form-control" placeholder="Enter your name (e.g., John Doe)" required>
+    <small style="color: #7f8c8d; font-size: 11px;">Your name will be recorded for this update</small>
+</div>
 <!-- ✅ TAMBAHKAN MULAI DARI SINI -->
 
 <!-- Sequence Number -->
@@ -7447,6 +7453,7 @@ function openTaskEditModal(taskId = null) {
 // Show/hide actual date fields based on status
 
 document.getElementById('taskNotesInput').value = task.notes || '';
+document.getElementById('taskUpdatedByInput').value = task.updatedBy || '';  // ✅ ADD THIS
 
 // ✅ NEW: Set sequence & execution mode
 document.getElementById('taskSequenceInput').value = task.sequence || 999;
@@ -7481,9 +7488,10 @@ document.getElementById('taskProgressGroup').style.display =
         document.getElementById('taskStatusInput').value = 'pending';
         document.getElementById('taskProgressInput').value = 0;
         document.getElementById('taskNotesInput').value = '';
-        
-        // ✅ NEW: Auto-suggest next sequence number
-        const tasks = onsiteTasks[currentEquipmentTasks.firebaseKey] || [];
+document.getElementById('taskUpdatedByInput').value = '';  // ✅ ADD THIS
+
+// ✅ NEW: Auto-suggest next sequence number
+const tasks = onsiteTasks[currentEquipmentTasks.firebaseKey] || [];
         const maxSeq = tasks.length > 0 ? Math.max(...tasks.map(t => t.sequence || 0)) : 0;
         document.getElementById('taskSequenceInput').value = maxSeq + 1;
         document.getElementById('taskExecutionModeInput').value = 'independent';
@@ -7709,6 +7717,15 @@ function saveTask() {
         showNotification('Please enter task name', 'error');
         return;
     }
+
+// ✅ VALIDATION 1B: User name required
+const updatedBy = document.getElementById('taskUpdatedByInput').value.trim();
+if (!updatedBy) {
+    showNotification('Please enter your name in "Updated By" field', 'error');
+    document.getElementById('taskUpdatedByInput').focus();
+    document.getElementById('taskUpdatedByInput').style.borderColor = '#e74c3c';
+    return;
+}
     
     // ✅ VALIDATION 2: Sequential mode must have dependencies
     if (executionMode === 'sequential') {
@@ -7768,21 +7785,22 @@ function saveTask() {
     const selectedParallel = Array.from(document.querySelectorAll('.task-parallel-checkbox:checked')).map(cb => cb.value);
     
     const taskData = {
-        name: name,
-        description: document.getElementById('taskDescInput').value.trim(),
-        targetStart: document.getElementById('taskStartInput').value,
-        targetEnd: document.getElementById('taskEndInput').value,
-        duration: parseInt(document.getElementById('taskDurationInput').value) || null,
-        assignedTo: currentEquipmentTasks.equipment.vendor || '',
-        status: document.getElementById('taskStatusInput').value,
-        progress: parseInt(document.getElementById('taskProgressInput').value) || 0,
-        notes: document.getElementById('taskNotesInput').value.trim(),
-        lastTaskUpdate: new Date().toISOString(),
-        sequence: parseInt(document.getElementById('taskSequenceInput').value) || 999,
-        executionMode: document.getElementById('taskExecutionModeInput').value || 'independent',
-        dependencies: selectedDeps,
-        parallelWith: selectedParallel
-    };
+    name: name,
+    description: document.getElementById('taskDescInput').value.trim(),
+    targetStart: document.getElementById('taskStartInput').value,
+    targetEnd: document.getElementById('taskEndInput').value,
+    duration: parseInt(document.getElementById('taskDurationInput').value) || null,
+    assignedTo: currentEquipmentTasks.equipment.vendor || '',
+    status: document.getElementById('taskStatusInput').value,
+    progress: parseInt(document.getElementById('taskProgressInput').value) || 0,
+    notes: document.getElementById('taskNotesInput').value.trim(),
+    updatedBy: updatedBy,  // ✅ ADD THIS
+    lastTaskUpdate: new Date().toISOString(),
+    sequence: parseInt(document.getElementById('taskSequenceInput').value) || 999,
+    executionMode: document.getElementById('taskExecutionModeInput').value || 'independent',
+    dependencies: selectedDeps,
+    parallelWith: selectedParallel
+};
     
     // Get actual dates from input fields (manual or auto-filled)
 const actualStartInput = document.getElementById('taskActualStartInput').value;
@@ -7887,7 +7905,7 @@ if (taskData.status === 'completed') {
                     vendor: equipment.vendor,
                     description: `${currentTaskEditId ? 'Updated' : 'Added'} task: ${savedTask.name}`,
                     notes: `${savedTask.description ? savedTask.description + '\n\n' : ''}Target: ${savedTask.targetStart || 'TBD'} to ${savedTask.targetEnd || 'TBD'}${savedTask.duration ? ' (' + savedTask.duration + ' days)' : ''}\nAssigned to: ${savedTask.assignedTo || 'Unassigned'}\nStatus: ${savedTask.status} | Progress: ${savedTask.progress}%\nSequence: ${savedTask.sequence}\nMode: ${savedTask.executionMode}\n${savedTask.notes ? '\nTask Notes: ' + savedTask.notes : ''}`,
-                    user: savedTask.assignedTo || 'System',
+                    user: savedTask.updatedBy || 'Unknown',  // ✅ USE updatedBy instead
                     icon: currentTaskEditId ? '📝' : '➕',
                     color: currentTaskEditId ? '#17a2b8' : '#28a745'
                 });
