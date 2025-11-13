@@ -2145,6 +2145,28 @@ body.grouped-view-active #tablePagination {
             Use numbered list (1, 2, 3) for sequential actions
         </small>
     </div>
+
+<!-- ✅✅✅ TAMBAHKAN DI SINI - Milestones Section ✅✅✅ -->
+<div style="margin-top: 25px; padding-top: 20px; border-top: 2px solid #ddd;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <label class="form-label" style="font-weight: 600; color: #2c3e50; margin: 0;">
+            🎯 Project Milestones (Optional):
+        </label>
+        <button onclick="addMilestone()" type="button"
+                style="padding: 5px 12px; font-size: 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            + Add Milestone
+        </button>
+    </div>
+    <small style="color: #7f8c8d; font-size: 11px; display: block; margin-bottom: 15px;">
+        Track key project milestones (e.g., Equipment MOB, Installation Complete, Commissioning, etc.)
+    </small>
+    
+    <div id="milestonesList" style="max-height: 200px; overflow-y: auto;">
+        <!-- Milestones will be added dynamically -->
+    </div>
+</div>
+<!-- ✅✅✅ AKHIR TAMBAHAN ✅✅✅ -->
+
 </div>
 
 </div>
@@ -5894,6 +5916,10 @@ function openProgressReportModal() {
     // Find and display related groups
     populateRelatedGroups(baseName);
 
+ // ✅ Initialize milestones
+    reportMilestones = [];
+    renderMilestones();
+
 // ✅ LOAD Previous Highlights & Action Plan
     loadPreviousReportSettings(baseName);
     
@@ -6084,8 +6110,9 @@ function previewReport() {
 const reportData = {
     equipmentBase: document.getElementById('reportEquipmentBase').value,
     reportDate: document.getElementById('reportDate').value,
-    highlights: document.getElementById('reportHighlights').value.trim(),  // ✅ ADD
-    actionPlan: document.getElementById('reportActionPlan').value.trim(),  // ✅ ADD
+    highlights: document.getElementById('reportHighlights').value.trim(),
+    actionPlan: document.getElementById('reportActionPlan').value.trim(),
+    milestones: reportMilestones.filter(m => m.name.trim()),  // ✅ ADD - Only include filled milestones
     groups: []
 };
     
@@ -6199,6 +6226,39 @@ reportData.groups.push({
     const totalAllTasks = reportData.groups.reduce((sum, g) => sum + g.totalTasks, 0);
 const totalCompleted = reportData.groups.reduce((sum, g) => sum + g.completedTasks.length, 0);
 reportData.overallProgress = totalAllTasks > 0 ? Math.round((totalCompleted / totalAllTasks) * 100) : 0;
+// ✅ CALCULATE TIMELINE - Find earliest/latest dates from all tasks
+let allTasks = [];
+reportData.groups.forEach(group => {
+    allTasks = allTasks.concat(group.tasks);
+});
+
+const tasksWithDates = allTasks.filter(t => t.targetStart || t.targetEnd);
+
+if (tasksWithDates.length > 0) {
+    const startDates = tasksWithDates.map(t => t.targetStart).filter(d => d).map(d => new Date(d));
+    const endDates = tasksWithDates.map(t => t.targetEnd).filter(d => d).map(d => new Date(d));
+    
+    const projectStart = startDates.length > 0 ? new Date(Math.min(...startDates)) : new Date();
+    const targetEnd = endDates.length > 0 ? new Date(Math.max(...endDates)) : new Date();
+    const currentDate = new Date();
+    
+    const totalDays = Math.ceil((targetEnd - projectStart) / (1000 * 60 * 60 * 24));
+    const daysElapsed = Math.ceil((currentDate - projectStart) / (1000 * 60 * 60 * 24));
+    const daysRemaining = Math.ceil((targetEnd - currentDate) / (1000 * 60 * 60 * 24));
+    const percentTimeElapsed = totalDays > 0 ? Math.round((daysElapsed / totalDays) * 100) : 0;
+    
+    reportData.timeline = {
+        projectStart: projectStart.toISOString().split('T')[0],
+        currentDate: currentDate.toISOString().split('T')[0],
+        targetEnd: targetEnd.toISOString().split('T')[0],
+        totalDays: totalDays,
+        daysElapsed: Math.max(0, daysElapsed),
+        daysRemaining: Math.max(0, daysRemaining),
+        percentTimeElapsed: Math.max(0, Math.min(100, percentTimeElapsed))
+    };
+} else {
+    reportData.timeline = null;
+}
 
 // ✅ SORT GROUPS BY DISPLAY SEQUENCE
 reportData.groups.sort((a, b) => {
@@ -6222,14 +6282,15 @@ console.log('✅ Groups after sort:', reportData.groups.map(g => ({
     displaySequence: g.displaySequence
 })));
 
-// ✅ SAVE Highlights & Action Plan to Firebase
-if (reportData.highlights || reportData.actionPlan) {
-    const equipmentBase = reportData.equipmentBase.replace(/[.#$[\]]/g, '_'); // Sanitize for Firebase key
+// ✅ SAVE Highlights, Action Plan & Milestones to Firebase
+if (reportData.highlights || reportData.actionPlan || reportData.milestones.length > 0) {
+    const equipmentBase = reportData.equipmentBase.replace(/[.#$[\]]/g, '_');
     const reportDate = reportData.reportDate;
     
     database.ref(`reportSettings/${equipmentBase}/${reportDate}`).set({
         highlights: reportData.highlights || '',
         actionPlan: reportData.actionPlan || '',
+        milestones: reportData.milestones || [],  // ✅ ADD THIS
         timestamp: new Date().toISOString(),
         updatedBy: 'Report Generator'
     }).catch(error => {
@@ -6353,6 +6414,103 @@ function generateHTMLReport(data) {
     <p><strong>Critical Issues:</strong> ${totalBlocked} blocked tasks</p>
     <p><strong>Groups Included:</strong> ${data.groups.length}</p>
     
+<p><strong>Critical Issues:</strong> ${totalBlocked} blocked tasks</p>
+<p><strong>Groups Included:</strong> ${data.groups.length}</p>
+
+${data.timeline ? `
+<div style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
+    <h4 style="margin: 0 0 15px 0; font-size: 15px; font-weight: 600;">📍 PROJECT TIMELINE</h4>
+    
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+        <div style="background: rgba(255,255,255,0.15); padding: 10px; border-radius: 5px;">
+            <div style="font-size: 11px; opacity: 0.9;">Project Start</div>
+            <div style="font-size: 14px; font-weight: 600;">${formatDateForDisplay(data.timeline.projectStart)}</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.25); padding: 10px; border-radius: 5px; border: 2px solid white;">
+            <div style="font-size: 11px; opacity: 0.9;">Current Date</div>
+            <div style="font-size: 14px; font-weight: 600;">${formatDateForDisplay(data.timeline.currentDate)}</div>
+            <div style="font-size: 10px; margin-top: 3px;">${data.timeline.daysElapsed} days elapsed</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.15); padding: 10px; border-radius: 5px;">
+            <div style="font-size: 11px; opacity: 0.9;">Target End</div>
+            <div style="font-size: 14px; font-weight: 600;">${formatDateForDisplay(data.timeline.targetEnd)}</div>
+            <div style="font-size: 10px; margin-top: 3px;">${data.timeline.daysRemaining} days remaining</div>
+        </div>
+    </div>
+    
+    <div style="background: rgba(255,255,255,0.2); border-radius: 10px; height: 30px; overflow: hidden; position: relative;">
+        <div style="background: linear-gradient(90deg, #27ae60, #2ecc71); height: 100%; width: ${data.timeline.percentTimeElapsed}%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; transition: width 0.3s ease;">
+            ${data.timeline.percentTimeElapsed}% Time Elapsed
+        </div>
+        <div style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 600;">
+            ${data.timeline.totalDays} days total
+        </div>
+    </div>
+</div>
+` : ''}
+
+${data.milestones && data.milestones.length > 0 ? `
+<div style="margin-top: 20px;">
+    <h4 style="color: #2c3e50; margin-bottom: 10px; font-size: 15px; font-weight: 600;">📊 MILESTONE STATUS</h4>
+    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+        <thead>
+            <tr style="background: #34495e; color: white;">
+                <th style="padding: 10px; text-align: left; border: 1px solid #2c3e50;">Milestone</th>
+                <th style="padding: 10px; text-align: center; border: 1px solid #2c3e50; width: 120px;">Target Date</th>
+                <th style="padding: 10px; text-align: center; border: 1px solid #2c3e50; width: 100px;">Progress</th>
+                <th style="padding: 10px; text-align: center; border: 1px solid #2c3e50; width: 120px;">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${data.milestones.map(milestone => {
+                const targetDate = new Date(milestone.targetDate);
+                const today = new Date();
+                const daysUntil = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
+                
+                let status = 'PENDING';
+                let statusColor = '#95a5a6';
+                
+                if (milestone.progress >= 100) {
+                    status = 'COMPLETED';
+                    statusColor = '#27ae60';
+                } else if (milestone.progress > 0) {
+                    if (daysUntil < 0) {
+                        status = 'DELAYED';
+                        statusColor = '#e74c3c';
+                    } else if (daysUntil <= 7) {
+                        status = 'AT RISK';
+                        statusColor = '#f39c12';
+                    } else {
+                        status = 'ON TRACK';
+                        statusColor = '#3498db';
+                    }
+                } else {
+                    status = 'NOT STARTED';
+                    statusColor = '#95a5a6';
+                }
+                
+                return `
+                    <tr style="border-bottom: 1px solid #ddd;">
+                        <td style="padding: 10px; border: 1px solid #ddd;">
+                            <strong>${milestone.name}</strong>
+                        </td>
+                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">
+                            ${formatDateForDisplay(milestone.targetDate)}
+                            ${daysUntil >= 0 ? `<div style="font-size: 10px; color: #7f8c8d;">(in ${daysUntil} days)</div>` : `<div style="font-size: 10px; color: #e74c3c;">(${Math.abs(daysUntil)} days overdue)</div>`}
+                        </td>
+                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">
+                            <strong style="color: #3498db; font-size: 14px;">${milestone.progress}%</strong>
+                        </td>
+                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">
+                            <strong style="color: ${statusColor};">${status}</strong>
+                        </td>
+                    </tr>
+                `;
+            }).join('')}
+        </tbody>
+    </table>
+</div>
+` : ''}
     <!-- ✅ TAMBAHKAN INI - Progress by Discipline -->
     <div style="margin-top: 25px;">
         <h4 style="color: #2c3e50; margin-bottom: 15px; font-size: 15px; border-bottom: 2px solid #3498db; padding-bottom: 5px;">Progress by Discipline</h4>
@@ -6669,16 +6827,24 @@ function loadPreviousReportSettings(baseName) {
     
     database.ref(`reportSettings/${equipmentBase}/${reportDate}`).once('value').then(snapshot => {
         if (snapshot.exists()) {
-            const data = snapshot.val();
-            
-            document.getElementById('reportHighlights').value = data.highlights || '';
-            document.getElementById('reportActionPlan').value = data.actionPlan || '';
-            
-            const highlightLabel = document.querySelector('label[for="reportHighlights"]');
-            if (highlightLabel && data.highlights) {
-                highlightLabel.innerHTML = '✨ Key Highlights (Optional): <span style="color: #27ae60; font-size: 11px;">(Loaded from ' + new Date(data.timestamp).toLocaleDateString() + ')</span>';
-            }
-        } else {
+    const data = snapshot.val();
+    
+    // Pre-fill with previous data
+    document.getElementById('reportHighlights').value = data.highlights || '';
+    document.getElementById('reportActionPlan').value = data.actionPlan || '';
+    
+    // ✅ LOAD MILESTONES
+    if (data.milestones && Array.isArray(data.milestones) && data.milestones.length > 0) {
+        reportMilestones = data.milestones;
+        renderMilestones();
+    }
+    
+    // Show info that data was loaded
+    const highlightLabel = document.querySelector('label[for="reportHighlights"]');
+    if (highlightLabel && (data.highlights || data.milestones)) {
+        highlightLabel.innerHTML = '✨ Key Highlights (Optional): <span style="color: #27ae60; font-size: 11px;">(Loaded from ' + new Date(data.timestamp).toLocaleDateString() + ')</span>';
+    }
+} else {
             document.getElementById('reportHighlights').value = '';
             document.getElementById('reportActionPlan').value = '';
         }
@@ -6687,6 +6853,76 @@ function loadPreviousReportSettings(baseName) {
         document.getElementById('reportHighlights').value = '';
         document.getElementById('reportActionPlan').value = '';
     });
+}
+
+// Global array to store milestones
+let reportMilestones = [];
+
+// Add milestone
+function addMilestone() {
+    const milestoneId = Date.now();
+    reportMilestones.push({
+        id: milestoneId,
+        name: '',
+        targetDate: '',
+        progress: 0
+    });
+    renderMilestones();
+}
+
+// Remove milestone
+function removeMilestone(id) {
+    reportMilestones = reportMilestones.filter(m => m.id !== id);
+    renderMilestones();
+}
+
+// Update milestone data
+function updateMilestone(id, field, value) {
+    const milestone = reportMilestones.find(m => m.id === id);
+    if (milestone) {
+        milestone[field] = value;
+    }
+}
+
+// Render milestones list
+function renderMilestones() {
+    const container = document.getElementById('milestonesList');
+    
+    if (reportMilestones.length === 0) {
+        container.innerHTML = '<div style="color: #95a5a6; font-size: 12px; padding: 10px; text-align: center; border: 1px dashed #ddd; border-radius: 4px;">No milestones added yet. Click "+ Add Milestone" to add one.</div>';
+        return;
+    }
+    
+    container.innerHTML = reportMilestones.map((milestone, index) => `
+        <div style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; padding: 12px; margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <strong style="color: #2c3e50; font-size: 12px;">Milestone ${index + 1}</strong>
+                <button onclick="removeMilestone(${milestone.id})" type="button"
+                        style="padding: 2px 8px; font-size: 11px; background: #e74c3c; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                    Remove
+                </button>
+            </div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 8px;">
+                <input type="text" 
+                       placeholder="Milestone name (e.g., Installation Complete)" 
+                       value="${milestone.name}"
+                       onchange="updateMilestone(${milestone.id}, 'name', this.value)"
+                       style="padding: 6px; border: 1px solid #ddd; border-radius: 3px; font-size: 11px;">
+                <input type="date" 
+                       value="${milestone.targetDate}"
+                       onchange="updateMilestone(${milestone.id}, 'targetDate', this.value)"
+                       style="padding: 6px; border: 1px solid #ddd; border-radius: 3px; font-size: 11px;">
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <input type="number" 
+                           min="0" max="100" 
+                           value="${milestone.progress}"
+                           onchange="updateMilestone(${milestone.id}, 'progress', parseInt(this.value))"
+                           style="padding: 6px; border: 1px solid #ddd; border-radius: 3px; font-size: 11px; width: 60px;">
+                    <span style="font-size: 11px;">%</span>
+                </div>
+            </div>
+        </div>
+    `).join('');
 }
 
 
@@ -6702,11 +6938,13 @@ function generateReport() {
     }
     
     // Collect data from selected groups
+// Collect data (reuse same logic)
 const reportData = {
     equipmentBase: document.getElementById('reportEquipmentBase').value,
     reportDate: document.getElementById('reportDate').value,
-    highlights: document.getElementById('reportHighlights').value.trim(),  // ✅ ADD
-    actionPlan: document.getElementById('reportActionPlan').value.trim(),  // ✅ ADD
+    highlights: document.getElementById('reportHighlights').value.trim(),
+    actionPlan: document.getElementById('reportActionPlan').value.trim(),
+    milestones: reportMilestones.filter(m => m.name.trim()),  // ✅ ADD - Only include filled milestones
     groups: []
 };
     
@@ -6824,7 +7062,41 @@ reportData.groups.push({
     const totalAllTasks = reportData.groups.reduce((sum, g) => sum + g.totalTasks, 0);
     const totalCompleted = reportData.groups.reduce((sum, g) => sum + g.completedTasks.length, 0);
     reportData.overallProgress = totalAllTasks > 0 ? Math.round((totalCompleted / totalAllTasks) * 100) : 0;
+ 
+// ✅ CALCULATE TIMELINE - Find earliest/latest dates from all tasks
+let allTasks = [];
+reportData.groups.forEach(group => {
+    allTasks = allTasks.concat(group.tasks);
+});
+
+const tasksWithDates = allTasks.filter(t => t.targetStart || t.targetEnd);
+
+if (tasksWithDates.length > 0) {
+    const startDates = tasksWithDates.map(t => t.targetStart).filter(d => d).map(d => new Date(d));
+    const endDates = tasksWithDates.map(t => t.targetEnd).filter(d => d).map(d => new Date(d));
     
+    const projectStart = startDates.length > 0 ? new Date(Math.min(...startDates)) : new Date();
+    const targetEnd = endDates.length > 0 ? new Date(Math.max(...endDates)) : new Date();
+    const currentDate = new Date();
+    
+    const totalDays = Math.ceil((targetEnd - projectStart) / (1000 * 60 * 60 * 24));
+    const daysElapsed = Math.ceil((currentDate - projectStart) / (1000 * 60 * 60 * 24));
+    const daysRemaining = Math.ceil((targetEnd - currentDate) / (1000 * 60 * 60 * 24));
+    const percentTimeElapsed = totalDays > 0 ? Math.round((daysElapsed / totalDays) * 100) : 0;
+    
+    reportData.timeline = {
+        projectStart: projectStart.toISOString().split('T')[0],
+        currentDate: currentDate.toISOString().split('T')[0],
+        targetEnd: targetEnd.toISOString().split('T')[0],
+        totalDays: totalDays,
+        daysElapsed: Math.max(0, daysElapsed),
+        daysRemaining: Math.max(0, daysRemaining),
+        percentTimeElapsed: Math.max(0, Math.min(100, percentTimeElapsed))
+    };
+} else {
+    reportData.timeline = null;
+}
+   
 // ✅ SORT GROUPS BY DISPLAY SEQUENCE
 reportData.groups.sort((a, b) => {
     const seqA = a.displaySequence || 999;
@@ -6840,14 +7112,15 @@ reportData.groups.sort((a, b) => {
     return seqA - seqB;
 });
 
-// ✅ SAVE Highlights & Action Plan to Firebase
-if (reportData.highlights || reportData.actionPlan) {
+// ✅ SAVE Highlights, Action Plan & Milestones to Firebase
+if (reportData.highlights || reportData.actionPlan || reportData.milestones.length > 0) {
     const equipmentBase = reportData.equipmentBase.replace(/[.#$[\]]/g, '_');
     const reportDate = reportData.reportDate;
     
     database.ref(`reportSettings/${equipmentBase}/${reportDate}`).set({
         highlights: reportData.highlights || '',
         actionPlan: reportData.actionPlan || '',
+        milestones: reportData.milestones || [],  // ✅ ADD THIS
         timestamp: new Date().toISOString(),
         updatedBy: 'Report Generator'
     }).catch(error => {
@@ -7004,6 +7277,121 @@ data.groups.forEach(group => {
 });
 
 yPos += 5;
+
+// ✅ PROJECT TIMELINE
+if (data.timeline) {
+    if (yPos > 200) {
+        doc.addPage();
+        yPos = 20;
+    }
+    
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text('PROJECT TIMELINE', margin, yPos);
+    yPos += 6;
+    
+    // Timeline boxes
+    const boxWidth = contentWidth / 3 - 2;
+    const boxHeight = 15;
+    
+    // Start
+    doc.setFillColor(102, 126, 234);
+    doc.rect(margin, yPos, boxWidth, boxHeight, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.text('Project Start', margin + 2, yPos + 4);
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    doc.text(formatDateForDisplay(data.timeline.projectStart), margin + 2, yPos + 10);
+    
+    // Current
+    doc.setFillColor(118, 75, 162);
+    doc.rect(margin + boxWidth + 2, yPos, boxWidth, boxHeight, 'F');
+    doc.setFontSize(8);
+    doc.text('Current Date', margin + boxWidth + 4, yPos + 4);
+    doc.setFontSize(10);
+    doc.text(formatDateForDisplay(data.timeline.currentDate), margin + boxWidth + 4, yPos + 10);
+    doc.setFontSize(7);
+    doc.text(`${data.timeline.daysElapsed} days elapsed`, margin + boxWidth + 4, yPos + 13);
+    
+    // End
+    doc.setFillColor(102, 126, 234);
+    doc.rect(margin + (boxWidth + 2) * 2, yPos, boxWidth, boxHeight, 'F');
+    doc.setFontSize(8);
+    doc.text('Target End', margin + (boxWidth + 2) * 2 + 2, yPos + 4);
+    doc.setFontSize(10);
+    doc.text(formatDateForDisplay(data.timeline.targetEnd), margin + (boxWidth + 2) * 2 + 2, yPos + 10);
+    doc.setFontSize(7);
+    doc.text(`${data.timeline.daysRemaining} days remaining`, margin + (boxWidth + 2) * 2 + 2, yPos + 13);
+    
+    doc.setTextColor(0, 0, 0);
+    yPos += boxHeight + 5;
+    
+    // Progress bar
+    doc.setFillColor(220, 220, 220);
+    doc.rect(margin, yPos, contentWidth, 8, 'F');
+    doc.setFillColor(39, 174, 96);
+    doc.rect(margin, yPos, contentWidth * (data.timeline.percentTimeElapsed / 100), 8, 'F');
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`${data.timeline.percentTimeElapsed}% Time Elapsed`, margin + 3, yPos + 5);
+    doc.setTextColor(0, 0, 0);
+    
+    yPos += 12;
+}
+
+// ✅ MILESTONES TABLE
+if (data.milestones && data.milestones.length > 0) {
+    if (yPos > 220) {
+        doc.addPage();
+        yPos = 20;
+    }
+    
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text('MILESTONE STATUS', margin, yPos);
+    yPos += 6;
+    
+    const milestoneData = data.milestones.map(m => {
+        const targetDate = new Date(m.targetDate);
+        const today = new Date();
+        const daysUntil = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
+        
+        let status = m.progress >= 100 ? 'COMPLETED' : m.progress > 0 ? (daysUntil < 0 ? 'DELAYED' : 'ON TRACK') : 'PENDING';
+        
+        return [
+            m.name,
+            formatDateForDisplay(m.targetDate),
+            `${m.progress}%`,
+            status
+        ];
+    });
+    
+    doc.autoTable({
+        startY: yPos,
+        head: [['Milestone', 'Target Date', 'Progress', 'Status']],
+        body: milestoneData,
+        theme: 'grid',
+        headStyles: {
+            fillColor: [52, 73, 94],
+            textColor: 255,
+            fontSize: 9,
+            fontStyle: 'bold'
+        },
+        bodyStyles: {
+            fontSize: 8
+        },
+        columnStyles: {
+            0: { cellWidth: 70 },
+            1: { cellWidth: 35, halign: 'center' },
+            2: { cellWidth: 25, halign: 'center', fontStyle: 'bold', textColor: [52, 152, 219] },
+            3: { cellWidth: 'auto', halign: 'center', fontStyle: 'bold' }
+        },
+        margin: { left: margin, right: margin }
+    });
+    
+    yPos = doc.lastAutoTable.finalY + 8;
+}
 
 // ✅ KEY HIGHLIGHTS
 if (data.highlights && data.highlights.trim()) {
