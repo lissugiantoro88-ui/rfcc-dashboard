@@ -5893,6 +5893,9 @@ function openProgressReportModal() {
     
     // Find and display related groups
     populateRelatedGroups(baseName);
+
+// ✅ LOAD Previous Highlights & Action Plan
+    loadPreviousReportSettings(baseName);
     
     // Show modal
     document.getElementById('reportModal').style.display = 'block';
@@ -6219,6 +6222,20 @@ console.log('✅ Groups after sort:', reportData.groups.map(g => ({
     displaySequence: g.displaySequence
 })));
 
+// ✅ SAVE Highlights & Action Plan to Firebase
+if (reportData.highlights || reportData.actionPlan) {
+    const equipmentBase = reportData.equipmentBase.replace(/[.#$[\]]/g, '_'); // Sanitize for Firebase key
+    const reportDate = reportData.reportDate;
+    
+    database.ref(`reportSettings/${equipmentBase}/${reportDate}`).set({
+        highlights: reportData.highlights || '',
+        actionPlan: reportData.actionPlan || '',
+        timestamp: new Date().toISOString(),
+        updatedBy: 'Report Generator'
+    }).catch(error => {
+        console.error('Error saving report settings:', error);
+    });
+}
 
 // Generate HTML preview in new window
 const previewWindow = window.open('', '_blank');
@@ -6645,6 +6662,34 @@ ${group.blockedTasks.length > 0 ? `
     `;
 }
 
+// ✅ TAMBAHKAN DI SINI - Function baru di global scope
+function loadPreviousReportSettings(baseName) {
+    const equipmentBase = baseName.replace(/[.#$[\]]/g, '_');
+    const reportDate = document.getElementById('reportDate').value;
+    
+    database.ref(`reportSettings/${equipmentBase}/${reportDate}`).once('value').then(snapshot => {
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            
+            document.getElementById('reportHighlights').value = data.highlights || '';
+            document.getElementById('reportActionPlan').value = data.actionPlan || '';
+            
+            const highlightLabel = document.querySelector('label[for="reportHighlights"]');
+            if (highlightLabel && data.highlights) {
+                highlightLabel.innerHTML = '✨ Key Highlights (Optional): <span style="color: #27ae60; font-size: 11px;">(Loaded from ' + new Date(data.timestamp).toLocaleDateString() + ')</span>';
+            }
+        } else {
+            document.getElementById('reportHighlights').value = '';
+            document.getElementById('reportActionPlan').value = '';
+        }
+    }).catch(error => {
+        console.error('Error loading report settings:', error);
+        document.getElementById('reportHighlights').value = '';
+        document.getElementById('reportActionPlan').value = '';
+    });
+}
+
+
 // ===== PDF GENERATION FUNCTIONS =====
 
 function generateReport() {
@@ -6794,6 +6839,22 @@ reportData.groups.sort((a, b) => {
     
     return seqA - seqB;
 });
+
+// ✅ SAVE Highlights & Action Plan to Firebase
+if (reportData.highlights || reportData.actionPlan) {
+    const equipmentBase = reportData.equipmentBase.replace(/[.#$[\]]/g, '_');
+    const reportDate = reportData.reportDate;
+    
+    database.ref(`reportSettings/${equipmentBase}/${reportDate}`).set({
+        highlights: reportData.highlights || '',
+        actionPlan: reportData.actionPlan || '',
+        timestamp: new Date().toISOString(),
+        updatedBy: 'Report Generator'
+    }).catch(error => {
+        console.error('Error saving report settings:', error);
+    });
+}
+
 
     // Generate PDF
     generatePDF(reportData);
