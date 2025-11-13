@@ -1759,6 +1759,16 @@ body.grouped-view-active #tablePagination {
     </select>
 </div>
 
+<!-- ✅ ADD THIS NEW FIELD -->
+<div class="form-group">
+    <label class="form-label">Display Sequence (for reports):</label>
+    <input type="number" id="modalDisplaySequence" class="form-control" 
+           placeholder="1, 2, 3..." min="1" step="1" value="999">
+    <small style="color: #7f8c8d; font-size: 11px; display: block; margin-top: 3px;">
+        📊 Controls order in reports: 1=first, 2=second, etc. Same equipment can have different sequences for different disciplines.
+    </small>
+</div>
+
 <!-- Custom Discipline Input (Hidden by default) -->
 <div class="form-group" id="customDiscGroup" style="display: none;">
     <label class="form-label">Custom Discipline:</label>
@@ -2094,19 +2104,51 @@ body.grouped-view-active #tablePagination {
             </div>
             
             <div class="form-group">
-                <label class="form-label">Related Groups Found:</label>
-                <div id="reportGroupsList" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px; background: #f8f9fa;">
-                    <!-- Will be populated dynamically -->
-                </div>
-                <small style="color: #7f8c8d; font-size: 11px;">Check/uncheck groups to include in report</small>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Report Date:</label>
-                <input type="date" id="reportDate" class="form-control" readonly style="background: #f8f9fa;">
-            </div>
-        </div>
-        <div class="btn-group">
+    <label class="form-label">Related Groups Found:</label>
+    <div id="reportGroupsList" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px; background: #f8f9fa;">
+        <!-- Will be populated dynamically -->
+    </div>
+    <small style="color: #7f8c8d; font-size: 11px;">Check/uncheck groups to include in report</small>
+</div>
+
+<div class="form-group">
+    <label class="form-label">Report Date:</label>
+    <input type="date" id="reportDate" class="form-control" readonly style="background: #f8f9fa;">
+</div>
+
+<!-- ✅ ADD THIS - Highlights & Action Plan -->
+<div style="margin-top: 25px; padding-top: 20px; border-top: 2px solid #ddd;">
+    <div class="form-group">
+        <label class="form-label" style="font-weight: 600; color: #2c3e50;">
+            ✨ Key Highlights (Optional):
+        </label>
+        <textarea id="reportHighlights" 
+                  class="form-control"
+                  rows="4"
+                  style="resize: vertical; font-size: 12px;"
+                  placeholder="Enter key highlights, achievements, or issues...&#10;Example:&#10;- All MR tasks completed ahead of schedule&#10;- CI phase started on time&#10;- Material delivery delayed by 2 days"></textarea>
+        <small style="color: #7f8c8d; font-size: 11px; display: block; margin-top: 5px;">
+            Use bullet points (-) or numbered list for better formatting
+        </small>
+    </div>
+    
+    <div class="form-group">
+        <label class="form-label" style="font-weight: 600; color: #2c3e50;">
+            📋 Action Plan (Optional):
+        </label>
+        <textarea id="reportActionPlan" 
+                  class="form-control"
+                  rows="4"
+                  style="resize: vertical; font-size: 12px;"
+                  placeholder="Enter action items, next steps, or recommendations...&#10;Example:&#10;1. Start CI commissioning testing by Nov 20&#10;2. Order replacement bearings from vendor&#10;3. Schedule alignment check for turbine"></textarea>
+        <small style="color: #7f8c8d; font-size: 11px; display: block; margin-top: 5px;">
+            Use numbered list (1, 2, 3) for sequential actions
+        </small>
+    </div>
+</div>
+
+</div>
+<div class="btn-group">
     <button class="btn btn-secondary" onclick="closeProgressReportModal()">Cancel</button>
     <button class="btn btn-primary" onclick="previewReport()" style="background: #2ecc71;">
         👁️ Preview Report
@@ -2115,7 +2157,7 @@ body.grouped-view-active #tablePagination {
         📥 Download PDF
     </button>
 </div>
-    </div>
+</div>
 </div>
 
 <!-- Gantt Chart Modal -->
@@ -4721,6 +4763,7 @@ document.getElementById('modalPriority').value = item.priority;
         }
     }
     // ⭐ AKHIR CODE BARU ⭐
+document.getElementById('modalDisplaySequence').value = item.displaySequence || 999;
 document.getElementById('modalTask').value = item.taskName || '';
 document.getElementById('modalStatus').value = item.status;
         document.getElementById('modalContract').value = item.contract;
@@ -4796,6 +4839,13 @@ function getDiscValue() {
     function saveUpdate() {
         const equipment = document.getElementById('modalEquipment').value.trim();
         const vendor = document.getElementById('modalVendor').value.trim();
+
+// ✅ GET USER NAME ONCE at the beginning
+    const userName = prompt('Enter your name:');
+    if (!userName || !userName.trim()) {
+        showNotification('Name is required for tracking', 'error');
+        return;
+    }
         
         if (!equipment || !vendor) {
             showNotification('Please fill in Equipment and Vendor fields', 'error');
@@ -4830,6 +4880,7 @@ function getDiscValue() {
     progress: parseInt(document.getElementById('modalProgress').value.toString().replace('%', '')) || 0,
     highlighted: document.getElementById('modalHighlight').checked,
     mitigationPlan: document.getElementById('modalMitigationPlan').value,
+    displaySequence: parseInt(document.getElementById('modalDisplaySequence').value) || 999,  // ✅ ADD THIS
     lastUpdated: new Date().toISOString()
 };
 
@@ -4883,7 +4934,7 @@ console.log('✅ Firebase update SUCCESS, progress:', taskData.progress);
         vendor: vendor,
         description: `${changes.length} field(s) updated`,
         notes: detailedNotes,
-        user: prompt('Enter your name:') || 'Anonymous',
+        user: userName.trim(),  // ✅ CHANGED
         icon: '📝',
         color: '#27ae60'
     });
@@ -4925,7 +4976,7 @@ console.log('✅ Firebase update SUCCESS, progress:', taskData.progress);
                     vendor: vendor,
                     description: equipment + ' - ' + vendor,
                     notes: 'Priority: ' + taskData.priority + ', Status: ' + taskData.status,
-                    user:  prompt('Enter your name:') || 'Anonymous',
+                    user: userName.trim(),  // ✅ CHANGED
                     icon: '➕',
                     color: '#e74c3c'
                 });
@@ -5866,11 +5917,12 @@ function populateRelatedGroups(baseName) {
         const key = `${item.equipment}-${item.disc || item.task}`;
         if (!groupMap.has(key)) {
             groupMap.set(key, {
-                equipment: item.equipment,
-                disc: item.disc || item.task,
-                vendor: item.vendor,
-                firebaseKey: item.firebaseKey
-            });
+    equipment: item.equipment,
+    disc: item.disc || item.task,
+    vendor: item.vendor,
+    firebaseKey: item.firebaseKey,
+    displaySequence: item.displaySequence || 999  // ✅ ADD THIS
+});
         }
     });
     
@@ -5882,21 +5934,22 @@ function populateRelatedGroups(baseName) {
     }
     
     // Render checkboxes
-    container.innerHTML = groups.map((group, idx) => `
-        <label style="display: block; padding: 8px; font-size: 12px; cursor: pointer; border-radius: 4px; margin-bottom: 5px;" 
-               onmouseover="this.style.background='#e3f2fd'" 
-               onmouseout="this.style.background='transparent'">
-            <input type="checkbox" class="report-group-checkbox" 
-                   value="${group.firebaseKey}" 
-                   data-equipment="${group.equipment}"
-                   data-disc="${group.disc}"
-                   data-vendor="${group.vendor}"
-                   ${idx === 0 ? 'checked' : ''} 
-                   style="margin-right: 8px; cursor: pointer;">
-            <strong>${group.equipment}</strong> - ${group.disc}
-            <span style="color: #7f8c8d; font-size: 11px; margin-left: 5px;">(${group.vendor})</span>
-        </label>
-    `).join('');
+container.innerHTML = groups.map((group, idx) => `
+    <label style="display: block; padding: 8px; font-size: 12px; cursor: pointer; border-radius: 4px; margin-bottom: 5px;" 
+           onmouseover="this.style.background='#e3f2fd'" 
+           onmouseout="this.style.background='transparent'">
+        <input type="checkbox" class="report-group-checkbox" 
+               value="${group.firebaseKey}" 
+               data-equipment="${group.equipment}"
+               data-disc="${group.disc}"
+               data-vendor="${group.vendor}"
+               data-displaysequence="${group.displaySequence || 999}"
+               ${idx === 0 ? 'checked' : ''} 
+               style="margin-right: 8px; cursor: pointer;">
+        <strong>${group.equipment}</strong> - ${group.disc}
+        <span style="color: #7f8c8d; font-size: 11px; margin-left: 5px;">(${group.vendor})</span>
+    </label>
+`).join('');
     
     // Show count
     container.insertAdjacentHTML('afterbegin', 
@@ -6025,17 +6078,20 @@ function previewReport() {
     }
     
     // Collect data (reuse same logic)
-    const reportData = {
-        equipmentBase: document.getElementById('reportEquipmentBase').value,
-        reportDate: document.getElementById('reportDate').value,
-        groups: []
-    };
+const reportData = {
+    equipmentBase: document.getElementById('reportEquipmentBase').value,
+    reportDate: document.getElementById('reportDate').value,
+    highlights: document.getElementById('reportHighlights').value.trim(),  // ✅ ADD
+    actionPlan: document.getElementById('reportActionPlan').value.trim(),  // ✅ ADD
+    groups: []
+};
     
     selectedCheckboxes.forEach(checkbox => {
-        const firebaseKey = checkbox.value;
-        const equipment = checkbox.dataset.equipment;
-        const disc = checkbox.dataset.disc;
-        const vendor = checkbox.dataset.vendor;
+    const firebaseKey = checkbox.value;
+    const equipment = checkbox.dataset.equipment;
+    const disc = checkbox.dataset.disc;
+    const vendor = checkbox.dataset.vendor;
+    const displaySequence = parseInt(checkbox.dataset.displaysequence) || 999;  // ✅ ADD THIS
         
         const tasks = onsiteTasks[firebaseKey] || [];
         
@@ -6124,6 +6180,7 @@ reportData.groups.push({
     disc,
     vendor,
     firebaseKey,
+    displaySequence,  // ✅ ADD THIS
     tasks: tasksWithTimeline,
     completedTasks: completedWithTimeline,
     inProgressTasks: inProgressWithTimeline,
@@ -6137,13 +6194,36 @@ reportData.groups.push({
     });
     
     const totalAllTasks = reportData.groups.reduce((sum, g) => sum + g.totalTasks, 0);
-    const totalCompleted = reportData.groups.reduce((sum, g) => sum + g.completedTasks.length, 0);
-    reportData.overallProgress = totalAllTasks > 0 ? Math.round((totalCompleted / totalAllTasks) * 100) : 0;
+const totalCompleted = reportData.groups.reduce((sum, g) => sum + g.completedTasks.length, 0);
+reportData.overallProgress = totalAllTasks > 0 ? Math.round((totalCompleted / totalAllTasks) * 100) : 0;
+
+// ✅ SORT GROUPS BY DISPLAY SEQUENCE
+reportData.groups.sort((a, b) => {
+    const seqA = a.displaySequence || 999;
+    const seqB = b.displaySequence || 999;
     
-    // Generate HTML preview in new window
-    const previewWindow = window.open('', '_blank');
-    previewWindow.document.write(generateHTMLReport(reportData));
-    previewWindow.document.close();
+    // If sequences are equal, sort by equipment name then disc
+    if (seqA === seqB) {
+        const equipCompare = (a.equipment || '').localeCompare(b.equipment || '');
+        if (equipCompare !== 0) return equipCompare;
+        return (a.disc || '').localeCompare(b.disc || '');
+    }
+    
+    return seqA - seqB;
+});
+
+// ✅ DEBUG: Check after sort
+console.log('✅ Groups after sort:', reportData.groups.map(g => ({
+    equipment: g.equipment,
+    disc: g.disc,
+    displaySequence: g.displaySequence
+})));
+
+
+// Generate HTML preview in new window
+const previewWindow = window.open('', '_blank');
+previewWindow.document.write(generateHTMLReport(reportData));
+previewWindow.document.close();
 }
 
 function generateHTMLReport(data) {
@@ -6293,6 +6373,24 @@ function generateHTMLReport(data) {
         }).join('')}
     </div>
 </div>
+
+${data.highlights || data.actionPlan ? `
+<div class="section" style="page-break-inside: avoid;">
+    ${data.highlights ? `
+        <div style="margin-bottom: 30px;">
+            <div class="section-title">✨ KEY HIGHLIGHTS</div>
+            <pre style="background: #fffbf0; border-left: 4px solid #f39c12; padding: 20px; border-radius: 5px; line-height: 1.8; font-size: 13px; color: #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-family: inherit; margin: 0; white-space: pre-wrap; word-wrap: break-word;">${data.highlights.trim()}</pre>
+        </div>
+    ` : ''}
+    
+    ${data.actionPlan ? `
+        <div style="margin-bottom: 30px;">
+            <div class="section-title">📋 ACTION PLAN</div>
+            <pre style="background: #f0f8ff; border-left: 4px solid #3498db; padding: 20px; border-radius: 5px; line-height: 1.8; font-size: 13px; color: #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-family: inherit; margin: 0; white-space: pre-wrap; word-wrap: break-word;">${data.actionPlan.trim()}</pre>
+        </div>
+    ` : ''}
+</div>
+` : ''}
         
         <div class="section">
             <div class="section-title">EQUIPMENT BREAKDOWN</div>
@@ -6331,18 +6429,19 @@ function generateHTMLReport(data) {
     <p style="font-weight: bold; color: #27ae60; margin: 20px 0 10px 0; font-size: 14px;">✅ COMPLETED (${group.completedTasks.length})</p>
     <table class="gantt-table">
         <thead>
-            <tr>
-                <th style="width: 8%;">Seq<br>Mode</th>
-                <th style="width: 28%;">Task Name & Description</th>
-                <th style="width: 11%;">Plan<br>Start</th>
-                <th style="width: 11%;">Plan<br>End</th>
-                <th style="width: 11%;">Actual<br>Start</th>
-                <th style="width: 11%;">Actual<br>End</th>
-                <th style="width: 20%;">Timeline<br>Status</th>
-            </tr>
-        </thead>
+    <tr>
+        <th style="width: 7%;">Seq<br>Mode</th>
+        <th style="width: 22%;">Task Name & Description</th>
+        <th style="width: 9%;">Plan<br>Start</th>
+        <th style="width: 9%;">Plan<br>End</th>
+        <th style="width: 9%;">Actual<br>Start</th>
+        <th style="width: 9%;">Actual<br>End</th>
+        <th style="width: 15%;">Timeline<br>Status</th>
+        <th style="width: 20%;">Notes</th>
+    </tr>
+</thead>
         <tbody>
-            ${group.completedTasks.slice(0, 10).map(task => {
+            ${group.completedTasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).slice(0, 10).map(task => {
                 const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
                                 task.executionMode === 'parallel' ? 'Parallel' : 'Independent';
                 const modeClass = `mode-${task.executionMode || 'independent'}`;
@@ -6364,6 +6463,9 @@ function generateHTMLReport(data) {
                     <td style="color: ${task.timeline ? task.timeline.color : '#95a5a6'}; font-weight: 600; text-align: center; font-size: 11px;">
                         ${task.timeline ? `${task.timeline.icon} ${task.timeline.status}` : '-'}
                     </td>
+<td style="font-size: 10px; color: #555; font-style: italic; padding: 8px; white-space: pre-wrap;">
+    ${task.notes ? (task.notes.length > 100 ? task.notes.substring(0, 100) + '...' : task.notes) : '-'}
+</td>
                 </tr>
                 `;
             }).join('')}
@@ -6375,18 +6477,19 @@ ${group.inProgressTasks.length > 0 ? `
     <p style="font-weight: bold; color: #f39c12; margin: 20px 0 10px 0; font-size: 14px;">🔄 IN PROGRESS (${group.inProgressTasks.length})</p>
     <table class="gantt-table">
         <thead>
-            <tr>
-                <th style="width: 8%;">Seq<br>Mode</th>
-                <th style="width: 30%;">Task Name & Description</th>
-                <th style="width: 11%;">Plan<br>Start</th>
-                <th style="width: 11%;">Plan<br>End</th>
-                <th style="width: 11%;">Actual<br>Start</th>
-                <th style="width: 9%;">Progress</th>
-                <th style="width: 20%;">Timeline<br>Status</th>
-            </tr>
-        </thead>
+    <tr>
+        <th style="width: 7%;">Seq<br>Mode</th>
+        <th style="width: 23%;">Task Name & Description</th>
+        <th style="width: 9%;">Plan<br>Start</th>
+        <th style="width: 9%;">Plan<br>End</th>
+        <th style="width: 9%;">Actual<br>Start</th>
+        <th style="width: 8%;">Progress</th>
+        <th style="width: 15%;">Timeline<br>Status</th>
+        <th style="width: 20%;">Notes</th>
+    </tr>
+</thead>
         <tbody>
-            ${group.inProgressTasks.map(task => {
+                ${group.inProgressTasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).map(task => {
                 const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
                                 task.executionMode === 'parallel' ? 'Parallel' : 'Independent';
                 const modeClass = `mode-${task.executionMode || 'independent'}`;
@@ -6406,8 +6509,11 @@ ${group.inProgressTasks.length > 0 ? `
                     <td style="text-align: center; font-size: 10px;">${task.startDate ? formatDateForDisplay(task.startDate) : '-'}</td>
                     <td style="text-align: center; font-weight: 700; color: #3498db; font-size: 13px;">${task.progress || 0}%</td>
                     <td style="color: ${task.timeline ? task.timeline.color : '#95a5a6'}; font-weight: 600; text-align: center; font-size: 11px;">
-                        ${task.timeline ? `${task.timeline.icon} ${task.timeline.status}` : '-'}
-                    </td>
+    ${task.timeline ? `${task.timeline.icon} ${task.timeline.status}` : '-'}
+</td>
+<td style="font-size: 10px; color: #555; font-style: italic; padding: 8px;">
+    ${task.notes ? (task.notes.length > 100 ? task.notes.substring(0, 100) + '...' : task.notes) : '-'}
+</td>
                 </tr>
                 `;
             }).join('')}
@@ -6429,7 +6535,7 @@ ${group.readyTasks && group.readyTasks.length > 0 ? `
             </tr>
         </thead>
         <tbody>
-            ${group.readyTasks.map(task => {
+                ${group.readyTasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).map(task => {
                 const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
                                 task.executionMode === 'parallel' ? 'Parallel' : 'Independent';
                 const modeClass = `mode-${task.executionMode || 'independent'}`;
@@ -6482,7 +6588,7 @@ ${group.blockedTasks.length > 0 ? `
             </tr>
         </thead>
         <tbody>
-            ${group.blockedTasks.map(task => {
+                ${group.blockedTasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).map(task => {
                 const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
                                 task.executionMode === 'parallel' ? 'Parallel' : 'Independent';
                 const modeClass = `mode-${task.executionMode || 'independent'}`;
@@ -6551,17 +6657,20 @@ function generateReport() {
     }
     
     // Collect data from selected groups
-    const reportData = {
-        equipmentBase: document.getElementById('reportEquipmentBase').value,
-        reportDate: document.getElementById('reportDate').value,
-        groups: []
-    };
+const reportData = {
+    equipmentBase: document.getElementById('reportEquipmentBase').value,
+    reportDate: document.getElementById('reportDate').value,
+    highlights: document.getElementById('reportHighlights').value.trim(),  // ✅ ADD
+    actionPlan: document.getElementById('reportActionPlan').value.trim(),  // ✅ ADD
+    groups: []
+};
     
     selectedCheckboxes.forEach(checkbox => {
-        const firebaseKey = checkbox.value;
-        const equipment = checkbox.dataset.equipment;
-        const disc = checkbox.dataset.disc;
-        const vendor = checkbox.dataset.vendor;
+    const firebaseKey = checkbox.value;
+    const equipment = checkbox.dataset.equipment;
+    const disc = checkbox.dataset.disc;
+    const vendor = checkbox.dataset.vendor;
+    const displaySequence = parseInt(checkbox.dataset.displaysequence) || 999;  // ✅ ADD THIS
         
         const tasks = onsiteTasks[firebaseKey] || [];
         
@@ -6647,11 +6756,13 @@ const blockedWithTimeline = blockedTasks.map(t => ({
     timeline: getTaskTimelineStatus(t)
 }));
 
+
 reportData.groups.push({
     equipment,
     disc,
     vendor,
     firebaseKey,
+    displaySequence,  // ✅ ADD THIS
     tasks: tasksWithTimeline,
     completedTasks: completedWithTimeline,
     inProgressTasks: inProgressWithTimeline,
@@ -6669,6 +6780,21 @@ reportData.groups.push({
     const totalCompleted = reportData.groups.reduce((sum, g) => sum + g.completedTasks.length, 0);
     reportData.overallProgress = totalAllTasks > 0 ? Math.round((totalCompleted / totalAllTasks) * 100) : 0;
     
+// ✅ SORT GROUPS BY DISPLAY SEQUENCE
+reportData.groups.sort((a, b) => {
+    const seqA = a.displaySequence || 999;
+    const seqB = b.displaySequence || 999;
+    
+    // If sequences are equal, sort by equipment name then disc
+    if (seqA === seqB) {
+        const equipCompare = (a.equipment || '').localeCompare(b.equipment || '');
+        if (equipCompare !== 0) return equipCompare;
+        return (a.disc || '').localeCompare(b.disc || '');
+    }
+    
+    return seqA - seqB;
+});
+
     // Generate PDF
     generatePDF(reportData);
 }
@@ -6734,10 +6860,15 @@ function generatePDF(data) {
     // Critical issues count
     const totalBlocked = data.groups.reduce((sum, g) => sum + g.blockedTasks.length, 0);
     doc.text(`Critical Issues: ${totalBlocked} blocked tasks`, margin, yPos);
-    yPos += 6;
-    
-    doc.text(`Groups Included: ${data.groups.length}`, margin, yPos);
-yPos += 15;
+yPos += 6;
+doc.text(`Groups Included: ${data.groups.length}`, margin, yPos);
+yPos += 12;  // ✅ INCREASED from 8 to 12
+
+// Check page break before highlights
+if (yPos > 220) {
+    doc.addPage();
+    yPos = 20;
+}
 
 // ===== PROGRESS BY DISCIPLINE =====
 doc.setFontSize(11);
@@ -6812,6 +6943,64 @@ data.groups.forEach(group => {
 });
 
 yPos += 5;
+
+// ✅ KEY HIGHLIGHTS
+if (data.highlights && data.highlights.trim()) {
+    if (yPos > 220) {
+        doc.addPage();
+        yPos = 20;
+    }
+    
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text('KEY HIGHLIGHTS', margin, yPos);
+    yPos += 6;
+    
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'normal');
+    const highlightLines = doc.splitTextToSize(data.highlights, contentWidth - 10);
+    
+    const highlightHeight = (highlightLines.length * 4.5) + 10;
+    doc.setFillColor(255, 251, 240);
+    doc.rect(margin, yPos, contentWidth, highlightHeight, 'F');
+    doc.setDrawColor(243, 156, 18);
+    doc.setLineWidth(2);
+    doc.line(margin, yPos, margin, yPos + highlightHeight);
+    doc.setTextColor(44, 62, 80);
+    doc.text(highlightLines, margin + 5, yPos + 5);
+    doc.setTextColor(0, 0, 0);
+    
+    yPos += highlightHeight + 8;
+}
+
+// ✅ ACTION PLAN
+if (data.actionPlan && data.actionPlan.trim()) {
+    if (yPos > 220) {
+        doc.addPage();
+        yPos = 20;
+    }
+    
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text('ACTION PLAN', margin, yPos);
+    yPos += 6;
+    
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'normal');
+    const actionLines = doc.splitTextToSize(data.actionPlan, contentWidth - 10);
+    
+    const actionHeight = (actionLines.length * 4.5) + 10;
+    doc.setFillColor(240, 248, 255);
+    doc.rect(margin, yPos, contentWidth, actionHeight, 'F');
+    doc.setDrawColor(52, 152, 219);
+    doc.setLineWidth(2);
+    doc.line(margin, yPos, margin, yPos + actionHeight);
+    doc.setTextColor(44, 62, 80);
+    doc.text(actionLines, margin + 5, yPos + 5);
+    doc.setTextColor(0, 0, 0);
+    
+    yPos += actionHeight + 8;
+}
     
     // ===== EQUIPMENT BREAKDOWN =====
     doc.setFontSize(12);
@@ -6917,33 +7106,37 @@ if (group.completedTasks.length > 0) {
     yPos += 6;
     
     const completedData = group.completedTasks.slice(0, 10).map(task => {
-        // Mode icon
-        const modeIcon = task.executionMode === 'sequential' ? '>' : 
-                        task.executionMode === 'parallel' ? '||' : 'o';
-        
-        // Task info with description
-        let taskInfo = task.name;
-        if (task.description && task.description.trim()) {
-            const shortDesc = task.description.length > 60 ? 
-                            task.description.substring(0, 60) + '...' : 
-                            task.description;
-            taskInfo += `\n${shortDesc}`;
-        }
-        
-        return [
-            `${task.sequence || '?'}\n${modeIcon}`,
-            taskInfo,
-            task.targetStart ? formatDateForDisplay(task.targetStart) : '-',
-            task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-',
-            task.startDate ? formatDateForDisplay(task.startDate) : '-',
-            task.completedDate ? formatDateForDisplay(task.completedDate) : '-',
-            task.timeline ? task.timeline.status : '-'
-        ];
-    });
+    const modeIcon = task.executionMode === 'sequential' ? '>' : 
+                    task.executionMode === 'parallel' ? '||' : 'o';
+    
+    let taskInfo = task.name;
+    if (task.description && task.description.trim()) {
+        const shortDesc = task.description.length > 40 ? 
+                        task.description.substring(0, 40) + '...' : 
+                        task.description;
+        taskInfo += `\n${shortDesc}`;
+    }
+    
+    // ✅ ADD NOTES
+    const notes = task.notes ? 
+             (task.notes.length > 60 ? task.notes.substring(0, 60) + '...' : task.notes) : 
+             '-';
+
+return [
+    `${task.sequence || '?'}\n${modeIcon}`,
+    taskInfo,
+    task.targetStart ? formatDateForDisplay(task.targetStart) : '-',
+    task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-',
+    task.startDate ? formatDateForDisplay(task.startDate) : '-',
+    `${task.progress || 0}%`,
+    task.timeline ? task.timeline.status : '-',
+    notes  // ✅ NEW
+];
+});
     
     doc.autoTable({
-        startY: yPos,
-        head: [['Seq\nMode', 'Task Name & Description', 'Plan\nStart', 'Plan\nEnd', 'Actual\nStart', 'Actual\nEnd', 'Timeline\nStatus']],
+    startY: yPos,
+    head: [['Seq\nMode', 'Task Name', 'Plan\nStart', 'Plan\nEnd', 'Actual\nStart', 'Actual\nEnd', 'Timeline', 'Notes']],
         body: completedData,
         theme: 'striped',
         headStyles: { 
@@ -6967,14 +7160,15 @@ if (group.completedTasks.length > 0) {
             fillColor: [245, 250, 245]
         },
         columnStyles: {
-            0: { halign: 'center', cellWidth: 10, fontSize: 6 },
-            1: { cellWidth: 48, fontSize: 6.5 },
-            2: { halign: 'center', cellWidth: 17, fontSize: 6 },
-            3: { halign: 'center', cellWidth: 17, fontSize: 6 },
-            4: { halign: 'center', cellWidth: 17, fontSize: 6 },
-            5: { halign: 'center', cellWidth: 17, fontSize: 6 },
-            6: { cellWidth: 'auto', fontSize: 6, fontStyle: 'bold' }
-        },
+    0: { halign: 'center', cellWidth: 10, fontSize: 6 },
+    1: { cellWidth: 40, fontSize: 6.5 },  // Reduced from 48
+    2: { halign: 'center', cellWidth: 15, fontSize: 6 },
+    3: { halign: 'center', cellWidth: 15, fontSize: 6 },
+    4: { halign: 'center', cellWidth: 15, fontSize: 6 },
+    5: { halign: 'center', cellWidth: 15, fontSize: 6 },
+    6: { cellWidth: 18, fontSize: 6, fontStyle: 'bold' },
+    7: { cellWidth: 'auto', fontSize: 5.5, fontStyle: 'italic', textColor: [100, 100, 100] }  // ✅ NEW
+},
         didParseCell: function(data) {
             // Add color to timeline status
             if (data.column.index === 6 && data.section === 'body') {
@@ -7042,7 +7236,7 @@ if (group.inProgressTasks.length > 0) {
     
     doc.autoTable({
         startY: yPos,
-        head: [['Seq\nMode', 'Task Name & Description', 'Plan\nStart', 'Plan\nEnd', 'Actual\nStart', 'Progress', 'Timeline\nStatus']],
+        head: [['Seq\nMode', 'Task Name', 'Plan\nStart', 'Plan\nEnd', 'Actual\nStart', 'Progress', 'Timeline', 'Notes']],
         body: inProgressData,
         theme: 'striped',
         headStyles: { 
@@ -7066,14 +7260,15 @@ if (group.inProgressTasks.length > 0) {
             fillColor: [255, 250, 245]
         },
         columnStyles: {
-            0: { halign: 'center', cellWidth: 10, fontSize: 6 },
-            1: { cellWidth: 50, fontSize: 6.5 },
-            2: { halign: 'center', cellWidth: 17, fontSize: 6 },
-            3: { halign: 'center', cellWidth: 17, fontSize: 6 },
-            4: { halign: 'center', cellWidth: 17, fontSize: 6 },
-            5: { halign: 'center', cellWidth: 12, fontSize: 7, fontStyle: 'bold', textColor: [52, 152, 219] },
-            6: { cellWidth: 'auto', fontSize: 6, fontStyle: 'bold' }
-        },
+    0: { halign: 'center', cellWidth: 10, fontSize: 6 },
+    1: { cellWidth: 42, fontSize: 6.5 },  // Reduced from 50
+    2: { halign: 'center', cellWidth: 15, fontSize: 6 },
+    3: { halign: 'center', cellWidth: 15, fontSize: 6 },
+    4: { halign: 'center', cellWidth: 15, fontSize: 6 },
+    5: { halign: 'center', cellWidth: 10, fontSize: 7, fontStyle: 'bold', textColor: [52, 152, 219] },
+    6: { cellWidth: 18, fontSize: 6, fontStyle: 'bold' },
+    7: { cellWidth: 'auto', fontSize: 5.5, fontStyle: 'italic', textColor: [100, 100, 100] }  // ✅ NEW
+},
         didParseCell: function(data) {
             if (data.column.index === 6 && data.section === 'body') {
                 const status = data.cell.text[0];
