@@ -4457,6 +4457,26 @@ const workDelayed = filteredData.filter(item => {
 document.getElementById('totalCount').textContent = total;
 document.getElementById('belumOnsiteCount').textContent = belumOnsite;
 document.getElementById('sudahOnsiteCount').textContent = sudahOnsite;
+
+// ✅ Calculate and display weighted progress for onsite equipment
+const onsiteEquipment = filteredData.filter(item => item.status === 'onsite');
+let allOnsiteTasks = [];
+
+onsiteEquipment.forEach(equip => {
+    const tasks = onsiteTasks[equip.firebaseKey] || [];
+    allOnsiteTasks = allOnsiteTasks.concat(tasks);
+});
+
+const onsiteOverallProgress = calculateWeightedProgress(allOnsiteTasks);
+
+// Update progress display (check if elements exist)
+const progressPercentElem = document.getElementById('onsiteProgressPercent');
+const progressBarElem = document.getElementById('onsiteProgressBar');
+
+if (progressPercentElem && progressBarElem) {
+    progressPercentElem.textContent = onsiteOverallProgress + '%';
+    progressBarElem.style.width = onsiteOverallProgress + '%';
+}
 document.getElementById('contractIssueCount').textContent = contractIssues;
 document.getElementById('paymentIssueCount').textContent = paymentIssues;
 document.getElementById('visaProcessingCount').textContent = visaProcessing;
@@ -4514,12 +4534,30 @@ document.getElementById('totalCountLabel').textContent = 'groups'; // ✅ TAMBAH
     // Update UI with labels
 document.getElementById('totalCount').textContent = groups.length;
 document.getElementById('totalCountLabel').textContent = 'groups';
-
 document.getElementById('belumOnsiteCount').textContent = belumOnsite;
 document.getElementById('belumOnsiteCount').innerHTML = `${belumOnsite} <span style="font-size:11px;font-weight:400;opacity:0.8;">tasks</span>`;
-
 document.getElementById('sudahOnsiteCount').textContent = sudahOnsite;
 document.getElementById('sudahOnsiteCount').innerHTML = `${sudahOnsite} <span style="font-size:11px;font-weight:400;opacity:0.8;">tasks</span>`;
+
+// ✅ Calculate and display weighted progress for onsite items
+const onsiteGroups = groups.filter(g => g.status === 'onsite');
+let allOnsiteTasks = [];
+
+onsiteGroups.forEach(group => {
+    const tasks = onsiteTasks[group.firebaseKey] || [];
+    allOnsiteTasks = allOnsiteTasks.concat(tasks);
+});
+
+const onsiteOverallProgress = calculateWeightedProgress(allOnsiteTasks);
+
+// Update progress display (check if elements exist)
+const progressPercentElem = document.getElementById('onsiteProgressPercent');
+const progressBarElem = document.getElementById('onsiteProgressBar');
+
+if (progressPercentElem && progressBarElem) {
+    progressPercentElem.textContent = onsiteOverallProgress + '%';
+    progressBarElem.style.width = onsiteOverallProgress + '%';
+}
 
 document.getElementById('contractIssueCount').innerHTML = `${contractIssues} <span style="font-size:11px;font-weight:400;opacity:0.8;">tasks</span>`;
 document.getElementById('paymentIssueCount').innerHTML = `${paymentIssues} <span style="font-size:11px;font-weight:400;opacity:0.8;">tasks</span>`;
@@ -5745,7 +5783,7 @@ const sortedPending = sortBySequence([...pendingTasks]);
     
     const totalTasks = tasks.length;
     const completedCount = completedTasks.length;
-    const overallProgress = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
+    const overallProgress = calculateWeightedProgress(tasks);
 
     // Calculate prognosis
     const mobDate = equipment.mobDate ? new Date(parseDateString(equipment.mobDate)) : null;
@@ -6142,7 +6180,7 @@ pendingTasks.forEach(task => {
 });
         
         const totalTasks = tasks.length;
-        const overallProgress = totalTasks > 0 ? Math.round((completedTasks.length / totalTasks) * 100) : 0;
+const overallProgress = calculateWeightedProgress(tasks);  // ✅ WEIGHTED CALCULATION
         
         // Determine status based on ACTUAL task conditions
 let status = 'NOT YET STARTED';
@@ -6223,9 +6261,21 @@ reportData.groups.push({
 });
     });
     
-    const totalAllTasks = reportData.groups.reduce((sum, g) => sum + g.totalTasks, 0);
-const totalCompleted = reportData.groups.reduce((sum, g) => sum + g.completedTasks.length, 0);
-reportData.overallProgress = totalAllTasks > 0 ? Math.round((totalCompleted / totalAllTasks) * 100) : 0;
+    // Collect all tasks from all groups
+let allReportTasks = [];
+reportData.groups.forEach(group => {
+    allReportTasks = allReportTasks.concat(group.tasks);
+});
+
+// Calculate weighted overall progress
+reportData.overallProgress = calculateWeightedProgress(allReportTasks);
+reportData.progressBreakdown = calculateProgressBreakdown(allReportTasks);
+
+// Calculate weighted progress per group
+reportData.groups.forEach(group => {
+    group.weightedProgress = calculateWeightedProgress(group.tasks);
+    group.progressBreakdown = calculateProgressBreakdown(group.tasks);
+});
 // ✅ CALCULATE TIMELINE - Find earliest/latest dates from all tasks
 let allTasks = [];
 reportData.groups.forEach(group => {
@@ -6392,6 +6442,36 @@ function generateHTMLReport(data) {
         .blocked { border-left-color: #e74c3c; background: #fff5f5; }
         .print-btn { background: #3498db; color: white; padding: 12px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 20px; }
         @media print { .print-btn { display: none; } }
+/* ✅ FORCE PRINT BACKGROUNDS & COLORS */    
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
+    body, .container, .section, .progress-bar, .progress-fill,
+    .gantt-table th, .gantt-table td, .mode-badge,
+    .group-card, pre, .section-title {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
+    /* Ensure backgrounds print */
+    .progress-bar { background: #ecf0f1 !important; }
+    .progress-fill { background: #27ae60 !important; }
+    .gantt-table th { 
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; 
+        color: white !important; 
+    }
+    .mode-badge.mode-sequential { background: #e74c3c !important; color: white !important; }
+    .mode-badge.mode-parallel { background: #f39c12 !important; color: white !important; }
+    .mode-badge.mode-independent { background: #27ae60 !important; color: white !important; }
+    
+    pre { 
+        background: #fffbf0 !important; 
+        border-left: 4px solid #f39c12 !important; 
+    }
+}
     </style>
 </head>
 <body>
@@ -6925,6 +7005,115 @@ function renderMilestones() {
     `).join('');
 }
 
+// Calculate weighted progress from tasks
+function calculateWeightedProgress(tasks) {
+    if (!tasks || tasks.length === 0) return 0;
+    
+    let totalProgress = 0;
+    let totalTasks = tasks.length;
+    
+    tasks.forEach(task => {
+        if (task.status === 'completed') {
+            totalProgress += 100;
+        } else if (task.status === 'in-progress' || task.status === 'inprogress' || task.status === 'blocked') {  // ✅ FIX
+            totalProgress += (task.progress || 0);
+        }
+    });
+    
+    return Math.round(totalProgress / totalTasks);
+}
+
+// Calculate progress breakdown for display
+function calculateProgressBreakdown(tasks) {
+    if (!tasks || tasks.length === 0) {
+        return {
+            completed: { count: 0, progress: 0, weight: 0 },
+            inProgress: { count: 0, progress: 0, weight: 0 },
+            ready: { count: 0, progress: 0, weight: 0 },
+            blocked: { count: 0, progress: 0, weight: 0 },
+            total: { count: 0, progress: 0, weight: 0 }
+        };
+    }
+    
+    const breakdown = {
+        completed: { count: 0, totalProgress: 0 },
+        inProgress: { count: 0, totalProgress: 0 },
+        ready: { count: 0, totalProgress: 0 },
+        blocked: { count: 0, totalProgress: 0 }
+    };
+    
+    tasks.forEach(task => {
+        if (task.status === 'completed') {
+            breakdown.completed.count++;
+            breakdown.completed.totalProgress += 100;
+        } else if (task.status === 'in-progress') {
+            breakdown.inProgress.count++;
+            breakdown.inProgress.totalProgress += (task.progress || 0);
+        } else if (task.status === 'blocked') {
+            breakdown.blocked.count++;
+            breakdown.blocked.totalProgress += (task.progress || 0);
+        } else {
+            breakdown.ready.count++;
+            breakdown.ready.totalProgress += 0;
+        }
+    });
+    
+    const totalTasks = tasks.length;
+    const totalWeight = breakdown.completed.totalProgress + 
+                       breakdown.inProgress.totalProgress + 
+                       breakdown.ready.totalProgress + 
+                       breakdown.blocked.totalProgress;
+    
+    return {
+        completed: {
+            count: breakdown.completed.count,
+            progress: breakdown.completed.count > 0 ? Math.round(breakdown.completed.totalProgress / breakdown.completed.count) : 0,
+            weight: breakdown.completed.totalProgress,
+            percentage: Math.round((breakdown.completed.count / totalTasks) * 100)
+        },
+        inProgress: {
+            count: breakdown.inProgress.count,
+            progress: breakdown.inProgress.count > 0 ? Math.round(breakdown.inProgress.totalProgress / breakdown.inProgress.count) : 0,
+            weight: breakdown.inProgress.totalProgress,
+            percentage: Math.round((breakdown.inProgress.count / totalTasks) * 100)
+        },
+        ready: {
+            count: breakdown.ready.count,
+            progress: 0,
+            weight: 0,
+            percentage: Math.round((breakdown.ready.count / totalTasks) * 100)
+        },
+        blocked: {
+            count: breakdown.blocked.count,
+            progress: breakdown.blocked.count > 0 ? Math.round(breakdown.blocked.totalProgress / breakdown.blocked.count) : 0,
+            weight: breakdown.blocked.totalProgress,
+            percentage: Math.round((breakdown.blocked.count / totalTasks) * 100)
+        },
+        total: {
+            count: totalTasks,
+            progress: Math.round(totalWeight / totalTasks),
+            weight: totalWeight,
+            maxWeight: totalTasks * 100
+        }
+    };
+}
+
+function recalculateAllProgress() {
+    console.log('🔄 Starting recalculation of all equipment progress...');
+    
+    let updatedCount = 0;
+    
+    Object.keys(onsiteTasks).forEach(equipmentKey => {
+        const tasks = onsiteTasks[equipmentKey];
+        if (tasks && tasks.length > 0) {
+            updateEquipmentProgress(equipmentKey);
+            updatedCount++;
+        }
+    });
+    
+    console.log(`✅ Recalculated progress for ${updatedCount} equipment`);
+    showNotification(`Progress recalculated for ${updatedCount} equipment`, 'success');
+}
 
 // ===== PDF GENERATION FUNCTIONS =====
 
@@ -6975,7 +7164,7 @@ pendingTasks.forEach(task => {
 });
         
         const totalTasks = tasks.length;
-        const overallProgress = totalTasks > 0 ? Math.round((completedTasks.length / totalTasks) * 100) : 0;
+const overallProgress = calculateWeightedProgress(tasks);  // ✅ WEIGHTED CALCULATION
         
         // Determine status
         // Determine status based on ACTUAL task conditions
@@ -7059,9 +7248,21 @@ reportData.groups.push({
     });
     
     // Calculate overall metrics
-    const totalAllTasks = reportData.groups.reduce((sum, g) => sum + g.totalTasks, 0);
-    const totalCompleted = reportData.groups.reduce((sum, g) => sum + g.completedTasks.length, 0);
-    reportData.overallProgress = totalAllTasks > 0 ? Math.round((totalCompleted / totalAllTasks) * 100) : 0;
+    // Collect all tasks from all groups
+let allReportTasks = [];
+reportData.groups.forEach(group => {
+    allReportTasks = allReportTasks.concat(group.tasks);
+});
+
+// Calculate weighted overall progress
+reportData.overallProgress = calculateWeightedProgress(allReportTasks);
+reportData.progressBreakdown = calculateProgressBreakdown(allReportTasks);
+
+// Calculate weighted progress per group
+reportData.groups.forEach(group => {
+    group.weightedProgress = calculateWeightedProgress(group.tasks);
+    group.progressBreakdown = calculateProgressBreakdown(group.tasks);
+});
  
 // ✅ CALCULATE TIMELINE - Find earliest/latest dates from all tasks
 let allTasks = [];
@@ -8837,20 +9038,18 @@ function updateEquipmentProgress(equipmentKey) {
     
     if (tasks.length === 0) return;
     
-    // Calculate overall progress
-    const totalTasks = tasks.length;
-    const completedTasks = tasks.filter(t => t.status === 'completed').length;
-    const overallProgress = Math.round((completedTasks / totalTasks) * 100);
+    // ✅ Calculate WEIGHTED overall progress
+    const overallProgress = calculateWeightedProgress(tasks);
     
     // ⭐⭐⭐ CRITICAL: Update lastUpdated timestamp ⭐⭐⭐
     const updateData = {
         progress: overallProgress,
-        lastUpdated: new Date().toISOString() // ← TAMBAHKAN INI!
+        lastUpdated: new Date().toISOString()
     };
     
     // Update equipment progress AND lastUpdated in Firebase
     database.ref(`projectData/${equipmentKey}`).update(updateData).then(() => {
-        console.log('✅ Equipment progress updated:', overallProgress + '%');
+        console.log('✅ Equipment progress updated (WEIGHTED):', overallProgress + '%');
         console.log('✅ lastUpdated timestamp set:', updateData.lastUpdated);
         
         // ⭐ Update local data immediately
@@ -8863,13 +9062,20 @@ function updateEquipmentProgress(equipmentKey) {
         
         // ⭐ Force re-populate table to trigger auto-sort
         // ⚠️ JANGAN panggil populateTable() di sini!
-// Biarkan Firebase listener yang handle re-render
-// Ini memastikan semua device sync dengan benar
-console.log('⏳ Waiting for Firebase listener to re-render table...');
+        // Biarkan Firebase listener yang handle re-render
+        // Ini memastikan semua device sync dengan benar
+        console.log('⏳ Waiting for Firebase listener to re-render table...');
         
         // Log to activity history
         const equipment = projectData.find(p => p.firebaseKey === equipmentKey);
         if (equipment) {
+            // Calculate task breakdown for history log
+            const totalTasks = tasks.length;
+            const completedTasks = tasks.filter(t => t.status === 'completed').length;
+            const inProgressTasks = tasks.filter(t => t.status === 'in-progress').length;
+            const avgInProgressPercent = inProgressTasks > 0 ? 
+                Math.round(tasks.filter(t => t.status === 'in-progress').reduce((sum, t) => sum + (t.progress || 0), 0) / inProgressTasks) : 0;
+            
             activityHistoryRef.push({
                 timestamp: new Date().toISOString(),
                 type: 'update',
@@ -8878,8 +9084,8 @@ console.log('⏳ Waiting for Firebase listener to re-render table...');
                 equipmentId: equipment.id,
                 equipment: equipment.equipment,
                 vendor: equipment.vendor,
-                description: `Overall progress updated based on task completion`,
-                notes: `Progress: ${overallProgress}% (${completedTasks}/${totalTasks} tasks completed)`,
+                description: `Weighted progress updated based on task completion and in-progress status`,
+                notes: `Overall: ${overallProgress}% | Completed: ${completedTasks}/${totalTasks} | In Progress: ${inProgressTasks} tasks (avg ${avgInProgressPercent}%)`,
                 user: 'System Auto-Update',
                 icon: '📊',
                 color: '#17a2b8'
@@ -9469,16 +9675,23 @@ function renderGroupedView() {
     
     // Calculate progress for each group
     equipmentMap.forEach((group) => {
-        const total = group.tasks.reduce((sum, t) => {
-    let progress = 0;
-    if (t.progress) {
-        progress = typeof t.progress === 'string' ? 
-                   parseInt(t.progress.replace('%', '')) : 
-                   parseInt(t.progress);
-    }
-    return sum + (progress || 0);
-}, 0);
-group.overallProgress = group.tasks.length > 0 ? Math.round(total / group.tasks.length) : 0;
+        // ✅ Calculate weighted progress for onsite tasks
+const onsiteTasksForGroup = onsiteTasks[group.tasks[0]?.firebaseKey] || [];
+if (onsiteTasksForGroup.length > 0) {
+    group.overallProgress = calculateWeightedProgress(onsiteTasksForGroup);
+} else {
+    // Fallback to main task progress if no onsite tasks
+    const total = group.tasks.reduce((sum, t) => {
+        let progress = 0;
+        if (t.progress) {
+            progress = typeof t.progress === 'string' ? 
+                       parseInt(t.progress.replace('%', '')) : 
+                       parseInt(t.progress);
+        }
+        return sum + (progress || 0);
+    }, 0);
+    group.overallProgress = group.tasks.length > 0 ? Math.round(total / group.tasks.length) : 0;
+}
         
         // Phase breakdown
         group.phases = {};
@@ -9528,9 +9741,11 @@ if (currentFilter !== 'all' && currentFilter !== 'highlighted') {
         
         if (filteredTasks.length === 0) return null;
         
-        // Recalculate progress for filtered tasks
-        const total = filteredTasks.reduce((sum, t) => sum + (t.progress || 0), 0);
-        const newProgress = Math.round(total / filteredTasks.length);
+        // ✅ Recalculate weighted progress for filtered tasks
+const onsiteTasksForGroup = onsiteTasks[filteredTasks[0]?.firebaseKey] || [];
+const newProgress = onsiteTasksForGroup.length > 0 ? 
+                    calculateWeightedProgress(onsiteTasksForGroup) : 
+                    Math.round(filteredTasks.reduce((sum, t) => sum + (t.progress || 0), 0) / filteredTasks.length);
         
         // ✅ RECALCULATE PHASES berdasarkan filteredTasks
         const newPhases = {};
@@ -9569,8 +9784,11 @@ if (currentFilter === 'highlighted') {
         
         if (filteredTasks.length === 0) return null;
         
-        const total = filteredTasks.reduce((sum, t) => sum + (t.progress || 0), 0);
-        const newProgress = Math.round(total / filteredTasks.length);
+        // ✅ Recalculate weighted progress for filtered tasks
+const onsiteTasksForGroup = onsiteTasks[filteredTasks[0]?.firebaseKey] || [];
+const newProgress = onsiteTasksForGroup.length > 0 ? 
+                    calculateWeightedProgress(onsiteTasksForGroup) : 
+                    Math.round(filteredTasks.reduce((sum, t) => sum + (t.progress || 0), 0) / filteredTasks.length);
         
         // Recalculate phases
         const newPhases = {};
@@ -10271,7 +10489,17 @@ function updateGroupTableHeader() {
 window.toggleGroupedView = toggleGroupedView;
 window.toggleGroup = toggleGroup;
 window.updateGroupTableHeader = updateGroupTableHeader;  // 👈 TAMBAH INI
-
+// Auto-migrate to weighted progress (one-time)
+window.addEventListener('load', function() {
+    const migrated = localStorage.getItem('progressMigrated_v2');
+    if (!migrated) {
+        setTimeout(function() {
+            console.log('🔄 First-time migration to weighted progress...');
+            recalculateAllProgress();
+            localStorage.setItem('progressMigrated_v2', 'true');
+        }, 3000);
+    }
+});
 
     </script>
 
