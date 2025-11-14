@@ -9711,12 +9711,18 @@ group.phases[disc].progress += (taskProgress || 0);
         });
         
         // Calculate phase status
-        Object.keys(group.phases).forEach(disc => {
-            const p = group.phases[disc];
-            p.avgProgress = Math.round(p.progress / p.count);
-            p.status = p.avgProgress === 100 ? 'complete' : 
-                       p.avgProgress > 0 ? 'ongoing' : 'pending';
-        });
+Object.keys(group.phases).forEach(disc => {
+    const p = group.phases[disc];
+    p.avgProgress = Math.round(p.progress / p.count);
+    p.status = p.avgProgress === 100 ? 'complete' : 
+               p.avgProgress > 0 ? 'ongoing' : 'pending';
+});
+
+// ✅ RECALCULATE overall progress as average of all phases
+const phaseProgresses = Object.values(group.phases).map(p => p.avgProgress);
+if (phaseProgresses.length > 0) {
+    group.overallProgress = Math.round(phaseProgresses.reduce((sum, p) => sum + p, 0) / phaseProgresses.length);
+}
     });
     
     currentEquipmentGroups = Array.from(equipmentMap.values());
@@ -9759,12 +9765,18 @@ const newProgress = onsiteTasksForGroup.length > 0 ?
         });
         
         // Calculate phase status
-        Object.keys(newPhases).forEach(disc => {
-            const p = newPhases[disc];
-            p.avgProgress = Math.round(p.progress / p.count);
-            p.status = p.avgProgress === 100 ? 'complete' : 
-                       p.avgProgress > 0 ? 'ongoing' : 'pending';
-        });
+Object.keys(group.phases).forEach(disc => {
+    const p = group.phases[disc];
+    p.avgProgress = Math.round(p.progress / p.count);
+    p.status = p.avgProgress === 100 ? 'complete' : 
+               p.avgProgress > 0 ? 'ongoing' : 'pending';
+});
+
+// ✅ RECALCULATE overall progress as average of all phases
+const phaseProgresses = Object.values(group.phases).map(p => p.avgProgress);
+if (phaseProgresses.length > 0) {
+    group.overallProgress = Math.round(phaseProgresses.reduce((sum, p) => sum + p, 0) / phaseProgresses.length);
+}
         
         return {
             equipment: filteredTasks[0].equipment,
