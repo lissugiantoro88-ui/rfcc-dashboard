@@ -6404,15 +6404,17 @@ if (reportData.highlights || reportData.actionPlan || reportData.milestones.leng
     const equipmentBase = reportData.equipmentBase.replace(/[.#$[\]]/g, '_');
     const reportDate = reportData.reportDate;
     
-    database.ref(`reportSettings/${equipmentBase}/${reportDate}`).set({
-        highlights: reportData.highlights || '',
-        actionPlan: reportData.actionPlan || '',
-        milestones: reportData.milestones || [],  // ✅ ADD THIS
-        timestamp: new Date().toISOString(),
-        updatedBy: 'Report Generator'
-    }).catch(error => {
-        console.error('Error saving report settings:', error);
-    });
+    database.ref(`reportSettings/${equipmentBase}`).set({
+    highlights: reportData.highlights || '',
+    actionPlan: reportData.actionPlan || '',
+    milestones: reportData.milestones || [],
+    timestamp: new Date().toISOString(),
+    updatedBy: 'Report Generator'
+}).then(() => {
+    console.log('✅ Report settings saved (from preview)');
+}).catch(error => {
+    console.error('❌ Error saving report settings:', error);
+});
 }
 
 // Generate HTML preview in new window
