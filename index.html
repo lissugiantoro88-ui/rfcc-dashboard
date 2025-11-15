@@ -1525,6 +1525,55 @@ body.grouped-view-active #tablePagination {
     opacity: 0 !important;
 }
 
+/* PDF Generation Optimization */
+@media print {
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
+    .section {
+        page-break-inside: avoid !important;
+        page-break-after: auto !important;
+    }
+    
+    .group-card {
+        page-break-inside: avoid !important;
+    }
+    
+    table {
+        page-break-inside: auto !important;
+    }
+    
+    tr {
+        page-break-inside: avoid !important;
+        page-break-after: auto !important;
+    }
+    
+    .print-btn {
+        display: none !important;
+    }
+}
+
+/* Optimize for PDF generation */
+.container {
+    max-width: 100% !important;
+}
+
+.section {
+    page-break-inside: avoid;
+    margin-bottom: 20px;
+}
+
+table {
+    page-break-inside: auto;
+}
+
+tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+}
+
 /* ⭐ AKHIR CSS BARU */
 
 </style>
@@ -6356,131 +6405,269 @@ previewWindow.document.close();
 
 function generateHTMLReport(data) {
     const totalBlocked = data.groups.reduce((sum, g) => sum + g.blockedTasks.length, 0);
-    
     return `
 <!DOCTYPE html>
 <html>
 <head>
     <title>Progress Report Preview - ${data.equipmentBase}</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .header { text-align: center; border-bottom: 3px solid #2c3e50; padding-bottom: 20px; margin-bottom: 30px; }
-        .header h1 { margin: 0; color: #2c3e50; font-size: 24px; }
-        .section { 
-    margin-bottom: 40px; 
-    padding-bottom: 30px;
-    border-bottom: 3px solid #ecf0f1;
+    <!-- ✅ SCRIPT DI SINI (dalam HTML string) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"><\/script>
+<style>
+/* Screen & Print Shared Styles */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
-.section:last-child {
-    border-bottom: none;
-}
-.group-separator {
-    margin: 40px 0;
-    padding: 20px 0;
-    border-top: 2px solid #3498db;
-    position: relative;
-}
-.group-separator::before {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: 0;
-    width: 60px;
-    height: 2px;
-    background: #e74c3c;
-}
-        .section-title { font-size: 16px; font-weight: bold; color: #2c3e50; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 5px; }
-        .progress-bar { background: #ecf0f1; height: 30px; border-radius: 5px; overflow: hidden; margin: 10px 0; }
-        .progress-fill { height: 100%; background: #27ae60; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
-        .group-card { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
-        .task-item { padding: 8px; margin: 5px 0; border-left: 3px solid #ccc; padding-left: 10px; font-size: 14px; }
-.gantt-table { 
-    width: 100%; 
-    border-collapse: collapse; 
-    margin: 15px 0; 
-    font-size: 11px; 
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    border-radius: 8px;
-    overflow: hidden;
-}
-.gantt-table th { 
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-    color: white; 
-    padding: 12px 8px; 
-    text-align: center; 
-    font-weight: 600; 
-    font-size: 10px;
-    border: none;
+
+body { 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f5f5f5; 
+    font-size: 11px;
     line-height: 1.4;
+    color: #2c3e50;
 }
-.gantt-table td { 
-    padding: 10px 8px; 
-    border: 1px solid #e8e8e8; 
-    vertical-align: top; 
+
+.container { 
+    max-width: 210mm;
+    margin: 0 auto; 
+    background: white; 
+    padding: 15mm;
+}
+
+.header {
+    text-align: center;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.header h2 {
+    margin: 8px 0 0 0;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.header p {
+    margin: 5px 0 0 0;
+    font-size: 11px;
+    opacity: 0.95;
+}
+
+.section {
+    margin-bottom: 18px;
+    page-break-inside: avoid;
+}
+
+.section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 4px;
+    page-break-after: avoid;
+}
+
+.group-card {
+    background: #f8f9fa;
+    border-left: 4px solid #3498db;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    border-radius: 4px;
+    page-break-inside: avoid;
+}
+
+.group-card h3 {
+    margin: 0 0 6px 0;
+    font-size: 12px;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.group-card p {
+    margin: 3px 0;
+    font-size: 10px;
     line-height: 1.5;
 }
-.gantt-table tbody tr:nth-child(odd) { background: white; }
-.gantt-table tbody tr:nth-child(even) { background: #f8f9fa; }
-.gantt-table tbody tr:hover { 
-    background: #e3f2fd; 
-    transition: background 0.2s ease;
+
+.progress-bar {
+    background: #ecf0f1;
+    height: 18px;
+    border-radius: 9px;
+    overflow: hidden;
+    margin: 8px 0;
 }
+
+.progress-fill {
+    background: linear-gradient(90deg, #27ae60, #2ecc71);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding-left: 8px;
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.gantt-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 9px;
+    page-break-inside: auto;
+}
+
+.gantt-table thead {
+    display: table-header-group;
+}
+
+.gantt-table th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 6px 8px;
+    text-align: left;
+    font-size: 9px;
+    font-weight: 600;
+    border: 1px solid #5a67d8;
+}
+
+.gantt-table td {
+    padding: 5px 8px;
+    border: 1px solid #dee2e6;
+    vertical-align: top;
+    line-height: 1.4;
+}
+
+.gantt-table tbody tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+}
+
+.gantt-table tr:nth-child(even) {
+    background: #f8f9fa;
+}
+
 .mode-badge {
     display: inline-block;
     padding: 2px 6px;
     border-radius: 3px;
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 600;
-    margin-left: 5px;
+    color: white;
+    margin-top: 2px;
 }
-.mode-sequential { background: #e74c3c; color: white; }
-.mode-parallel { background: #f39c12; color: white; }
-.mode-independent { background: #27ae60; color: white; }
-        .completed { border-left-color: #27ae60; background: #f0fff4; }
-        .inprogress { border-left-color: #f39c12; background: #fffbf0; }
-        .blocked { border-left-color: #e74c3c; background: #fff5f5; }
-        .print-btn { background: #3498db; color: white; padding: 12px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 20px; }
-        @media print { .print-btn { display: none; } }
-/* ✅ FORCE PRINT BACKGROUNDS & COLORS */    
+
+.mode-sequential { background: #e74c3c; }
+.mode-parallel { background: #f39c12; }
+.mode-independent { background: #27ae60; }
+
+/* Print-Specific Optimizations */
+@media print {
+    @page {
+        size: A4;
+        margin: 12mm 10mm;
+    }
+    
     * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         color-adjust: exact !important;
     }
     
-    body, .container, .section, .progress-bar, .progress-fill,
-    .gantt-table th, .gantt-table td, .mode-badge,
-    .group-card, pre, .section-title {
+    body {
+        background: white;
+        margin: 0;
+        padding: 0;
+    }
+    
+    .container {
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
+        box-shadow: none;
+    }
+    
+    .header {
+        margin-bottom: 15px;
+    }
+    
+    .section {
+        page-break-inside: avoid;
+        margin-bottom: 15px;
+    }
+    
+    .section-title {
+        page-break-after: avoid;
+        page-break-inside: avoid;
+    }
+    
+    .group-card {
+        page-break-inside: avoid;
+        margin-bottom: 10px;
+    }
+    
+    .gantt-table {
+        page-break-inside: auto;
+    }
+    
+    .gantt-table thead {
+        display: table-header-group;
+    }
+    
+    .gantt-table tbody tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+    }
+    
+    /* Hide print button */
+    .print-btn,
+    button {
+        display: none !important;
+    }
+    
+    /* Ensure colors print */
+    .header,
+    .section-title,
+    .gantt-table th,
+    .progress-fill,
+    .mode-badge {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
-    
-    /* Ensure backgrounds print */
-    .progress-bar { background: #ecf0f1 !important; }
-    .progress-fill { background: #27ae60 !important; }
-    .gantt-table th { 
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; 
-        color: white !important; 
+}
+
+/* Screen-only styles */
+@media screen {
+    .print-btn {
+        transition: all 0.3s ease;
     }
-    .mode-badge.mode-sequential { background: #e74c3c !important; color: white !important; }
-    .mode-badge.mode-parallel { background: #f39c12 !important; color: white !important; }
-    .mode-badge.mode-independent { background: #27ae60 !important; color: white !important; }
     
-    pre { 
-        background: #fffbf0 !important; 
-        border-left: 4px solid #f39c12 !important; 
+    .print-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
     }
 }
-    </style>
+</style>    
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>📊 PROGRESS REPORT</h1>
-            <h2 style="margin: 10px 0; color: #34495e;">${data.equipmentBase} System</h2>
-            <p style="color: #7f8c8d;">Report Date: ${formatDateForDisplay(data.reportDate)} | Generated: ${new Date().toLocaleString()}</p>
-        </div>
+        <div class="header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; color: white !important; padding: 20px; text-align: center; border-radius: 5px; margin-bottom: 30px;">
+    <h1 style="margin: 0; font-size: 24px; color: white !important;">📊 PROGRESS REPORT</h1>
+    <h2 style="margin: 10px 0 0 0; font-size: 18px; color: white !important;">${data.equipmentBase} System</h2>
+    <p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.9; color: white !important;">
+        Report Date: ${formatDateForDisplay(data.reportDate)} | Generated: ${new Date().toLocaleDateString()}
+    </p>
+</div>
         
         
 <div class="section">
@@ -6696,7 +6883,7 @@ ${data.highlights || data.actionPlan ? `
             ${group.completedTasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).slice(0, 10).map(task => {
                 const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
                                 task.executionMode === 'parallel' ? 'Parallel' : 'Independent';
-                const modeClass = `mode-${task.executionMode || 'independent'}`;
+                const modeClass = 'mode-' + (task.executionMode || 'independent');
                 
                 return `
                 <tr>
@@ -6853,13 +7040,13 @@ ${group.blockedTasks.length > 0 ? `
                         if (!depTask) return null;
                         const progress = parseInt(depTask.progress) || 0;
                         if (progress < 100) {
-                            return `<span style="font-weight: 600;">#${depTask.sequence || '?'}</span> ${depTask.name} (${progress}%)`;
+                            return '<span style="font-weight: 600;">#' + (depTask.sequence || '?') + '</span> ' + depTask.name + ' (' + progress + '%)';
                         }
                         return null;
                     }).filter(t => t !== null);
                     
                     if (blockingTasks.length > 0) {
-                        blockingInfo = `<span style="color: #c0392b; font-weight: 600;">Waiting:</span><br>${blockingTasks.join('<br>')}`;
+                        blockingInfo = '<span style="color: #c0392b; font-weight: 600;">Waiting:</span><br>' + blockingTasks.join('<br>');
                     }
                 }
                 
@@ -6885,12 +7072,21 @@ ${group.blockedTasks.length > 0 ? `
             `).join('')}
         </div>
         
-        <div style="text-align: center;">
-    <button class="print-btn" onclick="window.print()">🖨️ Print Report</button>
-    <button class="print-btn" onclick="downloadPreviewAsPDF()" style="background: #e74c3c; margin-left: 10px;">
-        📥 Download as PDF
+       <div style="text-align: center; margin: 30px 0; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+    <button class="print-btn" onclick="window.print()" style="padding: 12px 30px; font-size: 15px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);">
+        🖨️ Print to PDF
     </button>
+    <p style="margin: 10px 0 0 0; font-size: 12px; color: #7f8c8d;">
+        Use your browser's "Save as PDF" option in the print dialog
+    </p>
 </div>
+<!-- Scripts for print optimization -->
+<script>
+// Auto-focus for better UX
+window.onload = function() {
+    document.title = 'Progress_Report_' + document.querySelector('.header h2').textContent.replace(/[^a-zA-Z0-9]/g, '_');
+};
+<\/script>
     </div>
 </body>
 </html>
