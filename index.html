@@ -2162,7 +2162,7 @@ tr {
 
 <div class="form-group">
     <label class="form-label">Report Date:</label>
-    <input type="date" id="reportDate" class="form-control" readonly style="background: #f8f9fa;">
+    <input type="date" id="reportDate" class="form-control" style="background: #ffffff;">
 </div>
 
 <!-- ✅ ADD THIS - Highlights & Action Plan -->
@@ -4235,7 +4235,7 @@ if (item.lastUpdated) {
         row.style.setProperty('border-left', '4px solid #ffc107', 'important');
         row.style.setProperty('transition', 'all 0.5s ease', 'important');
         
-        console.log(`🎨 Highlight applied: ${item.equipment} (${Math.floor(timeSinceUpdate/1000)}s ago)`);
+        // console.log(`🎨 Highlight applied: ${item.equipment} (${Math.floor(timeSinceUpdate/1000)}s ago)`);
         
         // Tambahkan badge "🔥 NEW"
         const firstCell = row.cells[0];
@@ -7105,9 +7105,8 @@ window.onload = function() {
 // ✅ TAMBAHKAN DI SINI - Function baru di global scope
 function loadPreviousReportSettings(baseName) {
     const equipmentBase = baseName.replace(/[.#$[\]]/g, '_');
-    const reportDate = document.getElementById('reportDate').value;
     
-    database.ref(`reportSettings/${equipmentBase}/${reportDate}`).once('value').then(snapshot => {
+    database.ref(`reportSettings/${equipmentBase}`).once('value').then(snapshot => {
         if (snapshot.exists()) {
     const data = snapshot.val();
     
@@ -7569,20 +7568,21 @@ reportData.groups.sort((a, b) => {
 });
 
 // ✅ SAVE Highlights, Action Plan & Milestones to Firebase
-if (reportData.highlights || reportData.actionPlan || reportData.milestones.length > 0) {
-    const equipmentBase = reportData.equipmentBase.replace(/[.#$[\]]/g, '_');
-    const reportDate = reportData.reportDate;
-    
-    database.ref(`reportSettings/${equipmentBase}/${reportDate}`).set({
-        highlights: reportData.highlights || '',
-        actionPlan: reportData.actionPlan || '',
-        milestones: reportData.milestones || [],  // ✅ ADD THIS
-        timestamp: new Date().toISOString(),
-        updatedBy: 'Report Generator'
-    }).catch(error => {
-        console.error('Error saving report settings:', error);
-    });
-}
+const equipmentBase = reportData.equipmentBase.replace(/[.#$[\]]/g, '_');
+
+// Always save latest version (no date in path)
+database.ref(`reportSettings/${equipmentBase}`).set({
+    highlights: reportData.highlights || '',
+    actionPlan: reportData.actionPlan || '',
+    milestones: reportData.milestones || [],
+    timestamp: new Date().toISOString(),
+    updatedBy: 'Report Generator'
+}).then(() => {
+    console.log('✅ Report settings saved successfully');
+}).catch(error => {
+    console.error('❌ Error saving report settings:', error);
+    showNotification('Failed to save report settings: ' + error.message, 'error');
+});
 
 
     // Generate PDF
