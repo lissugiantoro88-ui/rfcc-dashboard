@@ -6231,38 +6231,56 @@ pendingTasks.forEach(task => {
         const totalTasks = tasks.length;
 const overallProgress = calculateWeightedProgress(tasks);  // ✅ WEIGHTED CALCULATION
         
-        // Determine status based on ACTUAL task conditions
-let status = 'NOT YET STARTED';
-let statusColor = [149, 165, 166]; // Gray
+        // Use smart status calculation
+const equipmentStartDate = tasks.reduce((earliest, t) => {
+    if (!t.targetStart) return earliest;
+    const start = new Date(t.targetStart);
+    return !earliest || start < earliest ? start : earliest;
+}, null);
 
-if (overallProgress === 100) {
-    status = 'COMPLETED';
-    statusColor = [39, 174, 96]; // Green
-} else if (inProgressTasks.length > 0) {
-    // Has tasks in progress - check if on track
-    const overdueTasks = inProgressTasks.filter(t => {
-        if (!t.targetEnd) return false;
-        const targetEnd = new Date(t.targetEnd);
-        const today = new Date();
-        return today > targetEnd && t.progress < 100;
-    });
-    
-    if (overdueTasks.length > 0 || blockedTasks.length > 0) {
-        status = 'REQUIRES ATTENTION';
-        statusColor = [243, 156, 18]; // Orange
-    } else {
-        status = 'IN PROGRESS';
+const equipmentTargetDate = tasks.reduce((latest, t) => {
+    if (!t.targetEnd) return latest;
+    const end = new Date(t.targetEnd);
+    return !latest || end > latest ? end : latest;
+}, null);
+
+const smartStatus = calculateSmartStatus(
+    overallProgress,
+    equipmentStartDate,
+    equipmentTargetDate
+);
+
+let status = smartStatus.status;
+let statusColor;
+
+// Convert to RGB array for PDF
+switch(smartStatus.status) {
+    case 'COMPLETED':
+        statusColor = [39, 174, 96]; // Green
+        break;
+    case 'AHEAD':
+        statusColor = [39, 174, 96]; // Green
+        break;
+    case 'ON TRACK':
         statusColor = [52, 152, 219]; // Blue
-    }
-} else if (readyTasks.length > 0) {
-    status = 'READY TO START';
-    statusColor = [46, 204, 113]; // Light green
-} else if (blockedTasks.length > 0) {
-    status = 'REQUIRES ATTENTION';
-    statusColor = [243, 156, 18]; // Orange
-} else {
-    status = 'NOT YET STARTED';
-    statusColor = [149, 165, 166]; // Gray
+        break;
+    case 'IN PROGRESS':
+        statusColor = [52, 152, 219]; // Blue
+        break;
+    case 'BEHIND':
+        statusColor = [243, 156, 18]; // Orange
+        break;
+    case 'OVERDUE':
+        statusColor = [231, 76, 60]; // Red
+        break;
+    default:
+        statusColor = [149, 165, 166]; // Gray
+}
+
+// Override with critical conditions
+if (blockedTasks.length > 0 && smartStatus.status !== 'COMPLETED') {
+    status = 'BLOCKED';
+    statusColor = [231, 76, 60]; // Red
 }
         
         // Add timeline status to each task
@@ -6731,27 +6749,15 @@ ${data.milestones && data.milestones.length > 0 ? `
                 const today = new Date();
                 const daysUntil = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
                 
-                let status = 'PENDING';
-                let statusColor = '#95a5a6';
-                
-                if (milestone.progress >= 100) {
-                    status = 'COMPLETED';
-                    statusColor = '#27ae60';
-                } else if (milestone.progress > 0) {
-                    if (daysUntil < 0) {
-                        status = 'DELAYED';
-                        statusColor = '#e74c3c';
-                    } else if (daysUntil <= 7) {
-                        status = 'AT RISK';
-                        statusColor = '#f39c12';
-                    } else {
-                        status = 'ON TRACK';
-                        statusColor = '#3498db';
-                    }
-                } else {
-                    status = 'NOT STARTED';
-                    statusColor = '#95a5a6';
-                }
+                // Use smart status calculation
+const smartStatus = calculateSmartStatus(
+    milestone.progress,
+    null,  // ✅ No start date for milestones
+    milestone.targetDate
+);
+
+const status = smartStatus.status;
+const statusColor = smartStatus.color;
                 
                 return `
                     <tr style="border-bottom: 1px solid #ddd;">
@@ -6841,11 +6847,14 @@ ${data.highlights || data.actionPlan ? `
                     <p style="margin: 5px 0;"><strong>Status:</strong> 
 <span style="color: ${
     group.status === 'COMPLETED' ? '#27ae60' : 
-    group.status === 'ON SCHEDULE' ? '#27ae60' : 
+    group.status === 'AHEAD' ? '#27ae60' : 
+    group.status === 'ON TRACK' ? '#3498db' : 
     group.status === 'IN PROGRESS' ? '#3498db' : 
-    group.status === 'REQUIRES ATTENTION' ? '#f39c12' : 
+    group.status === 'BEHIND' ? '#f39c12' : 
+    group.status === 'OVERDUE' ? '#e74c3c' :
+    group.status === 'BLOCKED' ? '#e74c3c' :
     '#95a5a6'
-}; font-weight: bold;">${group.status.toUpperCase()}</span></p>
+}; font-weight: bold;">${group.status.toUpperCase()}</span>
                 </div>
             `).join('')}
         </div>
@@ -7214,6 +7223,59 @@ function calculateWeightedProgress(tasks) {
     });
     
     return Math.round(totalProgress / totalTasks);
+}
+
+// Calculate smart status based on progress vs time
+// Calculate smart status based on progress vs time
+function calculateSmartStatus(actualProgress, startDate, targetDate) {
+    actualProgress = parseInt(actualProgress) || 0;
+    
+    // Completed
+    if (actualProgress >= 100) {
+        return { status: 'COMPLETED', color: '#27ae60', icon: '✅' };
+    }
+    
+    // Not started
+    if (actualProgress === 0) {
+        return { status: 'NOT STARTED', color: '#95a5a6', icon: '⏸️' };
+    }
+    
+    // If no target date, default to IN PROGRESS
+    if (!targetDate) {
+        return { status: 'IN PROGRESS', color: '#3498db', icon: '🔄' };
+    }
+    
+    const target = new Date(targetDate);
+    const today = new Date();
+    
+    // If past target date
+    if (today > target) {
+        return { status: 'OVERDUE', color: '#e74c3c', icon: '🔴' };
+    }
+    
+    // If we have start date, calculate expected progress
+    if (startDate) {
+        const start = new Date(startDate);
+        const totalDays = Math.ceil((target - start) / (1000 * 60 * 60 * 24));
+        const elapsedDays = Math.ceil((today - start) / (1000 * 60 * 60 * 24));
+        
+        // Prevent division by zero
+        if (totalDays > 0) {
+            const expectedProgress = (elapsedDays / totalDays) * 100;
+            const tolerance = 15; // ±15% tolerance
+            
+            if (actualProgress > expectedProgress + tolerance) {
+                return { status: 'AHEAD', color: '#27ae60', icon: '🚀' };
+            } else if (actualProgress < expectedProgress - tolerance) {
+                return { status: 'BEHIND', color: '#f39c12', icon: '⚠️' };
+            } else {
+                return { status: 'ON TRACK', color: '#3498db', icon: '✅' };
+            }
+        }
+    }
+    
+    // Default: In Progress (if no start date or can't calculate)
+    return { status: 'IN PROGRESS', color: '#3498db', icon: '🔄' };
 }
 
 // Calculate progress breakdown for display
