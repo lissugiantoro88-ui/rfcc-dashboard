@@ -1981,6 +1981,9 @@ tr {
             <p id="vmSubtitle" style="margin: 5px 0 0 0; color: #7f8c8d; font-size: 13px;">No equipment selected</p>
         </div>
         <div style="display: flex; gap: 10px;">
+            <button onclick="clearAllVMEquipment()" style="padding: 8px 16px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                🗑️ Clear All
+            </button>
             <button onclick="openAddEquipmentDialog()" style="padding: 8px 16px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
                 ➕ Add Equipment
             </button>
@@ -2016,7 +2019,7 @@ tr {
             <div id="vmEquipmentList" style="max-height: 400px; overflow-y: auto; border: 1px solid #ecf0f1; border-radius: 4px; padding: 10px;"></div>
         </div>
         <div style="padding: 15px 20px; border-top: 1px solid #ecf0f1; display: flex; justify-content: flex-end; gap: 10px; background: #f8f9fa;">
-            <button onclick="closeAddEquipmentDialog()" style="padding: 8px 20px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
+            
             <button onclick="document.getElementById('addEquipmentDialog').style.display='none'" style="padding: 8px 20px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">Cancel</button>
 <button onclick="addSelectedEquipmentBatch()" style="padding: 8px 20px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer;">Add Selected</button>
         </div>
@@ -11259,6 +11262,30 @@ function loadVMSettings() {
             };
             
             console.log('✅ VM Settings loaded from localStorage:', vmSettings);
+            
+            // ✅ AUTO-CLEANUP: Remove invalid/old format equipment
+            if (vmSettings.selectedEquipment.length > 0 && projectData && projectData.length > 0) {
+                const originalCount = vmSettings.selectedEquipment.length;
+                
+                // Keep only equipment that exists in current projectData
+                vmSettings.selectedEquipment = vmSettings.selectedEquipment.filter(equipmentId => {
+                    // Check if this equipment exists in projectData
+                    const exists = projectData.some(task => task.equipment === equipmentId);
+                    
+                    if (!exists) {
+                        console.log('🧹 Removing invalid equipment:', equipmentId);
+                    }
+                    
+                    return exists;
+                });
+                
+                const removedCount = originalCount - vmSettings.selectedEquipment.length;
+                
+                if (removedCount > 0) {
+                    console.log(`🧹 Cleaned ${removedCount} invalid equipment from settings`);
+                    saveVMSettings(); // Save cleaned data
+                }
+            }
         } else {
             console.log('ℹ️ No saved VM settings, using defaults');
         }
@@ -11360,6 +11387,7 @@ function applyVMSettings() {
 }
 
 // Load equipment data - using equipment ID (equipment___vendor)
+// Load equipment data - using EQUIPMENT ONLY (all vendors combined)
 function loadVMEquipmentData() {
     console.log('🔄 Loading VM equipment data...');
     
@@ -11367,16 +11395,16 @@ function loadVMEquipmentData() {
     
     const promises = vmSettings.selectedEquipment.map(equipmentId => {
         return new Promise((resolve) => {
-            const [equipment, vendor] = equipmentId.split('__');  // ✅ 2 underscore
+            const equipment = equipmentId; // Equipment name is the ID
             
             const allTasks = [];
             
-            // Get parent tasks matching equipment + vendor
+            // Get ALL parent tasks matching this equipment (all vendors)
             const parentTasks = projectData.filter(task => {
-                return task.equipment === equipment && task.vendor === vendor;
+                return task.equipment === equipment;
             });
             
-            // Get subtasks
+            // Get subtasks from all parent tasks
             parentTasks.forEach(parentTask => {
                 const firebaseKey = parentTask.firebaseKey || parentTask.id;
                 const subtasks = onsiteTasks[firebaseKey] || [];
@@ -11396,26 +11424,30 @@ function loadVMEquipmentData() {
                 }
             });
             
+            // Collect all unique vendors
+            const vendors = [...new Set(allTasks.map(t => t.vendor))];
+            const vendorText = vendors.join(', ');
+            
             // Load shared data
-            const sanitizedId = equipmentId.replace(/[.#$[\]()]/g, '_').replace(/__/g, '_');
+            const sanitizedId = equipment.replace(/[.#$[\]()]/g, '_').replace(/\s+/g, '_');
             database.ref(`reportSettings/${sanitizedId}`).once('value').then(reportSnap => {
                 const reportData = reportSnap.val() || {};
                 
                 vmEquipmentData[equipmentId] = {
                     equipment: equipment,
-                    vendor: vendor,
+                    vendor: vendorText,
                     tasks: allTasks,
                     highlights: reportData.highlights || '',
                     actionPlan: reportData.actionPlan || '',
                     milestones: reportData.milestones || []
                 };
                 
-                console.log(`✅ Loaded ${allTasks.length} tasks for ${equipment} (${vendor})`);
+                console.log(`✅ Loaded ${allTasks.length} tasks for ${equipment} (${vendorText})`);
                 resolve();
             }).catch(error => {
                 vmEquipmentData[equipmentId] = {
                     equipment: equipment,
-                    vendor: vendor,
+                    vendor: vendorText,
                     tasks: allTasks,
                     highlights: '',
                     actionPlan: '',
@@ -11691,10 +11723,10 @@ function createEquipmentCard(metrics) {
     // Action buttons
     html += `
         <div class="vm-card-actions">
-            <button class="vm-action-btn primary" onclick="openTaskTrackerFromVM('${metrics.equipmentBase}')">
+            <button class="vm-action-btn primary" onclick="openTaskTrackerFromVM('${metrics.equipmentId}')">
                 📊 Tasks
             </button>
-            <button class="vm-action-btn secondary" onclick="generateReportFromVM('${metrics.equipmentBase}')">
+            <button class="vm-action-btn secondary" onclick="openProgressReportFromVM('${metrics.equipmentId}')">
                 📄 Report
             </button>
         </div>
@@ -11702,6 +11734,82 @@ function createEquipmentCard(metrics) {
     
     card.innerHTML = html;
     return card;
+}
+
+// Open Generate Progress Report for equipment from VM
+function openProgressReportFromVM(equipmentId) {
+    const data = vmEquipmentData[equipmentId];
+    
+    if (!data) {
+        showNotification('Equipment data not found', 'error');
+        return;
+    }
+    
+    const equipment = data.equipment;
+    
+    // Find first parent task from projectData
+    const parentTask = projectData.find(t => t.equipment === equipment);
+    
+    if (!parentTask) {
+        showNotification('Equipment not found in project data', 'error');
+        return;
+    }
+    
+    console.log('📄 Opening Generate Progress Report for:', equipment);
+    
+    // Set as current equipment for report
+    currentEquipmentTasks = {
+        equipment: parentTask
+    };
+    
+    // Open report modal
+    const reportModal = document.getElementById('reportModal');
+    if (!reportModal) {
+        showNotification('Report modal not found', 'error');
+        return;
+    }
+    
+    reportModal.style.display = 'block';
+    
+    // Trigger the report modal population
+    if (typeof openProgressReportModal === 'function') {
+        openProgressReportModal();
+    } else {
+        // Manual trigger if function doesn't exist
+        const equipmentName = parentTask.equipment || '';
+        
+        // Extract base equipment name for report
+        let baseName = '';
+        const afterParens = equipmentName.match(/\)\s*([A-Z0-9\-]+)/);
+        if (afterParens) {
+            baseName = afterParens[1].trim();
+        } else {
+            const inParens = equipmentName.match(/\(([^)]+)\)/);
+            if (inParens) {
+                baseName = inParens[1].replace(/\s+[A-Z]+$/g, '').trim();
+            } else {
+                baseName = equipmentName.trim();
+            }
+        }
+        
+        // Set base name
+        const reportBaseInput = document.getElementById('reportEquipmentBase');
+        if (reportBaseInput) {
+            reportBaseInput.value = baseName;
+        }
+        
+        // Set today's date
+        const reportDateInput = document.getElementById('reportDate');
+        if (reportDateInput) {
+            const today = new Date().toISOString().split('T')[0];
+            reportDateInput.value = today;
+        }
+        
+        // Populate related groups
+        if (typeof populateRelatedGroups === 'function') {
+            populateRelatedGroups(baseName);
+        }
+    }
 }
 
 // Open dialog to add equipment
@@ -11716,41 +11824,39 @@ function openAddEquipmentDialog() {
 }
 
 // Populate available equipment list - using Group Equipment logic
+// Populate available equipment list - using EQUIPMENT ONLY (no vendor split)
 function populateEquipmentList() {
     const listContainer = document.getElementById('vmEquipmentList');
     if (!listContainer) return;
     
     listContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #95a5a6;">Loading equipment...</div>';
     
-    // Check if projectData is available
     if (!projectData || projectData.length === 0) {
         listContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #e74c3c;">No project data loaded</div>';
         return;
     }
     
-    // Group equipment using SAME logic as Group Equipment view
-    const groups = {};
+    // Group by EQUIPMENT ONLY (combine all vendors)
+    const equipmentMap = new Map();
     
     projectData.forEach(item => {
         const equipment = item.equipment || 'Unknown';
-        const vendor = item.vendor || 'Unknown';
         
-        // Create unique key: equipment + vendor
-        const groupKey = `${equipment}|||${vendor}`;
-        
-        if (!groups[groupKey]) {
-            groups[groupKey] = {
+        if (!equipmentMap.has(equipment)) {
+            equipmentMap.set(equipment, {
                 equipment: equipment,
-                vendor: vendor,
+                vendors: new Set(),
                 count: 0
-            };
+            });
         }
         
-        groups[groupKey].count++;
+        const group = equipmentMap.get(equipment);
+        group.vendors.add(item.vendor || 'Unknown');
+        group.count++;
     });
     
     // Convert to array and sort
-    const groupArray = Object.values(groups).sort((a, b) => {
+    const groupArray = Array.from(equipmentMap.values()).sort((a, b) => {
         return a.equipment.localeCompare(b.equipment);
     });
     
@@ -11763,23 +11869,26 @@ function populateEquipmentList() {
     listContainer.innerHTML = '';
     
     groupArray.forEach((group, index) => {
-        // Create unique identifier for this equipment group
-        const equipmentId = `${group.equipment}__${group.vendor}`;
-        const isSelected = vmSettings.selectedEquipment.some(eq => eq === equipmentId);
+        const equipmentId = group.equipment; // Just equipment name, no vendor
+        // Only mark as selected if it exists in settings AND has loaded data
+const isSelected = vmSettings.selectedEquipment.includes(equipmentId) && 
+                   vmEquipmentData[equipmentId] && 
+                   vmEquipmentData[equipmentId].tasks && 
+                   vmEquipmentData[equipmentId].tasks.length > 0;
+        const vendorList = Array.from(group.vendors).join(', ');
         
         const item = document.createElement('div');
         item.className = 'vm-equipment-item';
         item.innerHTML = `
-           <input type="checkbox" 
-       id="vm_eq_${index}" 
-       ${isSelected ? 'checked disabled' : ''} 
-       data-equipment="${group.equipment}"
-       data-vendor="${group.vendor}"
-       data-equipmentid="${equipmentId}">
+            <input type="checkbox" 
+                   id="vm_eq_${index}" 
+                   ${isSelected ? 'checked disabled' : ''} 
+                   data-equipment="${group.equipment}"
+                   data-equipmentid="${equipmentId}">
             <div class="vm-equipment-item-info">
                 <div class="vm-equipment-item-name">${group.equipment}</div>
                 <div class="vm-equipment-item-meta">
-                    ${group.vendor} | ${group.count} tasks
+                    ${vendorList} | ${group.count} tasks
                     ${isSelected ? ' | ✅ Already added' : ''}
                 </div>
             </div>
@@ -11836,17 +11945,18 @@ function addSelectedEquipmentBatch() {
 
 // Load data for single equipment (for real-time add)
 // Load data for single equipment - returns promise
+// Load data for single equipment - returns promise
 function loadSingleEquipmentDataPromise(equipmentId) {
     return new Promise((resolve) => {
-        const [equipment, vendor] = equipmentId.split('__');  // ✅ 2 underscore
+        const equipment = equipmentId; // Equipment name is the ID
         
-        console.log(`🔄 Loading data for ${equipment} (${vendor})...`);
+        console.log(`🔄 Loading data for ${equipment}...`);
         
         const allTasks = [];
         
-        // Get tasks matching this equipment + vendor
+        // Get ALL tasks matching this equipment (all vendors)
         const matchingParents = projectData.filter(task => {
-            return task.equipment === equipment && task.vendor === vendor;
+            return task.equipment === equipment;
         });
         
         // Get subtasks
@@ -11869,14 +11979,18 @@ function loadSingleEquipmentDataPromise(equipmentId) {
             }
         });
         
+        // Collect all unique vendors
+        const vendors = [...new Set(allTasks.map(t => t.vendor))];
+        const vendorText = vendors.join(', ');
+        
         // Load report settings
-        const sanitizedId = equipmentId.replace(/[.#$[\]()]/g, '_').replace(/__/g, '_');
+        const sanitizedId = equipment.replace(/[.#$[\]()]/g, '_').replace(/\s+/g, '_');
         database.ref(`reportSettings/${sanitizedId}`).once('value').then(reportSnap => {
             const reportData = reportSnap.val() || {};
             
             vmEquipmentData[equipmentId] = {
                 equipment: equipment,
-                vendor: vendor,
+                vendor: vendorText,
                 tasks: allTasks,
                 highlights: reportData.highlights || '',
                 actionPlan: reportData.actionPlan || '',
@@ -11888,7 +12002,7 @@ function loadSingleEquipmentDataPromise(equipmentId) {
         }).catch(error => {
             vmEquipmentData[equipmentId] = {
                 equipment: equipment,
-                vendor: vendor,
+                vendor: vendorText,
                 tasks: allTasks,
                 highlights: '',
                 actionPlan: '',
@@ -11898,7 +12012,6 @@ function loadSingleEquipmentDataPromise(equipmentId) {
         });
     });
 }
-
 // Close add equipment dialog
 function closeAddEquipmentDialog() {
     const dialog = document.getElementById('addEquipmentDialog');
@@ -11984,6 +12097,7 @@ function removeEquipmentFromVM(equipmentId) {
 
 
 // Open task tracker for equipment
+// Open task tracker for equipment
 function openTaskTrackerFromVM(equipmentId) {
     const data = vmEquipmentData[equipmentId];
     
@@ -11994,22 +12108,26 @@ function openTaskTrackerFromVM(equipmentId) {
     
     // Find first parent task from projectData
     const equipment = data.equipment;
-    const vendor = data.vendor;
     
-    const parentTask = projectData.find(t => 
-        t.equipment === equipment && t.vendor === vendor
-    );
+    const parentTask = projectData.find(t => t.equipment === equipment);
     
     if (parentTask && (parentTask.firebaseKey || parentTask.id)) {
         const taskKey = parentTask.firebaseKey || parentTask.id;
         console.log(`📊 Opening task tracker with key: ${taskKey}`);
-        openTaskTracker(taskKey);
+        
+        // Use existing openTaskTracker function
+        if (typeof openTaskTracker === 'function') {
+            openTaskTracker(taskKey);
+        } else {
+            showNotification('Task tracker function not available', 'error');
+        }
     } else {
         showNotification('Task tracker not found', 'error');
-        console.log('❌ Parent task not found for', equipment, vendor);
+        console.log('❌ Parent task not found for', equipment);
     }
 }
 
+// Generate report for equipment
 // Generate report for equipment
 function generateReportFromVM(equipmentId) {
     const data = vmEquipmentData[equipmentId];
@@ -12021,11 +12139,8 @@ function generateReportFromVM(equipmentId) {
     
     // Find first parent task
     const equipment = data.equipment;
-    const vendor = data.vendor;
     
-    const parentTask = projectData.find(t => 
-        t.equipment === equipment && t.vendor === vendor
-    );
+    const parentTask = projectData.find(t => t.equipment === equipment);
     
     if (!parentTask) {
         showNotification('Equipment not found', 'error');
@@ -12036,6 +12151,8 @@ function generateReportFromVM(equipmentId) {
     currentEquipmentTasks = {
         equipment: parentTask
     };
+    
+    console.log('📄 Opening report for:', equipment);
     
     // Open report modal
     if (typeof openProgressReportModal === 'function') {
