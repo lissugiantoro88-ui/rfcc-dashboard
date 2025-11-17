@@ -11394,8 +11394,15 @@ function loadVMEquipmentData() {
     vmEquipmentData = {};
     
     const promises = vmSettings.selectedEquipment.map(equipmentId => {
-        return new Promise((resolve) => {
-            const equipment = equipmentId; // Equipment name is the ID
+    return new Promise((resolve) => {
+        // ✅ FIX: Handle old format with __vendor
+        let equipment = equipmentId;
+        
+        // If contains __, it's old format - extract equipment name only
+        if (equipmentId.includes('__')) {
+            equipment = equipmentId.split('__')[0];
+            console.log('⚠️ Old format detected:', equipmentId, '→ Using:', equipment);
+        }
             
             const allTasks = [];
             
@@ -11464,10 +11471,52 @@ function loadVMEquipmentData() {
     });
 }
 
+// Clear all equipment from Visual Management
+// Clear all equipment from Visual Management
+function clearAllVMEquipment() {
+    if (vmSettings.selectedEquipment.length === 0) {
+        showNotification('No equipment to clear', 'info');
+        return;
+    }
+    
+    if (!confirm(`Remove all ${vmSettings.selectedEquipment.length} equipment from Visual Management?`)) {
+        return;
+    }
+    
+    console.log('🗑️ Clearing all VM equipment...');
+    
+    // Clear local data
+    vmSettings.selectedEquipment = [];
+    vmEquipmentData = {};
+    
+    // Save to localStorage (primary storage)
+    try {
+        localStorage.setItem('vmSettings', JSON.stringify(vmSettings));
+        console.log('✅ localStorage cleared');
+    } catch (e) {
+        console.log('⚠️ localStorage error:', e);
+    }
+    
+    // Try to clear Firebase (optional - ignore if permission denied)
+    if (database && database.ref) {
+        database.ref('vmSettings/selectedEquipment').set([])
+            .then(() => console.log('✅ Firebase cleared'))
+            .catch(() => console.log('ℹ️ Firebase sync skipped (permission)'));
+    }
+    
+    // Re-render
+    applyVMSettings();
+    renderVMCards();
+    
+    showNotification('All equipment cleared', 'success');
+    console.log('✅ All VM equipment cleared successfully');
+}
+
 // Calculate metrics for an equipment
 function calculateEquipmentMetrics(equipmentId) {
     const data = vmEquipmentData[equipmentId];
     if (!data || !data.tasks || data.tasks.length === 0) {
+        console.log('⚠️ No tasks for equipment:', equipmentId);
         return null;
     }
     
