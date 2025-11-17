@@ -1574,6 +1574,326 @@ tr {
     page-break-after: auto;
 }
 
+/* ========== VISUAL MANAGEMENT STYLES ========== */
+
+/* Card Grid Layout */
+.vm-cards-grid-3 { grid-template-columns: repeat(3, 1fr); }
+.vm-cards-grid-4 { grid-template-columns: repeat(4, 1fr); }
+.vm-cards-grid-5 { grid-template-columns: repeat(5, 1fr); }
+.vm-cards-grid-6 { grid-template-columns: repeat(6, 1fr); }
+
+/* Equipment Card */
+.vm-equipment-card {
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    padding: 15px;
+    position: relative;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+
+.vm-equipment-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+}
+
+/* Card Header */
+.vm-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #ecf0f1;
+}
+
+.vm-card-status {
+    font-size: 18px;
+    margin-right: 5px;
+}
+
+.vm-card-title {
+    font-weight: bold;
+    font-size: 14px;
+    color: #2c3e50;
+    line-height: 1.3;
+    flex: 1;
+}
+
+.vm-card-close {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #95a5a6;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.vm-card-close:hover {
+    background: #e74c3c;
+    color: white;
+}
+
+/* Card Meta Info */
+.vm-card-meta {
+    font-size: 11px;
+    color: #7f8c8d;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Progress Bars */
+.vm-progress-section {
+    margin-bottom: 12px;
+}
+
+.vm-progress-label {
+    font-size: 11px;
+    color: #7f8c8d;
+    margin-bottom: 3px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.vm-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #ecf0f1;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.vm-progress-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+    border-radius: 4px;
+}
+
+.vm-progress-fill.green { background: #27ae60; }
+.vm-progress-fill.blue { background: #3498db; }
+.vm-progress-fill.orange { background: #f39c12; }
+.vm-progress-fill.red { background: #e74c3c; }
+
+/* SPI Badge */
+.vm-spi-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+    margin-left: 5px;
+}
+
+.vm-spi-badge.critical { background: #e74c3c; color: white; }
+.vm-spi-badge.warning { background: #f39c12; color: white; }
+.vm-spi-badge.good { background: #27ae60; color: white; }
+
+/* Timeline Info */
+.vm-timeline-info {
+    font-size: 12px;
+    color: #2c3e50;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+/* Task Status Counts */
+.vm-task-counts {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 10px;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.vm-task-count {
+    text-align: center;
+    font-size: 11px;
+}
+
+.vm-task-count-number {
+    display: block;
+    font-size: 18px;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+/* Milestone Section */
+.vm-milestone {
+    margin-bottom: 10px;
+    padding: 8px;
+    background: #fff3cd;
+    border-left: 3px solid #f39c12;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.vm-milestone-title {
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 3px;
+}
+
+.vm-milestone-due {
+    color: #7f8c8d;
+}
+
+/* Highlight Section */
+.vm-highlight {
+    margin-bottom: 12px;
+    padding: 8px;
+    background: #e8f5e9;
+    border-left: 3px solid #27ae60;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #2c3e50;
+    line-height: 1.4;
+    max-height: 60px;
+    overflow: hidden;
+    position: relative;
+}
+
+.vm-highlight-label {
+    font-weight: bold;
+    margin-bottom: 3px;
+    display: block;
+}
+
+.vm-highlight-text {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.vm-highlight-more {
+    color: #3498db;
+    cursor: pointer;
+    font-size: 10px;
+    margin-top: 3px;
+    display: inline-block;
+}
+
+.vm-highlight-more:hover {
+    text-decoration: underline;
+}
+
+/* Card Actions */
+.vm-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.vm-action-btn {
+    flex: 1;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.vm-action-btn.primary {
+    background: #3498db;
+    color: white;
+}
+
+.vm-action-btn.primary:hover {
+    background: #2980b9;
+}
+
+.vm-action-btn.secondary {
+    background: #95a5a6;
+    color: white;
+}
+
+.vm-action-btn.secondary:hover {
+    background: #7f8c8d;
+}
+
+/* Equipment List in Dialog */
+.vm-equipment-item {
+    padding: 12px;
+    border-bottom: 1px solid #ecf0f1;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.vm-equipment-item:hover {
+    background: #f8f9fa;
+}
+
+.vm-equipment-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.vm-equipment-item-info {
+    flex: 1;
+}
+
+.vm-equipment-item-name {
+    font-weight: 500;
+    color: #2c3e50;
+    margin-bottom: 3px;
+}
+
+.vm-equipment-item-meta {
+    font-size: 11px;
+    color: #7f8c8d;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .vm-cards-grid-6 { grid-template-columns: repeat(4, 1fr); }
+    .vm-cards-grid-5 { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 992px) {
+    .vm-cards-grid-6,
+    .vm-cards-grid-5,
+    .vm-cards-grid-4 { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 768px) {
+    .vm-cards-grid-6,
+    .vm-cards-grid-5,
+    .vm-cards-grid-4,
+    .vm-cards-grid-3 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+    .vm-cards-grid-6,
+    .vm-cards-grid-5,
+    .vm-cards-grid-4,
+    .vm-cards-grid-3 { grid-template-columns: 1fr; }
+    
+    #visualManagementSection {
+        padding: 15px 10px !important;
+    }
+}
+
 /* ⭐ AKHIR CSS BARU */
 
 </style>
@@ -1651,6 +1971,115 @@ tr {
 </div>
             </div>
         </div>
+
+<!-- ========== VISUAL MANAGEMENT SECTION ========== -->
+<div id="visualManagementSection" style="display: none; margin: 20px 0; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
+        <div>
+            <h3 style="margin: 0; color: #2c3e50;">📊 Visual Management - Equipment Progress Summary</h3>
+            <p id="vmSubtitle" style="margin: 5px 0 0 0; color: #7f8c8d; font-size: 13px;">No equipment selected</p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="openAddEquipmentDialog()" style="padding: 8px 16px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                ➕ Add Equipment
+            </button>
+            <button onclick="openVMSettings()" style="padding: 8px 16px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                ⚙️ Settings
+            </button>
+            <span id="vmAutoSaveIndicator" style="padding: 8px 12px; color: #27ae60; font-size: 12px; align-self: center;"></span>
+        </div>
+    </div>
+
+    <div id="vmCardsContainer" style="display: grid; gap: 15px; margin-bottom: 15px;"></div>
+
+    <div id="vmEmptyState" style="text-align: center; padding: 60px 20px; color: #95a5a6;">
+        <div style="font-size: 48px; margin-bottom: 15px;">📊</div>
+        <h4 style="color: #7f8c8d; margin-bottom: 10px;">No Equipment Added</h4>
+        <p style="margin-bottom: 20px;">Add equipment to monitor their progress here</p>
+        <button onclick="openAddEquipmentDialog()" style="padding: 10px 24px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+            ➕ Add Your First Equipment
+        </button>
+    </div>
+
+</div>
+
+<div id="addEquipmentDialog" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 8px; width: 90%; max-width: 600px; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column;">
+        <div style="padding: 20px; border-bottom: 1px solid #ecf0f1; background: #3498db; color: white;">
+            <h3 style="margin: 0;">📌 Add Equipment to Visual Board</h3>
+        </div>
+        <div style="padding: 20px; overflow-y: auto; flex: 1;">
+            <div style="margin-bottom: 20px;">
+                <input type="text" id="vmEquipmentSearch" placeholder="🔍 Search equipment..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;" oninput="filterVMEquipmentList()">
+            </div>
+            <div id="vmEquipmentList" style="max-height: 400px; overflow-y: auto; border: 1px solid #ecf0f1; border-radius: 4px; padding: 10px;"></div>
+        </div>
+        <div style="padding: 15px 20px; border-top: 1px solid #ecf0f1; display: flex; justify-content: flex-end; gap: 10px; background: #f8f9fa;">
+            <button onclick="closeAddEquipmentDialog()" style="padding: 8px 20px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
+            <button onclick="document.getElementById('addEquipmentDialog').style.display='none'" style="padding: 8px 20px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">Cancel</button>
+<button onclick="addSelectedEquipmentBatch()" style="padding: 8px 20px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer;">Add Selected</button>
+        </div>
+    </div>
+</div>
+
+<div id="vmSettingsDialog" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 8px; width: 90%; max-width: 500px; overflow: hidden;">
+        <div style="padding: 20px; border-bottom: 1px solid #ecf0f1; background: #34495e; color: white;">
+            <h3 style="margin: 0;">⚙️ Visual Management Settings</h3>
+        </div>
+        <div style="padding: 20px;">
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 10px; color: #2c3e50;">Layout:</label>
+                <select id="vmLayoutSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" onchange="updateVMLayout()">
+                    <option value="3">3 cards per row</option>
+                    <option value="4">4 cards per row</option>
+                    <option value="5">5 cards per row</option>
+                    <option value="6">6 cards per row</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 10px; color: #2c3e50;">Maximum Rows to Display:</label>
+                <select id="vmMaxRowsSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" onchange="updateVMLayout()">
+                    <option value="1">1 row</option>
+                    <option value="2">2 rows</option>
+                    <option value="3">3 rows</option>
+                    <option value="4">4 rows</option>
+                    <option value="999">Show all</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 10px; color: #2c3e50;">Card Display Options:</label>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="vmShowVendor" checked onchange="updateVMLayout()" style="margin-right: 8px;"><span>Show vendor name</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="vmShowMilestone" checked onchange="updateVMLayout()" style="margin-right: 8px;"><span>Show milestone</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="vmShowHighlight" checked onchange="updateVMLayout()" style="margin-right: 8px;"><span>Show highlights</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="vmShowSPI" checked onchange="updateVMLayout()" style="margin-right: 8px;"><span>Show SPI</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div style="padding: 15px 20px; border-top: 1px solid #ecf0f1; display: flex; justify-content: flex-end; gap: 10px; background: #f8f9fa;">
+            <button onclick="closeVMSettings()" style="padding: 8px 20px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Visual Management Quick Access Button -->
+<div id="vmQuickAccessButton" style="display: none; text-align: center; margin: 20px 0; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;">
+    <h3 style="color: #2c3e50; margin: 0 0 8px 0; font-size: 18px;">📊 Visual Management Dashboard</h3>
+    <p style="color: #7f8c8d; margin: 0 0 15px 0; font-size: 13px;">Monitor equipment progress at a glance</p>
+    <button onclick="openAddEquipmentDialog()" style="padding: 10px 24px; background: #3498db; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3); transition: all 0.3s;">
+        ➕ Add Equipment to Dashboard
+    </button>
+</div>
 
         <div class="content-area">
             <div class="main-table-section">
@@ -2321,7 +2750,8 @@ tr {
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <!-- Frappe Gantt Library -->
 <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.css">
@@ -2395,11 +2825,27 @@ database.ref('onlineUsers').on('value', (snapshot) => {
         let activityHistory = [];
         let currentEditId = null;
         let currentFilter = 'all';
+let currentUser = null;  // ← ADD THIS if not exists
 let searchResults = []; // Menyimpan hasil pencarian
 let isSearching = false; // Status sedang search atau tidak
 window.isGroupedView = false; // ✅ TAMBAHKAN INI
  // ===== AUTO-SORT SETTINGS =====
         let autoSortEnabled = true; // Set false untuk disable auto-sort
+
+// ========== VISUAL MANAGEMENT VARIABLES ========== 
+        let vmSettings = {
+            layout: 3,
+            maxRows: 2,
+            selectedEquipment: [],
+            displayOptions: {
+                showVendor: true,
+                showMilestone: true,
+                showHighlight: true,
+                showSPI: true
+            }
+        };
+        let vmEquipmentData = {};
+        let vmSaveTimeout = null;
 
 // Task Tracker Variables
 let currentEquipmentTasks = null;
@@ -5987,11 +6433,25 @@ function openProgressReportModal() {
     
     const equipment = currentEquipmentTasks.equipment;
     
-    // Extract base equipment name (remove disc suffix)
-    // Example: "Turbine For Compressor (K-3-02 D) - MR" → "K-3-02"
-    const equipmentName = equipment.equipment || '';
-    const match = equipmentName.match(/\(([^)]+)\)/); // Extract text in parentheses
-    const baseName = match ? match[1].replace(/\s+[A-Z]$/, '').trim() : equipmentName;
+    // Extract base equipment name
+// Supports formats: "(WGC) K-052-03" or "Equipment (K-052-03)"
+const equipmentName = equipment.equipment || '';
+
+let baseName = '';
+
+// Check for tag pattern after parentheses: "(WGC) K-052-03"
+const afterParens = equipmentName.match(/\)\s*([A-Z0-9\-]+)/);
+if (afterParens) {
+    baseName = afterParens[1].trim();
+} else {
+    // Try to extract from inside parentheses: "Equipment (K-052-03)"
+    const inParens = equipmentName.match(/\(([^)]+)\)/);
+    if (inParens) {
+        baseName = inParens[1].replace(/\s+[A-Z]+$/g, '').trim();
+    } else {
+        baseName = equipmentName.trim();
+    }
+}
     
     // Set base name
     document.getElementById('reportEquipmentBase').value = baseName;
@@ -6018,61 +6478,145 @@ function closeProgressReportModal() {
     document.getElementById('reportModal').style.display = 'none';
 }
 
+// Populate related groups based on equipment base name
 function populateRelatedGroups(baseName) {
-    const container = document.getElementById('reportGroupsList');
-    
-    // Find all equipment that contains base name
-    const relatedEquipment = projectData.filter(item => {
-        const itemName = item.equipment || '';
-        return itemName.includes(baseName);
-    });
-    
-    // Group by unique equipment + disc combination
-    const groupMap = new Map();
-    relatedEquipment.forEach(item => {
-        const key = `${item.equipment}-${item.disc || item.task}`;
-        if (!groupMap.has(key)) {
-            groupMap.set(key, {
-    equipment: item.equipment,
-    disc: item.disc || item.task,
-    vendor: item.vendor,
-    firebaseKey: item.firebaseKey,
-    displaySequence: item.displaySequence || 999  // ✅ ADD THIS
-});
-        }
-    });
-    
-    const groups = Array.from(groupMap.values());
-    
-    if (groups.length === 0) {
-        container.innerHTML = '<div style="color: #95a5a6; font-size: 12px; padding: 10px;">No related groups found</div>';
+    const relatedContainer = document.getElementById('reportGroupsList');
+    if (!relatedContainer) {
+        console.log('❌ reportGroupsList not found');
         return;
     }
     
-    // Render checkboxes
-container.innerHTML = groups.map((group, idx) => `
-    <label style="display: block; padding: 8px; font-size: 12px; cursor: pointer; border-radius: 4px; margin-bottom: 5px;" 
-           onmouseover="this.style.background='#e3f2fd'" 
-           onmouseout="this.style.background='transparent'">
-        <input type="checkbox" class="report-group-checkbox" 
-               value="${group.firebaseKey}" 
-               data-equipment="${group.equipment}"
-               data-disc="${group.disc}"
-               data-vendor="${group.vendor}"
-               data-displaysequence="${group.displaySequence || 999}"
-               ${idx === 0 ? 'checked' : ''} 
-               style="margin-right: 8px; cursor: pointer;">
-        <strong>${group.equipment}</strong> - ${group.disc}
-        <span style="color: #7f8c8d; font-size: 11px; margin-left: 5px;">(${group.vendor})</span>
-    </label>
-`).join('');
+    relatedContainer.innerHTML = '<div style="padding: 10px; color: #95a5a6;">Searching for related groups...</div>';
     
-    // Show count
-    container.insertAdjacentHTML('afterbegin', 
-        `<div style="font-weight: 600; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #ddd; font-size: 13px; color: #2c3e50;">
-            Found ${groups.length} related group${groups.length > 1 ? 's' : ''}:
-        </div>`
-    );
+    // Find all tasks matching the base name
+    const matchingTasks = projectData.filter(task => {
+        const equipmentName = task.equipment || '';
+        
+        // Extract base from task
+        let taskBase = '';
+
+// Check for tag pattern after parentheses: "(WGC) K-052-03"
+const afterParens = equipmentName.match(/\)\s*([A-Z0-9\-]+)/);
+if (afterParens) {
+    taskBase = afterParens[1].trim();
+} else {
+    // Try to extract from inside parentheses: "Equipment (K-052-03)"
+    const inParens = equipmentName.match(/\(([^)]+)\)/);
+    if (inParens) {
+        taskBase = inParens[1].replace(/\s+[A-Z]+$/g, '').trim();
+    } else {
+        taskBase = equipmentName.trim();
+    }
+}
+        
+        return taskBase === baseName;
+    });
+    
+    if (matchingTasks.length === 0) {
+        relatedContainer.innerHTML = '<div style="padding: 10px; color: #e74c3c;">No related groups found</div>';
+        return;
+    }
+    
+    // Group by Equipment + Disc + Vendor + Task
+    const groups = {};
+    
+    matchingTasks.forEach(task => {
+    const equipment = task.equipment || 'Unknown';
+    
+    // Clean disc - remove parentheses suffix like "(1)", "(2)"
+    let disc = task.disc || 'N/A';
+    disc = disc.replace(/\s*\([0-9]+\)\s*$/, '').trim();
+    
+    const vendor = task.vendor || 'Unknown';
+    
+    // Use taskName field (not task field which is "custom")
+    const taskName = task.taskName || 'N/A';
+    
+    // Create unique key: equipment + disc + vendor + taskName
+    const groupKey = `${equipment}|${disc}|${vendor}|${taskName}`;
+        
+        if (!groups[groupKey]) {
+            groups[groupKey] = {
+                equipment: equipment,
+                disc: disc,
+                vendor: vendor,
+                task: taskName,
+                tasks: [],
+                displayName: `${equipment} - ${disc} (${vendor}) - ${taskName}`
+            };
+        }
+        
+        groups[groupKey].tasks.push(task);
+    });
+    
+    // Convert to array and sort
+    const groupArray = Object.values(groups);
+    
+    // Sort by displaySequence if available
+    groupArray.sort((a, b) => {
+        const seqA = a.tasks[0]?.displaySequence || 999;
+        const seqB = b.tasks[0]?.displaySequence || 999;
+        
+        if (seqA !== seqB) return seqA - seqB;
+        
+        const equipCompare = a.equipment.localeCompare(b.equipment);
+        if (equipCompare !== 0) return equipCompare;
+        
+        const discCompare = a.disc.localeCompare(b.disc);
+        if (discCompare !== 0) return discCompare;
+        
+        return a.task.localeCompare(b.task);
+    });
+    
+    // Render groups
+    relatedContainer.innerHTML = '';
+    
+    if (groupArray.length === 0) {
+        relatedContainer.innerHTML = '<div style="padding: 10px; color: #95a5a6;">No groups found</div>';
+        return;
+    }
+    
+    // Add header with count
+    const headerDiv = document.createElement('div');
+    headerDiv.style.cssText = 'padding: 10px; background: #f8f9fa; border-bottom: 2px solid #3498db; font-weight: bold; color: #2c3e50;';
+    headerDiv.textContent = `Found ${groupArray.length} related group${groupArray.length > 1 ? 's' : ''}:`;
+    relatedContainer.appendChild(headerDiv);
+    
+    groupArray.forEach((group, index) => {
+        const groupDiv = document.createElement('div');
+        groupDiv.style.cssText = 'padding: 10px; border-bottom: 1px solid #ecf0f1; display: flex; align-items: center; gap: 10px;';
+        
+        const checkbox = document.createElement('input');
+checkbox.type = 'checkbox';
+checkbox.checked = true;
+checkbox.id = `group_${index}`;
+checkbox.className = 'report-group-checkbox'; // ✅ ADD CLASS
+checkbox.value = group.tasks[0]?.firebaseKey || ''; // ✅ ADD VALUE
+checkbox.dataset.equipment = group.equipment;
+checkbox.dataset.disc = group.disc;
+checkbox.dataset.vendor = group.vendor;
+checkbox.dataset.task = group.task;
+checkbox.style.cssText = 'width: 18px; height: 18px; cursor: pointer;';
+        
+        const label = document.createElement('label');
+        label.htmlFor = `group_${index}`;
+        label.style.cssText = 'flex: 1; cursor: pointer; font-size: 13px; color: #2c3e50;';
+        
+        // Display with task name
+        label.innerHTML = `
+            <span style="font-weight: 600; color: #3498db;">${group.equipment}</span>
+            <span style="padding: 2px 8px; background: #3498db; color: white; border-radius: 3px; font-size: 11px; margin: 0 5px;">${group.disc}</span>
+            <span style="color: #7f8c8d;">(${group.vendor})</span>
+            <span style="padding: 2px 8px; background: #27ae60; color: white; border-radius: 3px; font-size: 11px; margin: 0 5px;">${group.task}</span>
+            <span style="color: #95a5a6; font-size: 11px; margin-left: 10px;">${group.tasks.length} item(s)</span>
+        `;
+        
+        groupDiv.appendChild(checkbox);
+        groupDiv.appendChild(label);
+        relatedContainer.appendChild(groupDiv);
+    });
+    
+    console.log(`✅ Found ${groupArray.length} related groups for ${baseName}`);
 }
 
 // Helper function to calculate task timeline status
@@ -6204,11 +6748,12 @@ const reportData = {
 };
     
     selectedCheckboxes.forEach(checkbox => {
-    const firebaseKey = checkbox.value;
+   const firebaseKey = checkbox.value;
     const equipment = checkbox.dataset.equipment;
     const disc = checkbox.dataset.disc;
     const vendor = checkbox.dataset.vendor;
-    const displaySequence = parseInt(checkbox.dataset.displaysequence) || 999;  // ✅ ADD THIS
+    const taskName = checkbox.dataset.task || 'N/A';  // ✅ ADD THIS
+    const displaySequence = parseInt(checkbox.dataset.displaysequence) || 999;
         
         const tasks = onsiteTasks[firebaseKey] || [];
         
@@ -6314,8 +6859,9 @@ reportData.groups.push({
     equipment,
     disc,
     vendor,
+    task: taskName,  // ✅ ADD THIS
     firebaseKey,
-    displaySequence,  // ✅ ADD THIS
+    displaySequence,
     tasks: tasksWithTimeline,
     completedTasks: completedWithTimeline,
     inProgressTasks: inProgressWithTimeline,
@@ -6868,7 +7414,7 @@ ${data.highlights || data.actionPlan ? `
         
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
             <h3 style="color: white; margin: 0; font-size: 18px; font-weight: 600;">
-                ${group.equipment} - ${group.disc}
+                ${group.equipment} - ${group.disc}${group.task ? ` - ${group.task}` : ''}
             </h3>
             <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 12px;">
                 ${group.vendor} | Progress: ${group.overallProgress}% | Status: ${group.status}
@@ -7398,7 +7944,8 @@ const reportData = {
     const equipment = checkbox.dataset.equipment;
     const disc = checkbox.dataset.disc;
     const vendor = checkbox.dataset.vendor;
-    const displaySequence = parseInt(checkbox.dataset.displaysequence) || 999;  // ✅ ADD THIS
+    const taskName = checkbox.dataset.task || 'N/A';  // ✅ ADD THIS
+    const displaySequence = parseInt(checkbox.dataset.displaysequence) || 999;
         
         const tasks = onsiteTasks[firebaseKey] || [];
         
@@ -7489,6 +8036,7 @@ reportData.groups.push({
     equipment,
     disc,
     vendor,
+task: taskName,  // ✅ ADD THIS
     firebaseKey,
     displaySequence,  // ✅ ADD THIS
     tasks: tasksWithTimeline,
@@ -10687,6 +11235,816 @@ groupRow.innerHTML = `
     setTimeout(() => updateGroupTableHeader(), 50);
 }
 
+// ========== VISUAL MANAGEMENT FUNCTIONS ==========
+
+// Load user's Visual Management settings from localStorage
+function loadVMSettings() {
+    try {
+        const savedSettings = localStorage.getItem('vmSettings');
+        
+        if (savedSettings) {
+            const parsed = JSON.parse(savedSettings);
+            
+            // Merge with defaults
+            vmSettings = {
+                layout: parsed.layout || 3,
+                maxRows: parsed.maxRows || 2,
+                selectedEquipment: parsed.selectedEquipment || [],
+                displayOptions: parsed.displayOptions || {
+                    showVendor: true,
+                    showMilestone: true,
+                    showHighlight: true,
+                    showSPI: true
+                }
+            };
+            
+            console.log('✅ VM Settings loaded from localStorage:', vmSettings);
+        } else {
+            console.log('ℹ️ No saved VM settings, using defaults');
+        }
+        
+        // Apply settings to UI
+        applyVMSettings();
+        
+        // Load equipment data if any selected
+        if (vmSettings.selectedEquipment.length > 0) {
+            loadVMEquipmentData();
+        }
+    } catch (error) {
+        console.error('❌ Error loading VM settings:', error);
+        applyVMSettings();
+    }
+}
+
+// Save user's Visual Management settings to localStorage
+function saveVMSettings() {
+    // Clear previous timeout
+    if (vmSaveTimeout) {
+        clearTimeout(vmSaveTimeout);
+    }
+    
+    // Debounce save (wait 1 second after last change)
+    vmSaveTimeout = setTimeout(() => {
+        try {
+            // Save to localStorage
+            localStorage.setItem('vmSettings', JSON.stringify({
+                layout: vmSettings.layout,
+                maxRows: vmSettings.maxRows,
+                selectedEquipment: vmSettings.selectedEquipment,
+                displayOptions: vmSettings.displayOptions,
+                timestamp: new Date().toISOString()
+            }));
+            
+            console.log('✅ VM Settings saved to localStorage');
+            
+            // Show save indicator
+            const indicator = document.getElementById('vmAutoSaveIndicator');
+            if (indicator) {
+                indicator.textContent = '💾 Auto-saved';
+                indicator.style.color = '#27ae60';
+                setTimeout(() => {
+                    indicator.textContent = '';
+                }, 2000);
+            }
+        } catch (error) {
+            console.error('❌ Error saving VM settings:', error);
+        }
+    }, 1000);
+}
+
+// Apply settings to UI elements
+function applyVMSettings() {
+    // Show/hide section
+    const section = document.getElementById('visualManagementSection');
+    if (section) {
+        section.style.display = vmSettings.selectedEquipment.length > 0 ? 'block' : 'none';
+    }
+    
+    // Update subtitle
+    const subtitle = document.getElementById('vmSubtitle');
+    if (subtitle) {
+        const count = vmSettings.selectedEquipment.length;
+        subtitle.textContent = count > 0 
+            ? `Showing ${count} equipment (${vmSettings.layout} columns × ${vmSettings.maxRows} rows max)`
+            : 'No equipment selected';
+    }
+    
+    // Update settings dialog
+    const layoutSelect = document.getElementById('vmLayoutSelect');
+    if (layoutSelect) {
+        layoutSelect.value = vmSettings.layout;
+    }
+    
+    const maxRowsSelect = document.getElementById('vmMaxRowsSelect');
+    if (maxRowsSelect) {
+        maxRowsSelect.value = vmSettings.maxRows;
+    }
+    
+    // Update checkboxes
+    document.getElementById('vmShowVendor').checked = vmSettings.displayOptions.showVendor;
+    document.getElementById('vmShowMilestone').checked = vmSettings.displayOptions.showMilestone;
+    document.getElementById('vmShowHighlight').checked = vmSettings.displayOptions.showHighlight;
+    document.getElementById('vmShowSPI').checked = vmSettings.displayOptions.showSPI;
+    
+    // Apply grid layout
+    const container = document.getElementById('vmCardsContainer');
+    if (container) {
+        container.className = `vm-cards-grid-${vmSettings.layout}`;
+    }
+// Show/hide quick access button
+    const quickAccessBtn = document.getElementById('vmQuickAccessButton');
+    if (quickAccessBtn) {
+        // Show button ONLY if no equipment selected
+        quickAccessBtn.style.display = vmSettings.selectedEquipment.length > 0 ? 'none' : 'block';
+    }
+}
+
+// Load equipment data - using equipment ID (equipment___vendor)
+function loadVMEquipmentData() {
+    console.log('🔄 Loading VM equipment data...');
+    
+    vmEquipmentData = {};
+    
+    const promises = vmSettings.selectedEquipment.map(equipmentId => {
+        return new Promise((resolve) => {
+            const [equipment, vendor] = equipmentId.split('__');  // ✅ 2 underscore
+            
+            const allTasks = [];
+            
+            // Get parent tasks matching equipment + vendor
+            const parentTasks = projectData.filter(task => {
+                return task.equipment === equipment && task.vendor === vendor;
+            });
+            
+            // Get subtasks
+            parentTasks.forEach(parentTask => {
+                const firebaseKey = parentTask.firebaseKey || parentTask.id;
+                const subtasks = onsiteTasks[firebaseKey] || [];
+                
+                if (subtasks.length > 0) {
+                    subtasks.forEach(subtask => {
+                        allTasks.push({
+                            ...subtask,
+                            equipment: parentTask.equipment,
+                            disc: parentTask.disc,
+                            vendor: parentTask.vendor,
+                            parentTask: parentTask.task || parentTask.taskName
+                        });
+                    });
+                } else {
+                    allTasks.push(parentTask);
+                }
+            });
+            
+            // Load shared data
+            const sanitizedId = equipmentId.replace(/[.#$[\]()]/g, '_').replace(/__/g, '_');
+            database.ref(`reportSettings/${sanitizedId}`).once('value').then(reportSnap => {
+                const reportData = reportSnap.val() || {};
+                
+                vmEquipmentData[equipmentId] = {
+                    equipment: equipment,
+                    vendor: vendor,
+                    tasks: allTasks,
+                    highlights: reportData.highlights || '',
+                    actionPlan: reportData.actionPlan || '',
+                    milestones: reportData.milestones || []
+                };
+                
+                console.log(`✅ Loaded ${allTasks.length} tasks for ${equipment} (${vendor})`);
+                resolve();
+            }).catch(error => {
+                vmEquipmentData[equipmentId] = {
+                    equipment: equipment,
+                    vendor: vendor,
+                    tasks: allTasks,
+                    highlights: '',
+                    actionPlan: '',
+                    milestones: []
+                };
+                resolve();
+            });
+        });
+    });
+    
+    Promise.all(promises).then(() => {
+        console.log('✅ VM Equipment data loaded:', vmEquipmentData);
+        renderVMCards();
+    });
+}
+
+// Calculate metrics for an equipment
+function calculateEquipmentMetrics(equipmentId) {
+    const data = vmEquipmentData[equipmentId];
+    if (!data || !data.tasks || data.tasks.length === 0) {
+        return null;
+    }
+    
+    const tasks = data.tasks;
+    const equipment = data.equipment || 'Unknown';
+    const vendor = data.vendor || 'Unknown';
+    
+    // Count by status
+    const completed = tasks.filter(t => t.progress === 100).length;
+    const inProgress = tasks.filter(t => t.progress > 0 && t.progress < 100).length;
+    const blocked = tasks.filter(t => t.status === 'blocked').length;
+    const notStarted = tasks.filter(t => !t.progress || t.progress === 0).length;
+    
+    // Calculate weighted progress
+    const totalWeight = tasks.reduce((sum, t) => sum + (parseFloat(t.weight) || 1), 0);
+    const weightedProgress = tasks.reduce((sum, t) => {
+        const weight = parseFloat(t.weight) || 1;
+        const progress = parseFloat(t.progress) || 0;
+        return sum + (weight * progress / 100);
+    }, 0);
+    const overallProgress = totalWeight > 0 ? Math.round((weightedProgress / totalWeight) * 100) : 0;
+    
+    // Calculate timeline metrics
+    const tasksWithDates = tasks.filter(t => t.targetStart && t.targetEnd);
+    let timelineProgress = 0;
+    let spi = 1.0;
+    let daysLeft = 0;
+    let targetDate = null;
+    
+    if (tasksWithDates.length > 0) {
+        const startDates = tasksWithDates.map(t => new Date(t.targetStart));
+        const endDates = tasksWithDates.map(t => new Date(t.targetEnd));
+        
+        const projectStart = new Date(Math.min(...startDates));
+        const projectEnd = new Date(Math.max(...endDates));
+        const today = new Date();
+        
+        targetDate = projectEnd.toISOString().split('T')[0];
+        
+        const totalDays = Math.ceil((projectEnd - projectStart) / (1000 * 60 * 60 * 24));
+        const elapsedDays = Math.ceil((today - projectStart) / (1000 * 60 * 60 * 24));
+        
+        timelineProgress = totalDays > 0 ? Math.min(100, Math.round((elapsedDays / totalDays) * 100)) : 0;
+        daysLeft = Math.max(0, Math.ceil((projectEnd - today) / (1000 * 60 * 60 * 24)));
+        
+        // Calculate SPI (Schedule Performance Index)
+        spi = timelineProgress > 0 ? (overallProgress / timelineProgress) : 1.0;
+    }
+    
+    // Determine status
+    let status = '🟢';
+    let statusText = 'On Track';
+    if (spi < 0.8) {
+        status = '🔴';
+        statusText = 'Critical';
+    } else if (spi < 0.95) {
+        status = '🟡';
+        statusText = 'At Risk';
+    }
+    
+    
+    // Get next milestone
+    const milestones = data.milestones || [];
+    const upcomingMilestone = milestones.find(m => m.progress < 100);
+    
+   return {
+        equipmentId,
+        equipment,
+        vendor,
+        status,
+        statusText,
+        overallProgress,
+        timelineProgress,
+        spi: spi.toFixed(2),
+        daysLeft,
+        targetDate,
+        totalTasks: tasks.length,
+        completed,
+        inProgress,
+        blocked,
+        notStarted,
+        highlights: data.highlights,
+        upcomingMilestone
+    };
+}
+
+// Render equipment cards
+function renderVMCards() {
+    const container = document.getElementById('vmCardsContainer');
+    const emptyState = document.getElementById('vmEmptyState');
+    
+    if (!container) return;
+    
+    // Clear container
+    container.innerHTML = '';
+    
+    // Check if empty
+    if (vmSettings.selectedEquipment.length === 0) {
+        emptyState.style.display = 'block';
+        container.style.display = 'none';
+        return;
+    }
+    
+    emptyState.style.display = 'none';
+    container.style.display = 'grid';
+    
+    // Calculate how many to show
+    const maxCards = vmSettings.layout * vmSettings.maxRows;
+    const equipmentToShow = vmSettings.selectedEquipment.slice(0, maxCards);
+    
+    // Render each card
+    equipmentToShow.forEach(equipmentId => {
+        const metrics = calculateEquipmentMetrics(equipmentId);
+        if (metrics) {
+            container.appendChild(createEquipmentCard(metrics));
+        }
+    });
+}
+
+// Create a single equipment card
+function createEquipmentCard(metrics) {
+    const card = document.createElement('div');
+    card.className = 'vm-equipment-card';
+    
+    // Determine progress bar color
+    let progressColor = 'blue';
+    if (metrics.spi < 0.8) progressColor = 'red';
+    else if (metrics.spi < 0.95) progressColor = 'orange';
+    else if (metrics.spi > 1.05) progressColor = 'green';
+    
+    let html = `
+        <div class="vm-card-header">
+            <div style="display: flex; align-items: flex-start; flex: 1;">
+                <span class="vm-card-status">${metrics.status}</span>
+                <span class="vm-card-title">${metrics.equipment}</span>
+            </div>
+            <button class="vm-card-close" onclick="removeEquipmentFromVM('${metrics.equipmentId}')" title="Remove">×</button>
+        </div>
+    `;
+    
+    // Vendor info (if enabled)
+    if (vmSettings.displayOptions.showVendor) {
+        html += `
+            <div class="vm-card-meta">
+                <span>👤 ${metrics.vendor}</span>
+                <span>🕐 Updated recently</span>
+            </div>
+        `;
+    }
+    
+    // Progress bars
+    html += `
+        <div class="vm-progress-section">
+            <div class="vm-progress-label">
+                <span>Progress:</span>
+                <span><strong>${metrics.overallProgress}%</strong></span>
+            </div>
+            <div class="vm-progress-bar">
+                <div class="vm-progress-fill ${progressColor}" style="width: ${metrics.overallProgress}%"></div>
+            </div>
+        </div>
+        
+        <div class="vm-progress-section">
+            <div class="vm-progress-label">
+                <span>Timeline:</span>
+                <span><strong>${metrics.timelineProgress}%</strong></span>
+            </div>
+            <div class="vm-progress-bar">
+                <div class="vm-progress-fill blue" style="width: ${metrics.timelineProgress}%"></div>
+            </div>
+        </div>
+    `;
+    
+    // SPI (if enabled)
+    if (vmSettings.displayOptions.showSPI) {
+        let spiClass = 'good';
+        let spiText = 'On Track';
+        if (metrics.spi < 0.8) {
+            spiClass = 'critical';
+            spiText = `Behind -${Math.round((1 - metrics.spi) * 100)}%`;
+        } else if (metrics.spi < 0.95) {
+            spiClass = 'warning';
+            spiText = `Slightly Behind`;
+        } else if (metrics.spi > 1.05) {
+            spiText = `Ahead +${Math.round((metrics.spi - 1) * 100)}%`;
+        }
+        
+        html += `
+            <div style="font-size: 11px; margin-bottom: 10px; color: #7f8c8d;">
+                SPI: <strong>${metrics.spi}</strong>
+                <span class="vm-spi-badge ${spiClass}">${spiText}</span>
+            </div>
+        `;
+    }
+    
+    // Timeline info
+    if (metrics.targetDate) {
+        html += `
+            <div class="vm-timeline-info">
+                <span>📅 ${metrics.targetDate}</span>
+                <span>⏰ ${metrics.daysLeft} days left</span>
+            </div>
+        `;
+    }
+    
+    // Task counts
+    html += `
+        <div class="vm-task-counts">
+            <div class="vm-task-count">
+                <span class="vm-task-count-number" style="color: #27ae60;">✅ ${metrics.completed}</span>
+                <span>Done</span>
+            </div>
+            <div class="vm-task-count">
+                <span class="vm-task-count-number" style="color: #3498db;">🔄 ${metrics.inProgress}</span>
+                <span>Progress</span>
+            </div>
+            <div class="vm-task-count">
+                <span class="vm-task-count-number" style="color: #e74c3c;">🚫 ${metrics.blocked}</span>
+                <span>Blocked</span>
+            </div>
+            <div class="vm-task-count">
+                <span class="vm-task-count-number" style="color: #95a5a6;">⏳ ${metrics.notStarted}</span>
+                <span>Ready</span>
+            </div>
+        </div>
+    `;
+    
+    // Milestone (if enabled and exists)
+    if (vmSettings.displayOptions.showMilestone && metrics.upcomingMilestone) {
+        const milestone = metrics.upcomingMilestone;
+        html += `
+            <div class="vm-milestone">
+                <div class="vm-milestone-title">🎯 ${milestone.name}</div>
+                <div class="vm-milestone-due">Due: ${milestone.targetDate} | Progress: ${milestone.progress}%</div>
+            </div>
+        `;
+    }
+    
+    // Highlights (if enabled and exists)
+    if (vmSettings.displayOptions.showHighlight && metrics.highlights) {
+        const truncated = metrics.highlights.length > 100 
+            ? metrics.highlights.substring(0, 100) + '...' 
+            : metrics.highlights;
+        
+        html += `
+            <div class="vm-highlight">
+                <span class="vm-highlight-label">💡 Highlight:</span>
+                <div class="vm-highlight-text">${truncated}</div>
+            </div>
+        `;
+    }
+    
+    // Action buttons
+    html += `
+        <div class="vm-card-actions">
+            <button class="vm-action-btn primary" onclick="openTaskTrackerFromVM('${metrics.equipmentBase}')">
+                📊 Tasks
+            </button>
+            <button class="vm-action-btn secondary" onclick="generateReportFromVM('${metrics.equipmentBase}')">
+                📄 Report
+            </button>
+        </div>
+    `;
+    
+    card.innerHTML = html;
+    return card;
+}
+
+// Open dialog to add equipment
+function openAddEquipmentDialog() {
+    const dialog = document.getElementById('addEquipmentDialog');
+    if (!dialog) return;
+    
+    dialog.style.display = 'flex';
+    
+    // Populate equipment list
+    populateEquipmentList();
+}
+
+// Populate available equipment list - using Group Equipment logic
+function populateEquipmentList() {
+    const listContainer = document.getElementById('vmEquipmentList');
+    if (!listContainer) return;
+    
+    listContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #95a5a6;">Loading equipment...</div>';
+    
+    // Check if projectData is available
+    if (!projectData || projectData.length === 0) {
+        listContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #e74c3c;">No project data loaded</div>';
+        return;
+    }
+    
+    // Group equipment using SAME logic as Group Equipment view
+    const groups = {};
+    
+    projectData.forEach(item => {
+        const equipment = item.equipment || 'Unknown';
+        const vendor = item.vendor || 'Unknown';
+        
+        // Create unique key: equipment + vendor
+        const groupKey = `${equipment}|||${vendor}`;
+        
+        if (!groups[groupKey]) {
+            groups[groupKey] = {
+                equipment: equipment,
+                vendor: vendor,
+                count: 0
+            };
+        }
+        
+        groups[groupKey].count++;
+    });
+    
+    // Convert to array and sort
+    const groupArray = Object.values(groups).sort((a, b) => {
+        return a.equipment.localeCompare(b.equipment);
+    });
+    
+    if (groupArray.length === 0) {
+        listContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #95a5a6;">No equipment found</div>';
+        return;
+    }
+    
+    // Render list
+    listContainer.innerHTML = '';
+    
+    groupArray.forEach((group, index) => {
+        // Create unique identifier for this equipment group
+        const equipmentId = `${group.equipment}__${group.vendor}`;
+        const isSelected = vmSettings.selectedEquipment.some(eq => eq === equipmentId);
+        
+        const item = document.createElement('div');
+        item.className = 'vm-equipment-item';
+        item.innerHTML = `
+           <input type="checkbox" 
+       id="vm_eq_${index}" 
+       ${isSelected ? 'checked disabled' : ''} 
+       data-equipment="${group.equipment}"
+       data-vendor="${group.vendor}"
+       data-equipmentid="${equipmentId}">
+            <div class="vm-equipment-item-info">
+                <div class="vm-equipment-item-name">${group.equipment}</div>
+                <div class="vm-equipment-item-meta">
+                    ${group.vendor} | ${group.count} tasks
+                    ${isSelected ? ' | ✅ Already added' : ''}
+                </div>
+            </div>
+        `;
+        
+        listContainer.appendChild(item);
+    });
+    
+    console.log(`✅ Found ${groupArray.length} equipment groups`);
+}
+
+// Add selected equipment in batch
+function addSelectedEquipmentBatch() {
+    const checkboxes = document.querySelectorAll('#vmEquipmentList input[type="checkbox"]:checked:not([disabled])');
+    
+    if (checkboxes.length === 0) {
+        showNotification('Please select at least one equipment', 'error');
+        return;
+    }
+    
+    let addedCount = 0;
+    const promises = [];
+    
+    checkboxes.forEach(checkbox => {
+        const equipmentId = checkbox.dataset.equipmentid;
+        
+        // Add to selected list if not already there
+        if (!vmSettings.selectedEquipment.includes(equipmentId)) {
+            vmSettings.selectedEquipment.push(equipmentId);
+            addedCount++;
+            
+            // Load data for this equipment
+            promises.push(loadSingleEquipmentDataPromise(equipmentId));
+        }
+    });
+    
+    if (addedCount === 0) {
+        showNotification('All selected equipment already added', 'info');
+        document.getElementById('addEquipmentDialog').style.display = 'none';
+        return;
+    }
+    
+    // Save settings
+    saveVMSettings();
+    
+    // Wait for all data to load
+    Promise.all(promises).then(() => {
+        applyVMSettings();
+        renderVMCards();
+        showNotification(`Added ${addedCount} equipment`, 'success');
+        document.getElementById('addEquipmentDialog').style.display = 'none';
+    });
+}
+
+// Load data for single equipment (for real-time add)
+// Load data for single equipment - returns promise
+function loadSingleEquipmentDataPromise(equipmentId) {
+    return new Promise((resolve) => {
+        const [equipment, vendor] = equipmentId.split('__');  // ✅ 2 underscore
+        
+        console.log(`🔄 Loading data for ${equipment} (${vendor})...`);
+        
+        const allTasks = [];
+        
+        // Get tasks matching this equipment + vendor
+        const matchingParents = projectData.filter(task => {
+            return task.equipment === equipment && task.vendor === vendor;
+        });
+        
+        // Get subtasks
+        matchingParents.forEach(parentTask => {
+            const firebaseKey = parentTask.firebaseKey || parentTask.id;
+            const subtasks = onsiteTasks[firebaseKey] || [];
+            
+            if (subtasks.length > 0) {
+                subtasks.forEach(subtask => {
+                    allTasks.push({
+                        ...subtask,
+                        equipment: parentTask.equipment,
+                        disc: parentTask.disc,
+                        vendor: parentTask.vendor,
+                        parentTask: parentTask.task || parentTask.taskName
+                    });
+                });
+            } else {
+                allTasks.push(parentTask);
+            }
+        });
+        
+        // Load report settings
+        const sanitizedId = equipmentId.replace(/[.#$[\]()]/g, '_').replace(/__/g, '_');
+        database.ref(`reportSettings/${sanitizedId}`).once('value').then(reportSnap => {
+            const reportData = reportSnap.val() || {};
+            
+            vmEquipmentData[equipmentId] = {
+                equipment: equipment,
+                vendor: vendor,
+                tasks: allTasks,
+                highlights: reportData.highlights || '',
+                actionPlan: reportData.actionPlan || '',
+                milestones: reportData.milestones || []
+            };
+            
+            console.log(`✅ Loaded ${allTasks.length} tasks for ${equipment}`);
+            resolve();
+        }).catch(error => {
+            vmEquipmentData[equipmentId] = {
+                equipment: equipment,
+                vendor: vendor,
+                tasks: allTasks,
+                highlights: '',
+                actionPlan: '',
+                milestones: []
+            };
+            resolve();
+        });
+    });
+}
+
+// Close add equipment dialog
+function closeAddEquipmentDialog() {
+    const dialog = document.getElementById('addEquipmentDialog');
+    if (dialog) {
+        dialog.style.display = 'none';
+    }
+}
+
+// Filter equipment list by search
+function filterVMEquipmentList() {
+    const searchInput = document.getElementById('vmEquipmentSearch');
+    if (!searchInput) return;
+    
+    const searchTerm = searchInput.value.toLowerCase();
+    const items = document.querySelectorAll('.vm-equipment-item');
+    
+    items.forEach(item => {
+        const name = item.querySelector('.vm-equipment-item-name').textContent.toLowerCase();
+        item.style.display = name.includes(searchTerm) ? 'flex' : 'none';
+    });
+}
+
+// Open settings dialog
+function openVMSettings() {
+    const dialog = document.getElementById('vmSettingsDialog');
+    if (dialog) {
+        dialog.style.display = 'flex';
+        applyVMSettings(); // Sync current settings to form
+    }
+}
+
+// Close settings dialog
+function closeVMSettings() {
+    const dialog = document.getElementById('vmSettingsDialog');
+    if (dialog) {
+        dialog.style.display = 'none';
+    }
+}
+
+// Update layout when settings change
+function updateVMLayout() {
+    // Get values from form
+    vmSettings.layout = parseInt(document.getElementById('vmLayoutSelect').value);
+    vmSettings.maxRows = parseInt(document.getElementById('vmMaxRowsSelect').value);
+    
+    vmSettings.displayOptions.showVendor = document.getElementById('vmShowVendor').checked;
+    vmSettings.displayOptions.showMilestone = document.getElementById('vmShowMilestone').checked;
+    vmSettings.displayOptions.showHighlight = document.getElementById('vmShowHighlight').checked;
+    vmSettings.displayOptions.showSPI = document.getElementById('vmShowSPI').checked;
+    
+    // Apply changes
+    applyVMSettings();
+    renderVMCards();
+    
+    // Save to Firebase
+    saveVMSettings();
+}
+
+// Remove equipment from visual management
+function removeEquipmentFromVM(equipmentId) {
+    const data = vmEquipmentData[equipmentId];
+    const equipmentName = data ? data.equipment : equipmentId;
+    
+    if (!confirm(`Remove ${equipmentName} from Visual Management?`)) {
+        return;
+    }
+    
+    // Remove from selected list
+    vmSettings.selectedEquipment = vmSettings.selectedEquipment.filter(eq => eq !== equipmentId);
+    
+    // Remove from data cache
+    delete vmEquipmentData[equipmentId];
+    
+    // Save settings
+    saveVMSettings();
+    
+    // Re-render
+    applyVMSettings();
+    renderVMCards();
+    
+    showNotification(`Removed ${equipmentName}`, 'success');
+}
+
+
+// Open task tracker for equipment
+function openTaskTrackerFromVM(equipmentId) {
+    const data = vmEquipmentData[equipmentId];
+    
+    if (!data || !data.tasks || data.tasks.length === 0) {
+        showNotification('No tasks found', 'error');
+        return;
+    }
+    
+    // Find first parent task from projectData
+    const equipment = data.equipment;
+    const vendor = data.vendor;
+    
+    const parentTask = projectData.find(t => 
+        t.equipment === equipment && t.vendor === vendor
+    );
+    
+    if (parentTask && (parentTask.firebaseKey || parentTask.id)) {
+        const taskKey = parentTask.firebaseKey || parentTask.id;
+        console.log(`📊 Opening task tracker with key: ${taskKey}`);
+        openTaskTracker(taskKey);
+    } else {
+        showNotification('Task tracker not found', 'error');
+        console.log('❌ Parent task not found for', equipment, vendor);
+    }
+}
+
+// Generate report for equipment
+function generateReportFromVM(equipmentId) {
+    const data = vmEquipmentData[equipmentId];
+    
+    if (!data) {
+        showNotification('Equipment data not found', 'error');
+        return;
+    }
+    
+    // Find first parent task
+    const equipment = data.equipment;
+    const vendor = data.vendor;
+    
+    const parentTask = projectData.find(t => 
+        t.equipment === equipment && t.vendor === vendor
+    );
+    
+    if (!parentTask) {
+        showNotification('Equipment not found', 'error');
+        return;
+    }
+    
+    // Set as current equipment tasks
+    currentEquipmentTasks = {
+        equipment: parentTask
+    };
+    
+    // Open report modal
+    if (typeof openProgressReportModal === 'function') {
+        openProgressReportModal();
+    } else {
+        showNotification('Report function not available', 'error');
+    }
+}
+
 // 👇👇👇 TAMBAHKAN FUNCTION BARU DI SINI (SETELAH LINE 6833) 👇👇👇
 
 function updateGroupTableHeader() {
@@ -10753,6 +12111,7 @@ function updateGroupTableHeader() {
 
 
 
+
 // 👆👆👆 SAMPAI SINI 👆👆👆
 
 window.toggleGroupedView = toggleGroupedView;
@@ -10768,6 +12127,12 @@ window.addEventListener('load', function() {
             localStorage.setItem('progressMigrated_v2', 'true');
         }, 3000);
     }
+});
+
+// ========== INITIALIZE VISUAL MANAGEMENT ==========
+// Load VM settings on page load (no auth required)
+window.addEventListener('load', function() {
+    loadVMSettings();
 });
 
     </script>
