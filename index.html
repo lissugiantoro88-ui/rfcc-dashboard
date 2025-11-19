@@ -1996,6 +1996,13 @@ tr {
 
     <div id="vmCardsContainer" style="display: grid; gap: 15px; margin-bottom: 15px;"></div>
 
+<!-- ✅ ADD THIS - Loading State (NEW) -->
+<div id="vmLoadingState" style="display: none; text-align: center; padding: 60px 20px; color: #7f8c8d;">
+    <div style="font-size: 48px; margin-bottom: 20px;">⏳</div>
+    <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #34495e;">Loading Equipment Data...</div>
+    <div style="font-size: 14px; opacity: 0.8;">Please wait while we fetch your equipment progress</div>
+</div>
+
     <div id="vmEmptyState" style="text-align: center; padding: 60px 20px; color: #95a5a6;">
         <div style="font-size: 48px; margin-bottom: 15px;">📊</div>
         <h4 style="color: #7f8c8d; margin-bottom: 10px;">No Equipment Added</h4>
@@ -11586,18 +11593,27 @@ function normalizeEquipmentId(id) {
 function loadVMEquipmentData() {
     console.log('🔄 Loading VM equipment data...');
     
+    // ✅ ADD: Show loading state, hide empty state and clear cards
+    const loadingState = document.getElementById('vmLoadingState');
+    const emptyState = document.getElementById('vmEmptyState');
+    const container = document.getElementById('vmCardsContainer');
+    
+    if (loadingState) loadingState.style.display = 'block';
+    if (emptyState) emptyState.style.display = 'none';
+    if (container) container.innerHTML = '';
+    
     vmEquipmentData = {};
     
     const promises = vmSettings.selectedEquipment.map(equipmentId => {
-    return new Promise((resolve) => {
-        // ✅ FIX: Handle old format with __vendor
-        let equipment = equipmentId;
-        
-        // If contains __, it's old format - extract equipment name only
-        if (equipmentId.includes('__')) {
-            equipment = equipmentId.split('__')[0];
-            console.log('⚠️ Old format detected:', equipmentId, '→ Using:', equipment);
-        }
+        return new Promise((resolve) => {
+            // ✅ FIX: Handle old format with __vendor
+            let equipment = equipmentId;
+            
+            // If contains __, it's old format - extract equipment name only
+            if (equipmentId.includes('__')) {
+                equipment = equipmentId.split('__')[0];
+                console.log('⚠️ Old format detected:', equipmentId, '→ Using:', equipment);
+            }
             
             const allTasks = [];
             
@@ -11608,24 +11624,22 @@ function loadVMEquipmentData() {
             
             // Get subtasks from all parent tasks
             parentTasks.forEach(parentTask => {
-    const firebaseKey = parentTask.firebaseKey || parentTask.id;
-    const subtasks = onsiteTasks[firebaseKey] || [];
-    
-    if (subtasks.length > 0) {
-        // Has subtasks - add them with parent info
-        subtasks.forEach(subtask => {
-            allTasks.push({
-                ...subtask,
-                equipment: parentTask.equipment,
-                disc: parentTask.disc,
-                vendor: parentTask.vendor,
-                parentTask: parentTask.task || parentTask.taskName
+                const firebaseKey = parentTask.firebaseKey || parentTask.id;
+                const subtasks = onsiteTasks[firebaseKey] || [];
+                
+                if (subtasks.length > 0) {
+                    // Has subtasks - add them with parent info
+                    subtasks.forEach(subtask => {
+                        allTasks.push({
+                            ...subtask,
+                            equipment: parentTask.equipment,
+                            disc: parentTask.disc,
+                            vendor: parentTask.vendor,
+                            parentTask: parentTask.task || parentTask.taskName
+                        });
+                    });
+                }
             });
-        });
-    }
-    // ✅ REMOVED: Don't add parent task if no subtasks
-    // Parent tasks without subtasks are ignored
-});
             
             // Collect all unique vendors
             const vendors = [...new Set(allTasks.map(t => t.vendor))];
@@ -11854,14 +11868,21 @@ const spi = timelineProgress > 0 ? (overallProgress / timelineProgress) : 1.0;
 // Render equipment cards
 function renderVMCards() {
     const container = document.getElementById('vmCardsContainer');
+    const emptyState = document.getElementById('vmEmptyState');
+    const loadingState = document.getElementById('vmLoadingState');
     
     if (!container) {
         console.error('❌ VM container not found!');
         return;
     }
     
+    // ✅ Hide loading state when rendering starts
+    if (loadingState) loadingState.style.display = 'none';
+    
     // Clear existing cards
     container.innerHTML = '';
+    
+    let renderedCount = 0; // ✅ Count actual rendered cards
     
     // Render each equipment
     vmSettings.selectedEquipment.forEach(equipmentId => {
@@ -11872,12 +11893,22 @@ function renderVMCards() {
         if (metrics) {
             const card = createEquipmentCard(metrics);
             container.appendChild(card);
+            renderedCount++; // ✅ Increment counter
         } else {
             console.warn(`⚠️ No metrics for: "${equipmentId}"`);
         }
     });
     
-    console.log(`✅ Rendered ${vmSettings.selectedEquipment.length} equipment card(s)`);
+    // ✅ Toggle empty state based on ACTUAL rendered cards (not settings!)
+    if (emptyState) {
+        if (renderedCount > 0) {
+            emptyState.style.display = 'none'; // Hide when cards exist
+        } else {
+            emptyState.style.display = 'block'; // Show when no cards
+        }
+    }
+    
+    console.log(`✅ Rendered ${renderedCount} equipment card(s)`);
 }
 
 // Create a single equipment card
