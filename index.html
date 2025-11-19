@@ -6426,6 +6426,49 @@ const sortedPending = sortBySequence([...pendingTasks]);
     document.getElementById('taskTrackerContent').innerHTML = content;
 }
 
+// Helper: Calculate weighted progress for specific tasks array
+function calculateWeightedProgressForTasks(tasks) {
+    if (!tasks || tasks.length === 0) return 0;
+    
+    const totalWeight = tasks.reduce((sum, t) => sum + (parseFloat(t.weight) || 1), 0);
+    const weightedProgress = tasks.reduce((sum, t) => {
+        const weight = parseFloat(t.weight) || 1;
+        const progress = parseFloat(t.progress) || 0;
+        return sum + (weight * progress / 100);
+    }, 0);
+    
+    return totalWeight > 0 ? Math.round((weightedProgress / totalWeight) * 100) : 0;
+}
+
+// Helper: Get status for a group based on progress
+function getGroupStatus(progress, tasks) {
+    const completed = tasks.filter(t => t.progress === 100).length;
+    const blocked = tasks.filter(t => t.status === 'blocked').length;
+    const total = tasks.length;
+    
+    if (progress === 100) {
+        return { text: 'COMPLETED', color: '#27ae60' };
+    }
+    
+    if (blocked > 0) {
+        return { text: 'BLOCKED', color: '#e74c3c' };
+    }
+    
+    if (progress >= 75) {
+        return { text: 'ON TRACK', color: '#3498db' };
+    }
+    
+    if (progress >= 50) {
+        return { text: 'AT RISK', color: '#f39c12' };
+    }
+    
+    if (progress >= 25) {
+        return { text: 'BEHIND', color: '#e67e22' };
+    }
+    
+    return { text: 'CRITICAL', color: '#e74c3c' };
+}
+
 // ===== REPORT GENERATION FUNCTIONS =====
 
 function openProgressReportModal() {
@@ -6780,7 +6823,16 @@ Object.keys(equipmentGroups).forEach(equipment => {
         
         const tasks = onsiteTasks[firebaseKey] || [];
         
-        allTasks.push(...tasks);
+        // ✅ FIX: Enrich each task with parent info
+        const enrichedTasks = tasks.map(task => ({
+            ...task,
+            disc: task.disc || disc,
+            vendor: task.vendor || vendor,
+            parentTask: task.parentTask || taskName,
+            equipment: task.equipment || equipment
+        }));
+        
+        allTasks.push(...enrichedTasks);
         
         groupDetails.push({
             disc,
@@ -6864,11 +6916,11 @@ Object.keys(equipmentGroups).forEach(equipment => {
         statusColor = [231, 76, 60];
     }
     
-    // Add timeline to tasks
+    // Add timeline to tasks and sort by group + sequence
     const tasksWithTimeline = allTasks.map(task => ({
         ...task,
         timeline: getTaskTimelineStatus(task)
-    })).sort((a, b) => (a.sequence || 999) - (b.sequence || 999));
+    }));
     
     const completedWithTimeline = completedTasks.map(t => ({
         ...t,
@@ -6912,6 +6964,29 @@ Object.keys(equipmentGroups).forEach(equipment => {
         groupDetails  // ← Add this for reference
     });
 });
+
+// ✅ ADD: Calculate summary counts for Executive Summary
+    let totalTasksCount = 0;
+    let completedTasksCount = 0;
+    let inProgressTasksCount = 0;
+    let blockedTasksCount = 0;
+    let readyTasksCount = 0;
+    
+    reportData.groups.forEach(group => {
+        totalTasksCount += group.totalTasks;
+        completedTasksCount += group.completedTasks.length;
+        inProgressTasksCount += group.inProgressTasks.length;
+        blockedTasksCount += group.blockedTasks.length;
+        readyTasksCount += group.readyTasks.length;
+    });
+    
+    // Add to reportData
+    reportData.totalTasksCount = totalTasksCount;
+    reportData.completedTasksCount = completedTasksCount;
+    reportData.inProgressTasksCount = inProgressTasksCount;
+    reportData.blockedTasksCount = blockedTasksCount;
+    reportData.readyTasksCount = readyTasksCount;
+    
     
     // Collect all tasks from all groups
 let allReportTasks = [];
@@ -7007,6 +7082,63 @@ const previewWindow = window.open('', '_blank');
 previewWindow.document.write(generateHTMLReport(reportData));
 previewWindow.document.close();
 window.lastReportData = reportData;  // ✅ ADD THIS for debugging
+}
+
+// Helper: Calculate weighted progress for specific tasks array
+function calculateWeightedProgressForTasks(tasks) {
+    if (!tasks || tasks.length === 0) return 0;
+    
+    const totalWeight = tasks.reduce((sum, t) => sum + (parseFloat(t.weight) || 1), 0);
+    const weightedProgress = tasks.reduce((sum, t) => {
+        const weight = parseFloat(t.weight) || 1;
+        const progress = parseFloat(t.progress) || 0;
+        return sum + (weight * progress / 100);
+    }, 0);
+    
+    return totalWeight > 0 ? Math.round((weightedProgress / totalWeight) * 100) : 0;
+}
+
+// Helper: Get status for a group based on progress
+function getGroupStatus(progress, tasks) {
+    const completed = tasks.filter(t => t.progress === 100).length;
+    const blocked = tasks.filter(t => t.status === 'blocked').length;
+    
+    // ✅ Professional, constructive status labels
+    
+    if (progress === 100) {
+        return { text: 'COMPLETED', color: '#27ae60' };
+    }
+    
+    if (blocked > 0) {
+        return { text: 'ON HOLD', color: '#e74c3c' };  // ← More professional than "BLOCKED"
+    }
+    
+    if (progress >= 75) {
+        return { text: 'ON SCHEDULE', color: '#3498db' };  // ← Positive framing
+    }
+    
+    if (progress >= 50) {
+        return { text: 'NEEDS ATTENTION', color: '#f39c12' };  // ← Softer than "AT RISK"
+    }
+    
+    if (progress >= 25) {
+        return { text: 'REQUIRES FOCUS', color: '#e67e22' };  // ← Constructive, not blaming
+    }
+    
+    return { text: 'URGENT ACTION', color: '#e74c3c' };  // ← Clear but professional
+}
+
+// Helper: Filter tasks by group detail
+function getTasksForGroup(allTasks, groupDetail) {
+    return allTasks.filter(t => {
+        if (t.disc !== groupDetail.disc) return false;
+        
+        const taskMatch = t.parentTask === groupDetail.task || 
+                         t.taskName === groupDetail.task ||
+                         t.task === groupDetail.task;
+        
+        return taskMatch;
+    });
 }
 
 function generateHTMLReport(data) {
@@ -7284,8 +7416,7 @@ body {
             ${data.overallProgress}%
         </div>
     </div>
-    <p><strong>Critical Issues:</strong> ${totalBlocked} blocked tasks</p>
-    <p><strong>Groups Included:</strong> ${data.groups.length}</p>
+    
     
 ${data.timeline ? `
 <div style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
@@ -7369,43 +7500,7 @@ const statusColor = smartStatus.color;
     </table>
 </div>
 ` : ''}
-    <!-- ✅ TAMBAHKAN INI - Progress by Discipline -->
-    <div style="margin-top: 25px;">
-        <h4 style="color: #2c3e50; margin-bottom: 15px; font-size: 15px; border-bottom: 2px solid #3498db; padding-bottom: 5px;">Progress by Discipline</h4>
-        ${data.groups.map(group => {
-            const barColor = group.overallProgress >= 80 ? '#27ae60' : 
-                            group.overallProgress >= 50 ? '#3498db' : 
-                            group.overallProgress > 0 ? '#f39c12' : '#95a5a6';
-            
-            const statusColor = 
-                group.status === 'COMPLETED' ? '#27ae60' : 
-                group.status === 'ON SCHEDULE' ? '#27ae60' : 
-                group.status === 'IN PROGRESS' ? '#3498db' : 
-                group.status === 'REQUIRES ATTENTION' ? '#f39c12' : 
-                '#95a5a6';
-            
-            return `
-                <div style="margin-bottom: 15px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                        <div style="flex: 1;">
-                            <strong style="font-size: 13px; color: #2c3e50;">${group.disc}</strong>
-                            <span style="font-size: 11px; color: #7f8c8d; margin-left: 8px;">${group.equipment}</span>
-                        </div>
-                        <div style="text-align: right; min-width: 120px;">
-                            <span style="font-weight: 700; font-size: 14px; color: ${barColor};">${group.overallProgress}%</span>
-                            <span style="margin-left: 10px; font-size: 11px; color: ${statusColor}; font-weight: 600;">${group.status}</span>
-                        </div>
-                    </div>
-                    <div style="background: #ecf0f1; height: 20px; border-radius: 10px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
-                        <div style="height: 100%; background: ${barColor}; width: ${group.overallProgress}%; display: flex; align-items: center; padding-left: 8px; transition: width 0.3s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
-                            <span style="color: white; font-size: 10px; font-weight: 600;">${group.completedTasks.length}/${group.totalTasks} tasks</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('')}
-    </div>
-</div>
+    
 
 ${data.highlights || data.actionPlan ? `
 <div class="section" style="page-break-inside: avoid;">
@@ -7425,41 +7520,72 @@ ${data.highlights || data.actionPlan ? `
 </div>
 ` : ''}
         
-        <div class="section">
-            <div class="section-title">EQUIPMENT BREAKDOWN</div>
-            ${data.groups.map(group => `
-                <div class="group-card">
-                    <h3 style="margin: 0 0 10px 0; color: #2c3e50;">${group.equipment} - ${group.disc}</h3>
-                    <p style="margin: 5px 0; color: #7f8c8d;"><strong>Vendor:</strong> ${group.vendor}</p>
-                    <p style="margin: 5px 0;"><strong>Progress:</strong> ${group.overallProgress}% | <strong>Tasks:</strong> ${group.completedTasks.length}/${group.totalTasks} completed</p>
-                    <p style="margin: 5px 0;"><strong>Status:</strong> 
-<span style="color: ${
-    group.status === 'COMPLETED' ? '#27ae60' : 
-    group.status === 'AHEAD' ? '#27ae60' : 
-    group.status === 'ON TRACK' ? '#3498db' : 
-    group.status === 'IN PROGRESS' ? '#3498db' : 
-    group.status === 'BEHIND' ? '#f39c12' : 
-    group.status === 'OVERDUE' ? '#e74c3c' :
-    group.status === 'BLOCKED' ? '#e74c3c' :
-    '#95a5a6'
-}; font-weight: bold;">${group.status.toUpperCase()}</span>
-                </div>
-            `).join('')}
-        </div>
+      
         
-        <div class="section">
+<div class="section">
     <div class="section-title">TASK STATUS DETAILS</div>
     ${data.groups.map((group, groupIndex) => `
         ${groupIndex > 0 ? '<div class="group-separator"></div>' : ''}
         
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <!-- MAIN EQUIPMENT HEADER (Aggregated) -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px 20px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
             <h3 style="color: white; margin: 0; font-size: 18px; font-weight: 600;">
-                ${group.equipment} - ${group.disc}${group.task ? ` - ${group.task}` : ''}
+                ${group.equipment}
             </h3>
             <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 12px;">
                 ${group.vendor} | Progress: ${group.overallProgress}% | Status: ${group.status}
             </p>
         </div>
+        
+     <!-- GROUP BREAKDOWN SECTION -->
+        ${group.groupDetails && group.groupDetails.length > 1 ? `
+            <div style="background: #f8f9fa; border-left: 4px solid #3498db; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                <h4 style="margin: 0 0 15px 0; color: #2c3e50; font-size: 14px; font-weight: 600;">
+                    📊 GROUP BREAKDOWN (${group.groupDetails.length} groups)
+                </h4>
+                <div style="display: grid; gap: 10px;">
+                    ${group.groupDetails.map((detail, idx) => {
+                        // ✅ FIX: Match by parentTask (now enriched!)
+                        const groupTasks = group.tasks.filter(t => {
+                            return t.parentTask === detail.task && t.disc === detail.disc;
+                        });
+                        
+                        const groupProgress = calculateWeightedProgressForTasks(groupTasks);
+                        const groupCompleted = groupTasks.filter(t => t.progress === 100 || t.status === 'completed').length;
+                        const groupStatus = getGroupStatus(groupProgress, groupTasks);
+                        
+                        return `
+                            <div style="background: white; padding: 12px; border-radius: 4px; border: 1px solid #e0e0e0;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <div style="flex: 1;">
+                                        <span style="font-weight: 600; color: #2c3e50; font-size: 13px;">
+                                            ${idx + 1}. ${detail.disc} - ${detail.task}
+                                        </span>
+                                        <span style="color: #7f8c8d; font-size: 11px; margin-left: 10px;">
+                                            (${detail.vendor})
+                                        </span>
+                                    </div>
+                                    <span style="padding: 3px 10px; background: ${groupStatus.color}; color: white; border-radius: 3px; font-size: 11px; font-weight: 600;">
+                                        ${groupStatus.text}
+                                    </span>
+                                </div>
+                                <div style="display: flex; gap: 15px; font-size: 11px; color: #555;">
+                                    <span>📦 ${groupCompleted}/${groupTasks.length} completed</span>
+                                    <span>📈 ${groupProgress}%</span>
+                                    <div style="flex: 1; background: #ecf0f1; border-radius: 10px; height: 8px; align-self: center;">
+                                        <div style="width: ${groupProgress}%; background: linear-gradient(90deg, #3498db, #2ecc71); height: 100%; border-radius: 10px; transition: width 0.3s;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        ` : ''}
+    
+        
+        <!-- DETAILED TASK LIST (All tasks combined) -->
+        <div style="margin-top: 20px;">
                 
                 ${group.completedTasks.length > 0 ? `
     <p style="font-weight: bold; color: #27ae60; margin: 20px 0 10px 0; font-size: 14px;">✅ COMPLETED (${group.completedTasks.length})</p>
@@ -7477,15 +7603,19 @@ ${data.highlights || data.actionPlan ? `
     </tr>
 </thead>
         <tbody>
-            ${group.completedTasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).slice(0, 10).map(task => {
+            ${group.completedTasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).slice(0, 10).map((task, taskIndex) => {
                 const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
                                 task.executionMode === 'parallel' ? 'Parallel' : 'Independent';
                 const modeClass = 'mode-' + (task.executionMode || 'independent');
                 
+                // ✅ ADD: Get group name for this task
+                const taskGroupName = task.parentTask || 'N/A';
+                
                 return `
                 <tr>
-                    <td style="text-align: center; font-weight: 700; color: #27ae60; font-size: 13px;">
-                        #${task.sequence || '?'}
+                    <td style="text-align: center; font-weight: 700; font-size: 13px;">
+                        <div style="color: #3498db; font-size: 11px; margin-bottom: 2px;">#${taskIndex + 1}</div>
+                        <div style="color: #7f8c8d; font-size: 9px;">(Seq ${task.sequence || '?'} - ${taskGroupName})</div>
                         <span class="mode-badge ${modeClass}">${modeLabel}</span>
                     </td>
                     <td>
@@ -7509,6 +7639,7 @@ ${data.highlights || data.actionPlan ? `
     </table>
     ${group.completedTasks.length > 10 ? `<p style="color: #95a5a6; margin: 5px 0; font-style: italic; font-size: 11px;">+ ${group.completedTasks.length - 10} more completed tasks</p>` : ''}
 ` : ''}
+
 ${group.inProgressTasks.length > 0 ? `
     <p style="font-weight: bold; color: #f39c12; margin: 20px 0 10px 0; font-size: 14px;">🔄 IN PROGRESS (${group.inProgressTasks.length})</p>
     <table class="gantt-table">
@@ -7525,15 +7656,20 @@ ${group.inProgressTasks.length > 0 ? `
     </tr>
 </thead>
         <tbody>
-                ${group.inProgressTasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).map(task => {
+            <tbody>
+                ${group.inProgressTasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).map((task, taskIndex) => {
                 const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
                                 task.executionMode === 'parallel' ? 'Parallel' : 'Independent';
                 const modeClass = `mode-${task.executionMode || 'independent'}`;
                 
+                // ✅ ADD: Get group name for this task
+                const taskGroupName = task.parentTask || 'N/A';
+                
                 return `
                 <tr>
-                    <td style="text-align: center; font-weight: 700; color: #f39c12; font-size: 13px;">
-                        #${task.sequence || '?'}
+                    <td style="text-align: center; font-weight: 700; font-size: 13px;">
+                        <div style="color: #3498db; font-size: 11px; margin-bottom: 2px;">#${taskIndex + 1}</div>
+                        <div style="color: #7f8c8d; font-size: 9px;">(Seq ${task.sequence || '?'} - ${taskGroupName})</div>
                         <span class="mode-badge ${modeClass}">${modeLabel}</span>
                     </td>
                     <td>
@@ -7571,10 +7707,13 @@ ${group.readyTasks && group.readyTasks.length > 0 ? `
             </tr>
         </thead>
         <tbody>
-                ${group.readyTasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).map(task => {
+                ${group.readyTasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).map((task, taskIndex) => {
                 const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
                                 task.executionMode === 'parallel' ? 'Parallel' : 'Independent';
                 const modeClass = `mode-${task.executionMode || 'independent'}`;
+                
+                // ✅ ADD: Get group name for this task
+                const taskGroupName = task.parentTask || 'N/A';
                 
                 // Dependencies info
                 let depsInfo = '<span style="color: #95a5a6;">None</span>';
@@ -7590,8 +7729,9 @@ ${group.readyTasks && group.readyTasks.length > 0 ? `
                 
                 return `
                 <tr>
-                    <td style="text-align: center; font-weight: 700; color: #3498db; font-size: 13px;">
-                        #${task.sequence || '?'}
+                    <td style="text-align: center; font-weight: 700; font-size: 13px;">
+                        <div style="color: #3498db; font-size: 11px; margin-bottom: 2px;">#${taskIndex + 1}</div>
+                        <div style="color: #7f8c8d; font-size: 9px;">(Seq ${task.sequence || '?'} - ${taskGroupName})</div>
                         <span class="mode-badge ${modeClass}">${modeLabel}</span>
                     </td>
                     <td>
@@ -7608,6 +7748,7 @@ ${group.readyTasks && group.readyTasks.length > 0 ? `
                 `;
             }).join('')}
         </tbody>
+
     </table>
 ` : ''}
 
@@ -7624,10 +7765,13 @@ ${group.blockedTasks.length > 0 ? `
             </tr>
         </thead>
         <tbody>
-                ${group.blockedTasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).map(task => {
+                ${group.blockedTasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).map((task, taskIndex) => {
                 const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
                                 task.executionMode === 'parallel' ? 'Parallel' : 'Independent';
                 const modeClass = `mode-${task.executionMode || 'independent'}`;
+                
+                // ✅ ADD: Get group name for this task
+                const taskGroupName = task.parentTask || 'N/A';
                 
                 // Get blocking tasks info
                 let blockingInfo = '<span style="color: #e74c3c; font-style: italic;">Waiting dependencies</span>';
@@ -7649,8 +7793,9 @@ ${group.blockedTasks.length > 0 ? `
                 
                 return `
                 <tr>
-                    <td style="text-align: center; font-weight: 700; color: #e74c3c; font-size: 13px;">
-                        #${task.sequence || '?'}
+                    <td style="text-align: center; font-weight: 700; font-size: 13px;">
+                        <div style="color: #3498db; font-size: 11px; margin-bottom: 2px;">#${taskIndex + 1}</div>
+                        <div style="color: #7f8c8d; font-size: 9px;">(Seq ${task.sequence || '?'} - ${taskGroupName})</div>
                         <span class="mode-badge ${modeClass}">${modeLabel}</span>
                     </td>
                     <td>
