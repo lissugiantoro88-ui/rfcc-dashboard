@@ -11495,16 +11495,22 @@ function saveVMSettings() {
     // Debounce save (wait 1 second after last change)
     vmSaveTimeout = setTimeout(() => {
         try {
+            // ✅ FIX: Normalize equipment IDs before saving (remove NBSP)
+            const normalizedEquipment = vmSettings.selectedEquipment.map(id => normalizeEquipmentId(id));
+            
             // Save to localStorage
             localStorage.setItem('vmSettings', JSON.stringify({
                 layout: vmSettings.layout,
                 maxRows: vmSettings.maxRows,
-                selectedEquipment: vmSettings.selectedEquipment,
+                selectedEquipment: normalizedEquipment,  // ✅ Use normalized
                 displayOptions: vmSettings.displayOptions,
                 timestamp: new Date().toISOString()
             }));
             
-            console.log('✅ VM Settings saved to localStorage');
+            // ✅ Also update in-memory version
+            vmSettings.selectedEquipment = normalizedEquipment;
+            
+            console.log('✅ VM Settings saved to localStorage (normalized)');
             
             // Show save indicator
             const indicator = document.getElementById('vmAutoSaveIndicator');
@@ -11566,6 +11572,13 @@ function applyVMSettings() {
         // Show button ONLY if no equipment selected
         quickAccessBtn.style.display = vmSettings.selectedEquipment.length > 0 ? 'none' : 'block';
     }
+}
+
+// Helper: Normalize equipment ID (remove non-breaking spaces, etc)
+function normalizeEquipmentId(id) {
+    if (!id) return id;
+    // Replace non-breaking space (160) with normal space (32)
+    return id.replace(/\u00A0/g, ' ').trim();
 }
 
 // Load equipment data - using equipment ID (equipment___vendor)
@@ -11771,8 +11784,22 @@ function calculateEquipmentMetrics(equipmentId) {
     // Count by status
     const completed = tasks.filter(t => t.progress === 100).length;
     const inProgress = tasks.filter(t => t.progress > 0 && t.progress < 100).length;
-    const blocked = tasks.filter(t => t.status === 'blocked').length;
-    const notStarted = tasks.filter(t => !t.progress || t.progress === 0).length;
+    
+    // ✅ FIX: Count blocked tasks properly (explicit status + dependency-blocked)
+    const pendingTasks = tasks.filter(t => !t.progress || t.progress === 0);
+    const blockedByStatus = tasks.filter(t => t.status === 'blocked');
+    const blockedByDependencies = pendingTasks.filter(t => checkIfBlocked(t, tasks));
+    
+    // Combine both (avoid duplicates)
+    const allBlockedIds = new Set([
+        ...blockedByStatus.map(t => t.id),
+        ...blockedByDependencies.map(t => t.id)
+    ]);
+    const blocked = allBlockedIds.size;
+    
+    // Ready = pending but NOT blocked
+    const ready = pendingTasks.filter(t => !allBlockedIds.has(t.id)).length;
+    const notStarted = pendingTasks.length;
     
     // Use shared calculation
 const overallProgress = calculateWeightedProgress(tasks);
@@ -11814,9 +11841,10 @@ const spi = timelineProgress > 0 ? (overallProgress / timelineProgress) : 1.0;
         daysLeft,
         targetDate,
         totalTasks: tasks.length,
-        completed,
-        inProgress,
-        blocked,
+        completedCount: completed,     // ✅ Rename for clarity
+        inProgressCount: inProgress,   // ✅ Rename for clarity
+        blockedCount: blocked,         // ✅ Rename for clarity
+        readyCount: ready,             // ✅ ADD THIS
         notStarted,
         highlights: data.highlights,
         upcomingMilestone
@@ -11826,34 +11854,30 @@ const spi = timelineProgress > 0 ? (overallProgress / timelineProgress) : 1.0;
 // Render equipment cards
 function renderVMCards() {
     const container = document.getElementById('vmCardsContainer');
-    const emptyState = document.getElementById('vmEmptyState');
     
-    if (!container) return;
-    
-    // Clear container
-    container.innerHTML = '';
-    
-    // Check if empty
-    if (vmSettings.selectedEquipment.length === 0) {
-        emptyState.style.display = 'block';
-        container.style.display = 'none';
+    if (!container) {
+        console.error('❌ VM container not found!');
         return;
     }
     
-    emptyState.style.display = 'none';
-    container.style.display = 'grid';
+    // Clear existing cards
+    container.innerHTML = '';
     
-    // Calculate how many to show
-    const maxCards = vmSettings.layout * vmSettings.maxRows;
-    const equipmentToShow = vmSettings.selectedEquipment.slice(0, maxCards);
-    
-    // Render each card
-    equipmentToShow.forEach(equipmentId => {
-        const metrics = calculateEquipmentMetrics(equipmentId);
+    // Render each equipment
+    vmSettings.selectedEquipment.forEach(equipmentId => {
+        // ✅ FIX: Normalize equipment ID before lookup
+        const normalizedId = normalizeEquipmentId(equipmentId);
+        const metrics = calculateEquipmentMetrics(normalizedId);
+        
         if (metrics) {
-            container.appendChild(createEquipmentCard(metrics));
+            const card = createEquipmentCard(metrics);
+            container.appendChild(card);
+        } else {
+            console.warn(`⚠️ No metrics for: "${equipmentId}"`);
         }
     });
+    
+    console.log(`✅ Rendered ${vmSettings.selectedEquipment.length} equipment card(s)`);
 }
 
 // Create a single equipment card
@@ -11946,19 +11970,19 @@ function createEquipmentCard(metrics) {
     html += `
         <div class="vm-task-counts">
             <div class="vm-task-count">
-                <span class="vm-task-count-number" style="color: #27ae60;">✅ ${metrics.completed}</span>
+                <span class="vm-task-count-number" style="color: #27ae60;">✅ ${metrics.completedCount || 0}</span>
                 <span>Done</span>
             </div>
             <div class="vm-task-count">
-                <span class="vm-task-count-number" style="color: #3498db;">🔄 ${metrics.inProgress}</span>
+                <span class="vm-task-count-number" style="color: #3498db;">🔄 ${metrics.inProgressCount || 0}</span>
                 <span>Progress</span>
             </div>
             <div class="vm-task-count">
-                <span class="vm-task-count-number" style="color: #e74c3c;">🚫 ${metrics.blocked}</span>
+                <span class="vm-task-count-number" style="color: #e74c3c;">🚫 ${metrics.blockedCount || 0}</span>
                 <span>Blocked</span>
             </div>
             <div class="vm-task-count">
-                <span class="vm-task-count-number" style="color: #95a5a6;">⏳ ${metrics.notStarted}</span>
+                <span class="vm-task-count-number" style="color: #95a5a6;">⏳ ${metrics.readyCount || 0}</span>
                 <span>Ready</span>
             </div>
         </div>
@@ -12007,7 +12031,9 @@ function createEquipmentCard(metrics) {
 
 // Open Generate Progress Report for equipment from VM
 function openProgressReportFromVM(equipmentId) {
-    const data = vmEquipmentData[equipmentId];
+    // ✅ FIX 1: Normalize equipment ID
+    const normalizedId = normalizeEquipmentId(equipmentId);
+    const data = vmEquipmentData[normalizedId];
     
     if (!data) {
         showNotification('Equipment data not found', 'error');
@@ -12016,19 +12042,24 @@ function openProgressReportFromVM(equipmentId) {
     
     const equipment = data.equipment;
     
-    // Find first parent task from projectData
-    const parentTask = projectData.find(t => t.equipment === equipment);
+    // ✅ FIX 2: Find ALL parent tasks (not just first one)
+    const parentTasks = projectData.filter(t => 
+        normalizeEquipmentId(t.equipment) === normalizeEquipmentId(equipment)
+    );
     
-    if (!parentTask) {
+    if (!parentTasks || parentTasks.length === 0) {
         showNotification('Equipment not found in project data', 'error');
         return;
     }
     
-    console.log('📄 Opening Generate Progress Report for:', equipment);
+    console.log(`📄 Opening Generate Progress Report for: ${equipment} (${parentTasks.length} groups)`);
+    
+    // Use first parent for base info
+    const firstParent = parentTasks[0];
     
     // Set as current equipment for report
     currentEquipmentTasks = {
-        equipment: parentTask
+        equipment: firstParent
     };
     
     // Open report modal
@@ -12040,12 +12071,12 @@ function openProgressReportFromVM(equipmentId) {
     
     reportModal.style.display = 'block';
     
-    // Trigger the report modal population
+    // ✅ FIX 3: Use openProgressReportModal if exists
     if (typeof openProgressReportModal === 'function') {
         openProgressReportModal();
     } else {
-        // Manual trigger if function doesn't exist
-        const equipmentName = parentTask.equipment || '';
+        // Manual trigger
+        const equipmentName = equipment || '';
         
         // Extract base equipment name for report
         let baseName = '';
@@ -12074,7 +12105,7 @@ function openProgressReportFromVM(equipmentId) {
             reportDateInput.value = today;
         }
         
-        // Populate related groups
+        // ✅ FIX 4: Populate related groups with ALL parent tasks
         if (typeof populateRelatedGroups === 'function') {
             populateRelatedGroups(baseName);
         }
@@ -12215,9 +12246,17 @@ function addSelectedEquipmentBatch() {
 // Load data for single equipment (for real-time add)
 // Load data for single equipment - returns promise
 // Load data for single equipment - returns promise
+// Helper: Normalize equipment ID (remove non-breaking spaces)
+function normalizeEquipmentId(id) {
+    if (!id) return id;
+    // Replace non-breaking space (char code 160) with normal space (32)
+    return id.replace(/\u00A0/g, ' ').trim();
+}
+
 function loadSingleEquipmentDataPromise(equipmentId) {
     return new Promise((resolve) => {
-        const equipment = equipmentId; // Equipment name is the ID
+        // ✅ FIX 1: Normalize equipment ID to handle NBSP
+        const equipment = normalizeEquipmentId(equipmentId);
         
         console.log(`🔄 Loading data for ${equipment}...`);
         
@@ -12225,28 +12264,28 @@ function loadSingleEquipmentDataPromise(equipmentId) {
         
         // Get ALL tasks matching this equipment (all vendors)
         const matchingParents = projectData.filter(task => {
-            return task.equipment === equipment;
+            // ✅ FIX 2: Normalize task.equipment too for comparison
+            return normalizeEquipmentId(task.equipment) === equipment;
         });
         
         // Get subtasks
         matchingParents.forEach(parentTask => {
-    const firebaseKey = parentTask.firebaseKey || parentTask.id;
-    const subtasks = onsiteTasks[firebaseKey] || [];
-    
-    if (subtasks.length > 0) {
-        // Has subtasks - add them with parent info
-        subtasks.forEach(subtask => {
-            allTasks.push({
-                ...subtask,
-                equipment: parentTask.equipment,
-                disc: parentTask.disc,
-                vendor: parentTask.vendor,
-                parentTask: parentTask.task || parentTask.taskName
-            });
+            const firebaseKey = parentTask.firebaseKey || parentTask.id;
+            const subtasks = onsiteTasks[firebaseKey] || [];
+            
+            if (subtasks.length > 0) {
+                // Has subtasks - add them with parent info
+                subtasks.forEach(subtask => {
+                    allTasks.push({
+                        ...subtask,
+                        equipment: parentTask.equipment,
+                        disc: parentTask.disc,
+                        vendor: parentTask.vendor,
+                        parentTask: parentTask.task || parentTask.taskName
+                    });
+                });
+            }
         });
-    }
-    // ✅ REMOVED: Don't add parent task if no subtasks
-});
         
         // Collect all unique vendors
         const vendors = [...new Set(allTasks.map(t => t.vendor))];
@@ -12257,7 +12296,8 @@ function loadSingleEquipmentDataPromise(equipmentId) {
         database.ref(`reportSettings/${sanitizedId}`).once('value').then(reportSnap => {
             const reportData = reportSnap.val() || {};
             
-            vmEquipmentData[equipmentId] = {
+            // ✅ FIX 3: Store with NORMALIZED key
+            vmEquipmentData[equipment] = {
                 equipment: equipment,
                 vendor: vendorText,
                 tasks: allTasks,
@@ -12266,10 +12306,11 @@ function loadSingleEquipmentDataPromise(equipmentId) {
                 milestones: reportData.milestones || []
             };
             
-            console.log(`✅ Loaded ${allTasks.length} tasks for ${equipment}`);
+            console.log(`✅ Loaded ${allTasks.length} tasks for ${equipment} (${vendorText})`);
             resolve();
         }).catch(error => {
-            vmEquipmentData[equipmentId] = {
+            // ✅ FIX 4: Store with NORMALIZED key (error case too)
+            vmEquipmentData[equipment] = {
                 equipment: equipment,
                 vendor: vendorText,
                 tasks: allTasks,
@@ -12368,31 +12409,41 @@ function removeEquipmentFromVM(equipmentId) {
 // Open task tracker for equipment
 // Open task tracker for equipment
 function openTaskTrackerFromVM(equipmentId) {
-    const data = vmEquipmentData[equipmentId];
+    // ✅ FIX 1: Normalize equipment ID
+    const normalizedId = normalizeEquipmentId(equipmentId);
+    const data = vmEquipmentData[normalizedId];
     
     if (!data || !data.tasks || data.tasks.length === 0) {
         showNotification('No tasks found', 'error');
         return;
     }
     
-    // Find first parent task from projectData
+    // ✅ FIX 2: Find ALL parent tasks (equipment may have multiple groups)
     const equipment = data.equipment;
     
-    const parentTask = projectData.find(t => t.equipment === equipment);
+    const parentTasks = projectData.filter(t => 
+        normalizeEquipmentId(t.equipment) === normalizeEquipmentId(equipment)
+    );
     
-    if (parentTask && (parentTask.firebaseKey || parentTask.id)) {
-        const taskKey = parentTask.firebaseKey || parentTask.id;
-        console.log(`📊 Opening task tracker with key: ${taskKey}`);
-        
-        // Use existing openTaskTracker function
-        if (typeof openTaskTracker === 'function') {
-            openTaskTracker(taskKey);
-        } else {
-            showNotification('Task tracker function not available', 'error');
-        }
-    } else {
+    if (!parentTasks || parentTasks.length === 0) {
         showNotification('Task tracker not found', 'error');
-        console.log('❌ Parent task not found for', equipment);
+        console.log('❌ Parent tasks not found for', equipment);
+        return;
+    }
+    
+    // ✅ FIX 3: Use FIRST parent task (or let user choose if multiple)
+    const firstParent = parentTasks[0];
+    const taskKey = firstParent.firebaseKey || firstParent.id;
+    
+    console.log(`📊 Opening task tracker for: ${equipment} (${parentTasks.length} groups)`);
+    console.log(`   Using key: ${taskKey} (${firstParent.disc})`);
+    
+    // Use existing openTaskTracker function
+    if (typeof openTaskTracker === 'function') {
+        openTaskTracker(taskKey);
+    } else {
+        showNotification('Task tracker function not available', 'error');
+        console.log('❌ openTaskTracker function not found');
     }
 }
 
