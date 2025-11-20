@@ -1894,6 +1894,159 @@ tr {
     }
 }
 
+/* ✅ ADD - Split Button & Dropdown Styles */
+.vm-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.split-button {
+    display: inline-flex;
+    position: relative;
+    flex: 1;
+    z-index: 1; /* ✅ ADD THIS */
+}
+
+/* ✅ ADD - When dropdown is open, raise z-index */
+.split-button.dropdown-open {
+    z-index: 10000;
+}
+
+.split-button-main {
+    flex: 1;
+    padding: 10px 16px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px 0 0 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.split-button-main:hover {
+    background: #2980b9;
+}
+
+.split-button-dropdown {
+    padding: 10px 12px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.2s;
+}
+
+.split-button-dropdown:hover {
+    background: #2980b9;
+}
+
+.task-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #dfe6e9;
+    border-radius: 4px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25); /* ✅ Stronger shadow */
+    z-index: 9999; /* ✅ Higher z-index */
+    display: none;
+    overflow: visible; /* ✅ Changed from hidden */
+    min-width: 200px; /* ✅ Ensure minimum width */
+}
+
+.task-dropdown-menu.show {
+    display: block;
+    animation: dropdownFadeIn 0.2s ease-out;
+}
+
+@keyframes dropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-size: 14px;
+    color: #2c3e50;
+}
+
+.dropdown-item:hover {
+    background: #ecf0f1;
+}
+
+.dropdown-item.all-tasks {
+    font-weight: 600;
+    color: #3498db;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: #dfe6e9;
+    margin: 4px 0;
+}
+
+.dropdown-item-count {
+    float: right;
+    color: #95a5a6;
+    font-size: 13px;
+}
+
+.vm-report-button {
+    flex: 1;
+    padding: 10px 16px;
+    background: #2ecc71;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.vm-report-button:hover {
+    background: #27ae60;
+}
+
+/* ✅ ADD - Card z-index management */
+.vm-equipment-card {
+    position: relative; /* ✅ Need this for z-index to work */
+    z-index: 1; /* ✅ Default z-index */
+}
+
+/* ✅ ADD - Raise card z-index when dropdown is open */
+.vm-equipment-card:has(.split-button.dropdown-open) {
+    z-index: 10000 !important;
+}
+
+/* Fallback for browsers without :has() support */
+.vm-equipment-card.dropdown-active {
+    z-index: 10000 !important;
+}
+/* ✅ ADD - Disabled main button style */
+.split-button-main[style*="cursor: default"] {
+    opacity: 0.8;
+}
+
+.split-button-main[style*="cursor: default"]:hover {
+    background: #3498db; /* No color change on hover */
+}
+
 /* ⭐ AKHIR CSS BARU */
 
 </style>
@@ -10228,37 +10381,33 @@ function initDropdowns() {
         // Traverse up max 3 levels to find dropdown-item
         for (let i = 0; i < 3; i++) {
             if (target && target.classList && target.classList.contains('dropdown-item')) {
+                
+                // ✅ FIX: Skip if this is VM task dropdown
+                if (target.closest('.task-dropdown-menu')) {
+                    console.log('🔵 VM task dropdown - handled by own onclick');
+                    return; // Let VM dropdown handle itself via onclick
+                }
+                
+                // ✅ Only handle MAIN TABLE dropdowns
                 e.preventDefault();
                 e.stopPropagation();
                 
                 const action = target.getAttribute('data-action');
                 const key = target.getAttribute('data-key');
                 
-                console.log('✅✅✅ DROPDOWN CLICKED:', action, key);
+                console.log('✅ Main table dropdown clicked:', action, key);
                 
-                closeAllDropdowns();
+                closeAllDropdowns(); // Main table dropdowns only
                 
-                if (action === 'tasks') {
-                    openTaskTracker(key);
-                } else if (action === 'progress') {
-                    showProgressReportById(key);
-                }
+                // ... rest of your existing main table handling code below ...
                 
-                return;
+                break; // Stop traversing once found
             }
+            
             target = target.parentElement;
+            if (!target) break;
         }
-        
-        // Close dropdowns when clicking outside
-        if (!e.target.closest('.dropdown-trigger') && !e.target.closest('.action-dropdown')) {
-            closeAllDropdowns();
-        }
-    }, true);
-    
-    // Close on scroll
-    window.addEventListener('scroll', closeAllDropdowns, true);
-    
-    console.log('✅ Dropdowns initialized (simple version)');
+    });
 }
 
 function handleDropdownScroll() {
@@ -11686,21 +11835,32 @@ function loadVMEquipmentData() {
    Promise.all(promises).then(() => {
     console.log('✅ VM Equipment data loaded:', vmEquipmentData);
     
-    // ✅ FIX: Check if any equipment has 0 tasks (timing issue)
+    // Check if any equipment has 0 tasks
     const allTaskCounts = Object.values(vmEquipmentData).map(d => d.tasks.length);
     const totalTasks = allTaskCounts.reduce((sum, count) => sum + count, 0);
     
-    if (totalTasks === 0 && vmSettings.selectedEquipment.length > 0) {
-        console.warn('⚠️ All equipment have 0 tasks - onsiteTasks may not be loaded yet');
+    // ✅ ADD: Retry counter to prevent infinite retries
+    if (!window.vmLoadRetryCount) window.vmLoadRetryCount = 0;
+    
+    if (totalTasks === 0 && vmSettings.selectedEquipment.length > 0 && window.vmLoadRetryCount < 3) {
+        window.vmLoadRetryCount++;
+        console.warn(`⚠️ All equipment have 0 tasks - onsiteTasks may not be loaded yet (Retry ${window.vmLoadRetryCount}/3)`);
         console.log('🔄 Retrying in 2 seconds...');
         
-        // Retry after delay
         setTimeout(() => {
-            console.log('🔄 Retry attempt...');
+            console.log(`🔄 Retry attempt ${window.vmLoadRetryCount}...`);
             loadVMEquipmentData();
         }, 2000);
     } else {
-        console.log(`📊 Total tasks loaded: ${totalTasks}`);
+        // ✅ Success or max retries reached
+        if (totalTasks > 0) {
+            window.vmLoadRetryCount = 0; // Reset on success
+            console.log(`📊 Total tasks loaded: ${totalTasks}`);
+        } else if (window.vmLoadRetryCount >= 3) {
+            console.error('❌ Failed to load tasks after 3 retries');
+            window.vmLoadRetryCount = 0; // Reset counter
+        }
+        
         renderVMCards();
     }
 });
@@ -12069,21 +12229,205 @@ function createEquipmentCard(metrics) {
         `;
     }
     
-    // Action buttons
-    html += `
-        <div class="vm-card-actions">
-            <button class="vm-action-btn primary" onclick="openTaskTrackerFromVM('${metrics.equipmentId}')">
+    // Action buttons with dropdown
+const dropdownId = 'dropdown-' + metrics.equipmentId.replace(/[^a-zA-Z0-9]/g, '_');
+
+html += `
+    <div class="vm-card-actions">
+        <!-- Split Button for Tasks -->
+        <div class="split-button">
+            <button class="split-button-main" style="cursor: default;" title="Click ▼ to select discipline">
                 📊 Tasks
             </button>
-            <button class="vm-action-btn secondary" onclick="openProgressReportFromVM('${metrics.equipmentId}')">
-                📄 Report
+            <button class="split-button-dropdown" onclick="toggleTaskDropdown(event, '${metrics.equipmentId}')">
+                ▼
             </button>
+            <div class="task-dropdown-menu" id="${dropdownId}">
+                <!-- Dropdown populated dynamically -->
+            </div>
         </div>
-    `;
+        
+        <button class="vm-report-button" onclick="openProgressReportFromVM('${metrics.equipmentId}')">
+            📄 Report
+        </button>
+    </div>
+`;
     
     card.innerHTML = html;
     return card;
 }
+
+// ✅ NEW - Open all tasks for equipment (combined view)
+function openAllTasksFromVM(equipmentId) {
+    console.log('🔍 openAllTasksFromVM called with:', equipmentId);
+    
+    const normalizedId = normalizeEquipmentId(equipmentId);
+    console.log('   Normalized:', normalizedId);
+    
+    const data = vmEquipmentData[normalizedId];
+    console.log('   Data found?', !!data);
+    
+    if (!data || !data.tasks || data.tasks.length === 0) {
+        console.error('❌ No data or tasks:', data);
+        showNotification('No tasks found', 'error');
+        return;
+    }
+    
+    const equipment = data.equipment;
+    const parentTasks = projectData.filter(t => 
+        normalizeEquipmentId(t.equipment) === normalizeEquipmentId(equipment)
+    );
+    
+    console.log('   Parent tasks found:', parentTasks.length);
+    
+    if (!parentTasks || parentTasks.length === 0) {
+        console.error('❌ No parent tasks found');
+        showNotification('Task tracker not found', 'error');
+        return;
+    }
+    
+    // Use first parent's key to open combined view
+    const firstParent = parentTasks[0];
+    const taskKey = firstParent.firebaseKey || firstParent.id;
+    
+    console.log(`✅ Opening ALL tasks for: ${equipment}`);
+    console.log(`   Using key: ${taskKey} (${firstParent.disc})`);
+    console.log(`   Total: ${parentTasks.length} disciplines, ${data.tasks.length} tasks`);
+    
+    if (typeof openTaskTracker === 'function') {
+        openTaskTracker(taskKey);
+    } else {
+        console.error('❌ openTaskTracker function not available');
+        showNotification('Task tracker function not available', 'error');
+    }
+}
+
+// ✅ NEW - Toggle dropdown menu
+function toggleTaskDropdown(event, equipmentId) {
+    event.stopPropagation();
+    
+    const normalizedId = normalizeEquipmentId(equipmentId);
+    const data = vmEquipmentData[normalizedId];
+    const dropdownId = 'dropdown-' + equipmentId.replace(/[^a-zA-Z0-9]/g, '_');
+    const dropdown = document.getElementById(dropdownId);
+    
+    if (!dropdown) {
+        console.error('Dropdown not found:', dropdownId);
+        return;
+    }
+    
+    // ✅ Get parent elements
+    const splitButton = dropdown.closest('.split-button');
+    const card = dropdown.closest('.vm-equipment-card'); // ✅ ADD THIS
+    
+    // Close all other dropdowns first
+    document.querySelectorAll('.task-dropdown-menu').forEach(d => {
+        if (d.id !== dropdownId) {
+            d.classList.remove('show');
+            const otherParent = d.closest('.split-button');
+            if (otherParent) otherParent.classList.remove('dropdown-open');
+            // ✅ ADD - Remove from other cards
+            const otherCard = d.closest('.vm-equipment-card');
+            if (otherCard) otherCard.classList.remove('dropdown-active');
+        }
+    });
+    
+    // Toggle current dropdown
+    const isShowing = dropdown.classList.contains('show');
+    
+    if (!isShowing) {
+        // Populate dropdown content
+        populateTaskDropdown(dropdown, equipmentId, data);
+        dropdown.classList.add('show');
+        if (splitButton) splitButton.classList.add('dropdown-open');
+        if (card) card.classList.add('dropdown-active'); // ✅ ADD THIS
+    } else {
+        dropdown.classList.remove('show');
+        if (splitButton) splitButton.classList.remove('dropdown-open');
+        if (card) card.classList.remove('dropdown-active'); // ✅ ADD THIS
+    }
+}
+
+// ✅ NEW - Populate dropdown with discipline options
+function populateTaskDropdown(dropdown, equipmentId, data) {
+    const equipment = data.equipment;
+    const parentTasks = projectData.filter(t => 
+        normalizeEquipmentId(t.equipment) === normalizeEquipmentId(equipment)
+    );
+    
+    let html = '';
+    
+    // All tasks option (default)
+    html += `
+        <div class="dropdown-item all-tasks" onclick="openAllTasksFromVM('${equipmentId}'); closeAllTaskDropdowns();">
+            📊 All Tasks
+            <span class="dropdown-item-count">${data.tasks.length}</span>
+        </div>
+    `;
+    
+    // Divider
+    if (parentTasks.length > 1) {
+        html += '<div class="dropdown-divider"></div>';
+        
+        // Individual discipline options
+        parentTasks.forEach(parent => {
+            const disc = parent.disc;
+            const firebaseKey = parent.firebaseKey || parent.id;
+            const discTasks = onsiteTasks[firebaseKey] || [];
+            
+            html += `
+                <div class="dropdown-item" onclick="openSpecificTaskFromVM('${equipmentId}', '${disc}', '${firebaseKey}'); closeAllTaskDropdowns();">
+                    ${disc}
+                    <span class="dropdown-item-count">${discTasks.length} tasks</span>
+                </div>
+            `;
+        });
+    }
+    
+    dropdown.innerHTML = html;
+}
+
+// ✅ NEW - Open specific discipline task tracker
+function openSpecificTaskFromVM(equipmentId, disc, firebaseKey) {
+    console.log('🔍 openSpecificTaskFromVM called');
+    console.log('   Equipment:', equipmentId);
+    console.log('   Discipline:', disc);
+    console.log('   Firebase Key:', firebaseKey);
+    
+    if (!firebaseKey) {
+        console.error('❌ No firebase key provided');
+        showNotification('Invalid task reference', 'error');
+        return;
+    }
+    
+    console.log(`✅ Opening ${disc} tasks for: ${equipmentId}`);
+    
+    if (typeof openTaskTracker === 'function') {
+        openTaskTracker(firebaseKey);
+    } else {
+        console.error('❌ openTaskTracker function not available');
+        showNotification('Task tracker function not available', 'error');
+    }
+}
+
+// ✅ RENAME - Avoid conflict with main table closeAllDropdowns
+function closeAllTaskDropdowns() {
+    document.querySelectorAll('.task-dropdown-menu').forEach(dropdown => {
+        dropdown.classList.remove('show');
+        const parent = dropdown.closest('.split-button');
+        if (parent) parent.classList.remove('dropdown-open');
+        // ✅ ADD - Remove from cards
+        const card = dropdown.closest('.vm-equipment-card');
+        if (card) card.classList.remove('dropdown-active');
+    });
+}
+
+// ✅ NEW - Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.split-button')) {
+        closeAllTaskDropdowns();
+    }
+});
 
 // Open Generate Progress Report for equipment from VM
 function openProgressReportFromVM(equipmentId) {
@@ -12465,42 +12809,9 @@ function removeEquipmentFromVM(equipmentId) {
 // Open task tracker for equipment
 // Open task tracker for equipment
 function openTaskTrackerFromVM(equipmentId) {
-    // ✅ FIX 1: Normalize equipment ID
-    const normalizedId = normalizeEquipmentId(equipmentId);
-    const data = vmEquipmentData[normalizedId];
-    
-    if (!data || !data.tasks || data.tasks.length === 0) {
-        showNotification('No tasks found', 'error');
-        return;
-    }
-    
-    // ✅ FIX 2: Find ALL parent tasks (equipment may have multiple groups)
-    const equipment = data.equipment;
-    
-    const parentTasks = projectData.filter(t => 
-        normalizeEquipmentId(t.equipment) === normalizeEquipmentId(equipment)
-    );
-    
-    if (!parentTasks || parentTasks.length === 0) {
-        showNotification('Task tracker not found', 'error');
-        console.log('❌ Parent tasks not found for', equipment);
-        return;
-    }
-    
-    // ✅ FIX 3: Use FIRST parent task (or let user choose if multiple)
-    const firstParent = parentTasks[0];
-    const taskKey = firstParent.firebaseKey || firstParent.id;
-    
-    console.log(`📊 Opening task tracker for: ${equipment} (${parentTasks.length} groups)`);
-    console.log(`   Using key: ${taskKey} (${firstParent.disc})`);
-    
-    // Use existing openTaskTracker function
-    if (typeof openTaskTracker === 'function') {
-        openTaskTracker(taskKey);
-    } else {
-        showNotification('Task tracker function not available', 'error');
-        console.log('❌ openTaskTracker function not found');
-    }
+    // ✅ DEPRECATED - Redirect to new dropdown-based function
+    console.warn('⚠️ openTaskTrackerFromVM is deprecated, use openAllTasksFromVM instead');
+    openAllTasksFromVM(equipmentId);
 }
 
 // Generate report for equipment
