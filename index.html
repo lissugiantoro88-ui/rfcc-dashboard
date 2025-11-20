@@ -11605,80 +11605,105 @@ function loadVMEquipmentData() {
     vmEquipmentData = {};
     
     const promises = vmSettings.selectedEquipment.map(equipmentId => {
-        return new Promise((resolve) => {
-            // ✅ FIX: Handle old format with __vendor
-            let equipment = equipmentId;
+    return new Promise((resolve) => {
+        // Handle old format with __vendor
+        let equipment = equipmentId;
+        
+        // If contains __, it's old format - extract equipment name only
+        if (equipmentId.includes('__')) {
+            equipment = equipmentId.split('__')[0];
+            console.log('⚠️ Old format detected:', equipmentId, '→ Using:', equipment);
+        }
+        
+        // ✅ FIX: Normalize equipment name
+        equipment = normalizeEquipmentId(equipment);
+        
+        const allTasks = [];
+        
+        // Get ALL parent tasks matching this equipment (all vendors)
+        // ✅ FIX: Use normalized comparison
+        const parentTasks = projectData.filter(task => {
+            return normalizeEquipmentId(task.equipment) === equipment;
+        });
+        
+        console.log(`🔍 Found ${parentTasks.length} parent tasks for "${equipment}"`);
+        
+        // Get subtasks from all parent tasks
+        parentTasks.forEach(parentTask => {
+            const firebaseKey = parentTask.firebaseKey || parentTask.id;
+            const subtasks = onsiteTasks[firebaseKey] || [];
             
-            // If contains __, it's old format - extract equipment name only
-            if (equipmentId.includes('__')) {
-                equipment = equipmentId.split('__')[0];
-                console.log('⚠️ Old format detected:', equipmentId, '→ Using:', equipment);
-            }
+            console.log(`   ${parentTask.disc}: ${subtasks.length} tasks (key: ${firebaseKey})`);
             
-            const allTasks = [];
-            
-            // Get ALL parent tasks matching this equipment (all vendors)
-            const parentTasks = projectData.filter(task => {
-                return task.equipment === equipment;
-            });
-            
-            // Get subtasks from all parent tasks
-            parentTasks.forEach(parentTask => {
-                const firebaseKey = parentTask.firebaseKey || parentTask.id;
-                const subtasks = onsiteTasks[firebaseKey] || [];
-                
-                if (subtasks.length > 0) {
-                    // Has subtasks - add them with parent info
-                    subtasks.forEach(subtask => {
-                        allTasks.push({
-                            ...subtask,
-                            equipment: parentTask.equipment,
-                            disc: parentTask.disc,
-                            vendor: parentTask.vendor,
-                            parentTask: parentTask.task || parentTask.taskName
-                        });
+            if (subtasks.length > 0) {
+                // Has subtasks - add them with parent info
+                subtasks.forEach(subtask => {
+                    allTasks.push({
+                        ...subtask,
+                        equipment: parentTask.equipment,
+                        disc: parentTask.disc,
+                        vendor: parentTask.vendor,
+                        parentTask: parentTask.task || parentTask.taskName
                     });
-                }
-            });
+                });
+            }
+        });
+        
+        // Collect all unique vendors
+        const vendors = [...new Set(allTasks.map(t => t.vendor))];
+        const vendorText = vendors.join(', ');
+        
+        // Load shared data
+        const sanitizedId = equipment.replace(/[.#$[\]()]/g, '_').replace(/\s+/g, '_');
+        database.ref(`reportSettings/${sanitizedId}`).once('value').then(reportSnap => {
+            const reportData = reportSnap.val() || {};
             
-            // Collect all unique vendors
-            const vendors = [...new Set(allTasks.map(t => t.vendor))];
-            const vendorText = vendors.join(', ');
+            vmEquipmentData[equipmentId] = {
+                equipment: equipment,
+                vendor: vendorText,
+                tasks: allTasks,
+                highlights: reportData.highlights || '',
+                actionPlan: reportData.actionPlan || '',
+                milestones: reportData.milestones || []
+            };
             
-            // Load shared data
-            const sanitizedId = equipment.replace(/[.#$[\]()]/g, '_').replace(/\s+/g, '_');
-            database.ref(`reportSettings/${sanitizedId}`).once('value').then(reportSnap => {
-                const reportData = reportSnap.val() || {};
-                
-                vmEquipmentData[equipmentId] = {
-                    equipment: equipment,
-                    vendor: vendorText,
-                    tasks: allTasks,
-                    highlights: reportData.highlights || '',
-                    actionPlan: reportData.actionPlan || '',
-                    milestones: reportData.milestones || []
-                };
-                
-                console.log(`✅ Loaded ${allTasks.length} tasks for ${equipment} (${vendorText})`);
-                resolve();
-            }).catch(error => {
-                vmEquipmentData[equipmentId] = {
-                    equipment: equipment,
-                    vendor: vendorText,
-                    tasks: allTasks,
-                    highlights: '',
-                    actionPlan: '',
-                    milestones: []
-                };
-                resolve();
-            });
+            console.log(`✅ Loaded ${allTasks.length} tasks for ${equipment} (${vendorText})`);
+            resolve();
+        }).catch(error => {
+            vmEquipmentData[equipmentId] = {
+                equipment: equipment,
+                vendor: vendorText,
+                tasks: allTasks,
+                highlights: '',
+                actionPlan: '',
+                milestones: []
+            };
+            resolve();
         });
     });
+});
     
-    Promise.all(promises).then(() => {
-        console.log('✅ VM Equipment data loaded:', vmEquipmentData);
+   Promise.all(promises).then(() => {
+    console.log('✅ VM Equipment data loaded:', vmEquipmentData);
+    
+    // ✅ FIX: Check if any equipment has 0 tasks (timing issue)
+    const allTaskCounts = Object.values(vmEquipmentData).map(d => d.tasks.length);
+    const totalTasks = allTaskCounts.reduce((sum, count) => sum + count, 0);
+    
+    if (totalTasks === 0 && vmSettings.selectedEquipment.length > 0) {
+        console.warn('⚠️ All equipment have 0 tasks - onsiteTasks may not be loaded yet');
+        console.log('🔄 Retrying in 2 seconds...');
+        
+        // Retry after delay
+        setTimeout(() => {
+            console.log('🔄 Retry attempt...');
+            loadVMEquipmentData();
+        }, 2000);
+    } else {
+        console.log(`📊 Total tasks loaded: ${totalTasks}`);
         renderVMCards();
-    });
+    }
+});
 }
 
 // Clear all equipment from Visual Management
