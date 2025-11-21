@@ -10373,22 +10373,18 @@ function renderTaskCompletionHistory(equipmentKey) {
 // ===== DROPDOWN FUNCTIONS (Event Delegation) =====
 
 function initDropdowns() {
-    // SIMPLE EVENT DELEGATION - No backdrop intercept issues
     document.body.addEventListener('click', function(e) {
-        // Check if clicked element or its parent is dropdown-item
         let target = e.target;
         
-        // Traverse up max 3 levels to find dropdown-item
         for (let i = 0; i < 3; i++) {
             if (target && target.classList && target.classList.contains('dropdown-item')) {
                 
-                // ✅ FIX: Skip if this is VM task dropdown
+                // Skip VM task dropdowns
                 if (target.closest('.task-dropdown-menu')) {
                     console.log('🔵 VM task dropdown - handled by own onclick');
-                    return; // Let VM dropdown handle itself via onclick
+                    return;
                 }
                 
-                // ✅ Only handle MAIN TABLE dropdowns
                 e.preventDefault();
                 e.stopPropagation();
                 
@@ -10397,11 +10393,51 @@ function initDropdowns() {
                 
                 console.log('✅ Main table dropdown clicked:', action, key);
                 
-                closeAllDropdowns(); // Main table dropdowns only
+                // Close dropdown first
+                closeAllDropdowns();
                 
-                // ... rest of your existing main table handling code below ...
+                // Handle actions with delay
+                if (action && key) {
+                    setTimeout(() => {
+                        switch(action) {
+                            case 'tasks':
+                                console.log('📋 Opening Onsite Tasks for:', key);
+                                if (typeof openTaskTracker === 'function') {
+                                    openTaskTracker(key);
+                                }
+                                break;
+                                
+                            case 'progress':
+                                console.log('📄 Opening Progress Report from Actions for key:', key);
+                                // ✅ Use existing function!
+                                if (typeof showProgressReportById === 'function') {
+                                    showProgressReportById(key);
+                                } else {
+                                    console.error('❌ showProgressReportById not available');
+                                }
+                                break;
+                                
+                            case 'edit':
+                                console.log('✏️ Opening Edit Modal for:', key);
+                                if (typeof openUpdateModal === 'function') {
+                                    openUpdateModal(key);
+                                }
+                                break;
+                                
+                            case 'delete':
+                                console.log('🗑️ Deleting:', key);
+                                if (typeof deleteTask === 'function') {
+                                    deleteTask(key);
+                                }
+                                break;
+                                
+                            default:
+                                console.warn('⚠️ Unknown action:', action);
+                        }
+                    }, 150);
+                }
                 
-                break; // Stop traversing once found
+                break;
             }
             
             target = target.parentElement;
