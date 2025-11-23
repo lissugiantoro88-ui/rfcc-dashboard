@@ -6748,7 +6748,8 @@ if (afterParens) {
                 vendor: vendor,
                 task: taskName,
                 tasks: [],
-                displayName: `${equipment} - ${disc} (${vendor}) - ${taskName}`
+                displayName: `${equipment} - ${disc} (${vendor}) - ${taskName}`,
+		displaySequence: task.displaySequence || 999  // ✅ ADD THIS!
             };
         }
         
@@ -6802,6 +6803,7 @@ checkbox.dataset.equipment = group.equipment;
 checkbox.dataset.disc = group.disc;
 checkbox.dataset.vendor = group.vendor;
 checkbox.dataset.task = group.task;
+checkbox.dataset.displaysequence = group.displaySequence || 999; // ✅ ADD THIS LINE!
 checkbox.style.cssText = 'width: 18px; height: 18px; cursor: pointer;';
         
         const label = document.createElement('label');
@@ -7303,6 +7305,22 @@ function getTasksForGroup(allTasks, groupDetail) {
 
 function generateHTMLReport(data) {
     const totalBlocked = data.groups.reduce((sum, g) => sum + g.blockedTasks.length, 0);
+
+// ✅ ADD THIS - Sort groups by display sequence before rendering
+    data.groups.sort((a, b) => {
+        const seqA = a.displaySequence || 999;
+        const seqB = b.displaySequence || 999;
+        
+        // If sequences equal, sort by equipment name then disc
+        if (seqA === seqB) {
+            const equipCompare = (a.equipment || '').localeCompare(b.equipment || '');
+            if (equipCompare !== 0) return equipCompare;
+            return (a.disc || '').localeCompare(b.disc || '');
+        }
+        
+        return seqA - seqB;
+    });
+
     return `
 <!DOCTYPE html>
 <html>
@@ -7857,15 +7875,16 @@ ${group.readyTasks && group.readyTasks.length > 0 ? `
     <p style="font-weight: bold; color: #3498db; margin: 20px 0 10px 0; font-size: 14px;">🎯 READY TO START (${group.readyTasks.length})</p>
     <table class="gantt-table">
         <thead>
-            <tr>
-                <th style="width: 8%;">Seq<br>Mode</th>
-                <th style="width: 35%;">Task Name & Description</th>
-                <th style="width: 12%;">Plan<br>Start</th>
-                <th style="width: 12%;">Plan<br>End</th>
-                <th style="width: 18%;">Dependencies</th>
-                <th style="width: 15%;">Status</th>
-            </tr>
-        </thead>
+    <tr>
+        <th style="width: 7%;">Seq<br>Mode</th>
+        <th style="width: 25%;">Task Name & Description</th>
+        <th style="width: 10%;">Plan<br>Start</th>
+        <th style="width: 10%;">Plan<br>End</th>
+        <th style="width: 15%;">Dependencies</th>
+        <th style="width: 13%;">Status</th>
+        <th style="width: 20%;">Notes</th>
+    </tr>
+</thead>
         <tbody>
                 ${group.readyTasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).map((task, taskIndex) => {
                 const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
@@ -7904,6 +7923,9 @@ ${group.readyTasks && group.readyTasks.length > 0 ? `
                     <td style="color: ${task.timeline ? task.timeline.color : '#3498db'}; font-weight: 600; text-align: center; font-size: 11px;">
                         ${task.timeline ? `${task.timeline.icon} ${task.timeline.status}` : '🎯 Ready'}
                     </td>
+		<td style="font-size: 10px; color: #555; font-style: italic; padding: 8px; white-space: pre-wrap;">
+    ${task.notes ? (task.notes.length > 100 ? task.notes.substring(0, 100) + '...' : task.notes) : '-'}
+</td>
                 </tr>
                 `;
             }).join('')}
@@ -7916,14 +7938,15 @@ ${group.blockedTasks.length > 0 ? `
     <p style="font-weight: bold; color: #e74c3c; margin: 20px 0 10px 0; font-size: 14px;">🔒 BLOCKED (${group.blockedTasks.length})</p>
     <table class="gantt-table">
         <thead>
-            <tr>
-                <th style="width: 8%;">Seq<br>Mode</th>
-                <th style="width: 40%;">Task Name & Description</th>
-                <th style="width: 12%;">Plan<br>Start</th>
-                <th style="width: 12%;">Plan<br>End</th>
-                <th style="width: 28%;">Blocking Issue</th>
-            </tr>
-        </thead>
+    <tr>
+        <th style="width: 7%;">Seq<br>Mode</th>
+        <th style="width: 25%;">Task Name & Description</th>
+        <th style="width: 10%;">Plan<br>Start</th>
+        <th style="width: 10%;">Plan<br>End</th>
+        <th style="width: 20%;">Blocking Issue</th>
+        <th style="width: 28%;">Notes</th>
+    </tr>
+</thead>
         <tbody>
                 ${group.blockedTasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).map((task, taskIndex) => {
                 const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
@@ -7965,6 +7988,9 @@ ${group.blockedTasks.length > 0 ? `
                     <td style="text-align: center; font-size: 10px;">${task.targetStart ? formatDateForDisplay(task.targetStart) : '-'}</td>
                     <td style="text-align: center; font-size: 10px;">${task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-'}</td>
                     <td style="font-size: 10px; color: #e74c3c;">${blockingInfo}</td>
+		<td style="font-size: 10px; color: #555; font-style: italic; padding: 8px; white-space: pre-wrap;">
+    ${task.notes ? (task.notes.length > 150 ? task.notes.substring(0, 150) + '...' : task.notes) : '-'}
+</td>
                 </tr>
                 `;
             }).join('')}
