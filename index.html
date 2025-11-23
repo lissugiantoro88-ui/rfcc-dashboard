@@ -2047,6 +2047,145 @@ tr {
     background: #3498db; /* No color change on hover */
 }
 
+/* ===== VM CARD CHANGE INDICATORS ===== */
+
+/* Colored left border for recent changes */
+.vm-equipment-card.recent-activity {
+    border-left: 4px solid #3498db; /* Blue - high activity */
+    transition: all 0.3s ease;
+}
+
+.vm-equipment-card.recent-milestone {
+    border-left: 4px solid #f39c12; /* Gold - milestone */
+}
+
+.vm-equipment-card.recent-progress {
+    border-left: 4px solid #27ae60; /* Green - progress increase */
+}
+
+/* Pulse badge (top-right) */
+.change-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    z-index: 10;
+}
+
+/* Pulse animation */
+.change-badge.pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 currentColor;
+        opacity: 1;
+    }
+    50% {
+        box-shadow: 0 0 0 8px transparent;
+        opacity: 0.7;
+    }
+    100% {
+        box-shadow: 0 0 0 0 transparent;
+        opacity: 1;
+    }
+}
+
+/* Badge colors */
+.change-badge.activity {
+    background: #3498db;
+    color: #3498db;
+}
+
+.change-badge.milestone {
+    background: #f39c12;
+    color: #f39c12;
+}
+
+.change-badge.progress {
+    background: #27ae60;
+    color: #27ae60;
+}
+
+/* Tooltip for badge */
+.change-badge-tooltip {
+    display: none;
+    position: absolute;
+    top: 30px;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    min-width: 200px;
+    z-index: 100;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.change-badge:hover + .change-badge-tooltip,
+.change-badge-tooltip:hover {
+    display: block;
+}
+
+/* Progress delta indicator */
+.progress-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    animation: slideIn 0.5s ease;
+}
+
+.progress-delta.increase {
+    color: #27ae60;
+}
+
+.progress-delta.decrease {
+    color: #e74c3c;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.progress-delta .arrow {
+    font-size: 14px;
+}
+
+.progress-delta .from-value {
+    font-size: 11px;
+    color: #95a5a6;
+    font-weight: normal;
+}
+
+/* Progress bar pulse effect for recent increase */
+.vm-progress-fill.recent-increase {
+    animation: progressPulse 2s ease-out;
+}
+
+@keyframes progressPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(39, 174, 96, 0);
+    }
+}
+
 /* ⭐ AKHIR CSS BARU */
 
 </style>
@@ -11914,21 +12053,192 @@ function loadVMEquipmentData() {
             loadVMEquipmentData();
         }, 2000);
     } else {
-        // ✅ Success or max retries reached
-        if (totalTasks > 0) {
-            window.vmLoadRetryCount = 0; // Reset on success
-            console.log(`📊 Total tasks loaded: ${totalTasks}`);
-        } else if (window.vmLoadRetryCount >= 3) {
-            console.error('❌ Failed to load tasks after 3 retries');
-            window.vmLoadRetryCount = 0; // Reset counter
-        }
-        
-        renderVMCards();
+    // Success or max retries reached
+    if (totalTasks > 0) {
+        window.vmLoadRetryCount = 0; // Reset on success
+        console.log(`📊 Total tasks loaded: ${totalTasks}`);
+    } else if (window.vmLoadRetryCount >= 3) {
+        console.error('❌ Failed to load tasks after 3 retries');
+        window.vmLoadRetryCount = 0; // Reset counter
     }
+    
+    // ✅ Load previous state before rendering (for change detection)
+    loadPreviousVMState();
+    
+    renderVMCards();
+}
 });
 }
 
-// Clear all equipment from Visual Management
+// ===== CHANGE DETECTION & INDICATORS =====
+
+// Store previous values for comparison
+let previousVMData = {};
+
+// Calculate changes and determine badge type
+function detectEquipmentChanges(equipmentId, currentData) {
+    const previous = previousVMData[equipmentId];
+    
+    if (!previous) {
+        // First load - save current state
+        previousVMData[equipmentId] = {
+            progress: currentData.equipment.progress || 0,
+            status: currentData.equipment.status || '',
+            completedTasks: currentData.tasks.filter(t => t.progress === 100).length,
+            timestamp: Date.now()
+        };
+        return null;
+    }
+    
+    const current = {
+        progress: currentData.equipment.progress || 0,
+        status: currentData.equipment.status || '',
+        completedTasks: currentData.tasks.filter(t => t.progress === 100).length,
+        timestamp: Date.now()
+    };
+    
+    // Calculate deltas
+    const progressDelta = current.progress - previous.progress;
+    const tasksDelta = current.completedTasks - previous.completedTasks;
+    const statusChanged = current.status !== previous.status;
+    const timeSinceUpdate = (current.timestamp - previous.timestamp) / (1000 * 60 * 60); // hours
+    
+    // Only show changes if within last 24 hours
+    if (timeSinceUpdate > 24) {
+        return null;
+    }
+    
+    // Determine badge type and details
+    let badgeType = null;
+    let details = {
+        progressDelta: progressDelta,
+        tasksDelta: tasksDelta,
+        statusChanged: statusChanged,
+        timeSince: timeSinceUpdate
+    };
+    
+    // Priority: Milestone > High Activity > Progress
+    
+    // Check for milestone (25%, 50%, 75%, 100%)
+    const milestones = [25, 50, 75, 100];
+    const crossedMilestone = milestones.some(m => 
+        previous.progress < m && current.progress >= m
+    );
+    
+    if (crossedMilestone || current.progress === 100) {
+        badgeType = 'milestone';
+    }
+    // Check for high activity (multiple changes)
+    else if ((tasksDelta >= 3 || progressDelta >= 10) && timeSinceUpdate < 12) {
+        badgeType = 'activity';
+    }
+    // Check for progress increase
+    else if (progressDelta > 0) {
+        badgeType = 'progress';
+    }
+    
+    // Update stored previous data
+    previousVMData[equipmentId] = current;
+    
+    return badgeType ? { type: badgeType, details: details } : null;
+}
+
+// Get badge HTML
+function getChangeBadgeHTML(badgeInfo) {
+    if (!badgeInfo) return '';
+    
+    const { type, details } = badgeInfo;
+    
+    let badgeClass = `change-badge pulse ${type}`;
+    let tooltipContent = '';
+    
+    switch(type) {
+        case 'activity':
+            tooltipContent = `
+                <div style="color: #3498db; font-weight: 600; margin-bottom: 6px;">
+                    ◉ High Activity
+                </div>
+                ${details.tasksDelta > 0 ? `<div>• ${details.tasksDelta} tasks completed</div>` : ''}
+                ${details.progressDelta > 0 ? `<div>• Progress +${details.progressDelta}%</div>` : ''}
+                ${details.statusChanged ? `<div>• Status updated</div>` : ''}
+                <div style="color: #95a5a6; font-size: 11px; margin-top: 6px;">
+                    ${Math.round(details.timeSince)}h ago
+                </div>
+            `;
+            break;
+            
+        case 'milestone':
+            tooltipContent = `
+                <div style="color: #f39c12; font-weight: 600; margin-bottom: 6px;">
+                    ★ Milestone Achieved
+                </div>
+                <div>• Progress: ${details.progressDelta > 0 ? '+' : ''}${details.progressDelta}%</div>
+                ${details.tasksDelta > 0 ? `<div>• ${details.tasksDelta} tasks completed</div>` : ''}
+                <div style="color: #95a5a6; font-size: 11px; margin-top: 6px;">
+                    ${Math.round(details.timeSince)}h ago
+                </div>
+            `;
+            break;
+            
+        case 'progress':
+            tooltipContent = `
+                <div style="color: #27ae60; font-weight: 600; margin-bottom: 6px;">
+                    ▴ Progress Increase
+                </div>
+                <div>• Progress +${details.progressDelta}%</div>
+                ${details.tasksDelta > 0 ? `<div>• ${details.tasksDelta} tasks completed</div>` : ''}
+                <div style="color: #95a5a6; font-size: 11px; margin-top: 6px;">
+                    ${Math.round(details.timeSince)}h ago
+                </div>
+            `;
+            break;
+    }
+    
+    return `
+        <div class="${badgeClass}" title="Recent changes"></div>
+        <div class="change-badge-tooltip">
+            ${tooltipContent}
+        </div>
+    `;
+}
+
+// Get progress delta HTML
+function getProgressDeltaHTML(progressDelta, previousProgress) {
+    if (!progressDelta || progressDelta === 0) return '';
+    
+    const isIncrease = progressDelta > 0;
+    const arrow = isIncrease ? '⬆️' : '⬇️';
+    const deltaClass = isIncrease ? 'increase' : 'decrease';
+    const sign = isIncrease ? '+' : '';
+    
+    return `
+        <span class="progress-delta ${deltaClass}">
+            <span class="arrow">${arrow}</span>
+            <span>${sign}${progressDelta}%</span>
+            <span class="from-value">(from ${previousProgress}%)</span>
+        </span>
+    `;
+}
+
+// Load/save functions
+function loadPreviousVMState() {
+    const saved = localStorage.getItem('vmPreviousData');
+    if (saved) {
+        try {
+            previousVMData = JSON.parse(saved);
+        } catch (e) {
+            console.log('Could not load previous VM state');
+        }
+    }
+}
+
+function savePreviousVMState() {
+    localStorage.setItem('vmPreviousData', JSON.stringify(previousVMData));
+}
+
+// ===== END CHANGE DETECTION =====
+
+
 // Clear all equipment from Visual Management
 function clearAllVMEquipment() {
     if (vmSettings.selectedEquipment.length === 0) {
@@ -12123,45 +12433,65 @@ function renderVMCards() {
         return;
     }
     
-    // ✅ Hide loading state when rendering starts
+    // Hide loading state when rendering starts
     if (loadingState) loadingState.style.display = 'none';
     
     // Clear existing cards
     container.innerHTML = '';
     
-    let renderedCount = 0; // ✅ Count actual rendered cards
+    let renderedCount = 0;
     
     // Render each equipment
     vmSettings.selectedEquipment.forEach(equipmentId => {
-        // ✅ FIX: Normalize equipment ID before lookup
+        // Normalize equipment ID before lookup
         const normalizedId = normalizeEquipmentId(equipmentId);
         const metrics = calculateEquipmentMetrics(normalizedId);
         
         if (metrics) {
             const card = createEquipmentCard(metrics);
             container.appendChild(card);
-            renderedCount++; // ✅ Increment counter
+            renderedCount++;
         } else {
             console.warn(`⚠️ No metrics for: "${equipmentId}"`);
         }
     });
     
-    // ✅ Toggle empty state based on ACTUAL rendered cards (not settings!)
+    // Toggle empty state based on actual rendered cards
     if (emptyState) {
         if (renderedCount > 0) {
-            emptyState.style.display = 'none'; // Hide when cards exist
+            emptyState.style.display = 'none';
         } else {
-            emptyState.style.display = 'block'; // Show when no cards
+            emptyState.style.display = 'block';
         }
     }
     
     console.log(`✅ Rendered ${renderedCount} equipment card(s)`);
+    
+    // ✅ Save state for next comparison
+    savePreviousVMState();
 }
 
 // Create a single equipment card
 function createEquipmentCard(metrics) {
     const card = document.createElement('div');
     card.className = 'vm-equipment-card';
+    
+    // ✅ NEW: Detect changes for this equipment
+    const changeInfo = detectEquipmentChanges(metrics.equipmentId, {
+        equipment: { progress: metrics.overallProgress, status: metrics.status },
+        tasks: []
+    });
+    
+    const borderClass = changeInfo ? `recent-${changeInfo.type}` : '';
+    const badgeHTML = getChangeBadgeHTML(changeInfo);
+    
+    // Get progress delta
+    const progressDelta = changeInfo ? changeInfo.details.progressDelta : 0;
+    const previousProgress = metrics.overallProgress - progressDelta;
+    const deltaHTML = getProgressDeltaHTML(progressDelta, previousProgress);
+    
+    // Check if progress bar should pulse
+    const progressBarClass = (changeInfo && changeInfo.type === 'progress') ? 'recent-increase' : '';
     
     // Determine progress bar color
     let progressColor = 'blue';
@@ -12170,6 +12500,7 @@ function createEquipmentCard(metrics) {
     else if (metrics.spi > 1.05) progressColor = 'green';
     
     let html = `
+        ${badgeHTML}
         <div class="vm-card-header">
             <div style="display: flex; align-items: flex-start; flex: 1;">
                 <span class="vm-card-status">${metrics.status}</span>
@@ -12194,10 +12525,10 @@ function createEquipmentCard(metrics) {
         <div class="vm-progress-section">
             <div class="vm-progress-label">
                 <span>Progress:</span>
-                <span><strong>${metrics.overallProgress}%</strong></span>
+                <span><strong>${metrics.overallProgress}%</strong>${deltaHTML}</span>
             </div>
             <div class="vm-progress-bar">
-                <div class="vm-progress-fill ${progressColor}" style="width: ${metrics.overallProgress}%"></div>
+                <div class="vm-progress-fill ${progressColor} ${progressBarClass}" style="width: ${metrics.overallProgress}%"></div>
             </div>
         </div>
         
@@ -12292,30 +12623,36 @@ function createEquipmentCard(metrics) {
     }
     
     // Action buttons with dropdown
-const dropdownId = 'dropdown-' + metrics.equipmentId.replace(/[^a-zA-Z0-9]/g, '_');
-
-html += `
-    <div class="vm-card-actions">
-        <!-- Split Button for Tasks -->
-        <div class="split-button">
-            <button class="split-button-main" style="cursor: default;" title="Click ▼ to select discipline">
-                📊 Tasks
-            </button>
-            <button class="split-button-dropdown" onclick="toggleTaskDropdown(event, '${metrics.equipmentId}')">
-                ▼
-            </button>
-            <div class="task-dropdown-menu" id="${dropdownId}">
-                <!-- Dropdown populated dynamically -->
+    const dropdownId = 'dropdown-' + metrics.equipmentId.replace(/[^a-zA-Z0-9]/g, '_');
+    
+    html += `
+        <div class="vm-card-actions">
+            <!-- Split Button for Tasks -->
+            <div class="split-button">
+                <button class="split-button-main" style="cursor: default;" title="Click ▼ to select discipline">
+                    📊 Tasks
+                </button>
+                <button class="split-button-dropdown" onclick="toggleTaskDropdown(event, '${metrics.equipmentId}')">
+                    ▼
+                </button>
+                <div class="task-dropdown-menu" id="${dropdownId}">
+                    <!-- Dropdown populated dynamically -->
+                </div>
             </div>
+            
+            <button class="vm-report-button" onclick="openProgressReportFromVM('${metrics.equipmentId}')">
+                📄 Report
+            </button>
         </div>
-        
-        <button class="vm-report-button" onclick="openProgressReportFromVM('${metrics.equipmentId}')">
-            📄 Report
-        </button>
-    </div>
-`;
+    `;
     
     card.innerHTML = html;
+    
+    // ✅ Apply border class
+    if (borderClass) {
+        card.classList.add(borderClass);
+    }
+    
     return card;
 }
 
