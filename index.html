@@ -12419,40 +12419,36 @@ function populateTaskDropdown(dropdown, equipmentId, data) {
     
     let html = '';
     
-    // All tasks option (default)
+    // Total count header (non-clickable - informational only)
     html += `
-        <div class="dropdown-item all-tasks" onclick="openAllTasksFromVM('${equipmentId}'); closeAllTaskDropdowns();">
-            📊 All Tasks
-            <span class="dropdown-item-count">${data.tasks.length}</span>
+        <div class="dropdown-header" style="padding: 10px; background: #f8f9fa; font-weight: 600; color: #2c3e50; border-bottom: 2px solid #3498db; cursor: default;">
+            📊 Total: ${data.tasks.length} tasks across ${parentTasks.length} groups
         </div>
     `;
     
-    // Divider
-    if (parentTasks.length > 1) {
-        html += '<div class="dropdown-divider"></div>';
-        
-        // Individual discipline options
-parentTasks.forEach(parent => {
-    const disc = parent.disc;
-    const firebaseKey = parent.firebaseKey || parent.id;
-    const discTasks = onsiteTasks[firebaseKey] || [];
-    
-    // ✅ FIX: Use taskName first (task field contains "custom")
-    const taskName = parent.taskName || parent.task || '';
-    const taskSnippet = taskName && taskName !== 'custom' ? 
-        (taskName.length > 35 ? taskName.substring(0, 35) + '...' : taskName) : 
-        '';
-    
-    // Display format: "ME-CI - Task name... (5 tasks)"
-    const displayText = taskSnippet ? `${disc} - ${taskSnippet}` : disc;
-    
-    html += `
-        <div class="dropdown-item" onclick="openSpecificTaskFromVM('${equipmentId}', '${disc}', '${firebaseKey}'); closeAllTaskDropdowns();">
-            ${displayText}
-            <span class="dropdown-item-count">${discTasks.length} tasks</span>
-        </div>
-    `;
-});
+    // Individual discipline options (clickable)
+    if (parentTasks.length > 0) {
+        parentTasks.forEach(parent => {
+            const disc = parent.disc;
+            const firebaseKey = parent.firebaseKey || parent.id;
+            const discTasks = onsiteTasks[firebaseKey] || [];
+            
+            // ✅ Use taskName first (task field contains "custom")
+            const taskName = parent.taskName || parent.task || '';
+            const taskSnippet = taskName && taskName !== 'custom' ? 
+                (taskName.length > 35 ? taskName.substring(0, 35) + '...' : taskName) : 
+                '';
+            
+            // Display format: "ME-CI - Task name... (5 tasks)"
+            const displayText = taskSnippet ? `${disc} - ${taskSnippet}` : disc;
+            
+            html += `
+                <div class="dropdown-item" onclick="openSpecificTaskFromVM('${equipmentId}', '${disc}', '${firebaseKey}'); closeAllTaskDropdowns();">
+                    ${displayText}
+                    <span class="dropdown-item-count">${discTasks.length} tasks</span>
+                </div>
+            `;
+        });
     }
     
     dropdown.innerHTML = html;
