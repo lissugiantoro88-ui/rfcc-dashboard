@@ -12432,18 +12432,27 @@ function populateTaskDropdown(dropdown, equipmentId, data) {
         html += '<div class="dropdown-divider"></div>';
         
         // Individual discipline options
-        parentTasks.forEach(parent => {
-            const disc = parent.disc;
-            const firebaseKey = parent.firebaseKey || parent.id;
-            const discTasks = onsiteTasks[firebaseKey] || [];
-            
-            html += `
-                <div class="dropdown-item" onclick="openSpecificTaskFromVM('${equipmentId}', '${disc}', '${firebaseKey}'); closeAllTaskDropdowns();">
-                    ${disc}
-                    <span class="dropdown-item-count">${discTasks.length} tasks</span>
-                </div>
-            `;
-        });
+parentTasks.forEach(parent => {
+    const disc = parent.disc;
+    const firebaseKey = parent.firebaseKey || parent.id;
+    const discTasks = onsiteTasks[firebaseKey] || [];
+    
+    // ✅ FIX: Use taskName first (task field contains "custom")
+    const taskName = parent.taskName || parent.task || '';
+    const taskSnippet = taskName && taskName !== 'custom' ? 
+        (taskName.length > 35 ? taskName.substring(0, 35) + '...' : taskName) : 
+        '';
+    
+    // Display format: "ME-CI - Task name... (5 tasks)"
+    const displayText = taskSnippet ? `${disc} - ${taskSnippet}` : disc;
+    
+    html += `
+        <div class="dropdown-item" onclick="openSpecificTaskFromVM('${equipmentId}', '${disc}', '${firebaseKey}'); closeAllTaskDropdowns();">
+            ${displayText}
+            <span class="dropdown-item-count">${discTasks.length} tasks</span>
+        </div>
+    `;
+});
     }
     
     dropdown.innerHTML = html;
