@@ -12576,26 +12576,26 @@ function createEquipmentCard(metrics) {
     }
     
     // Task counts
-    html += `
-        <div class="vm-task-counts">
-            <div class="vm-task-count">
-                <span class="vm-task-count-number" style="color: #27ae60;">✅ ${metrics.completedCount || 0}</span>
-                <span>Done</span>
-            </div>
-            <div class="vm-task-count">
-                <span class="vm-task-count-number" style="color: #3498db;">🔄 ${metrics.inProgressCount || 0}</span>
-                <span>Progress</span>
-            </div>
-            <div class="vm-task-count">
-                <span class="vm-task-count-number" style="color: #e74c3c;">🚫 ${metrics.blockedCount || 0}</span>
-                <span>Blocked</span>
-            </div>
-            <div class="vm-task-count">
-                <span class="vm-task-count-number" style="color: #95a5a6;">⏳ ${metrics.readyCount || 0}</span>
-                <span>Ready</span>
-            </div>
+html += `
+    <div class="vm-task-counts">
+        <div class="vm-task-count">
+            <span class="vm-task-count-number" style="color: #27ae60;">✅ ${metrics.completedCount || 0}</span>
+            <span>Done</span>
         </div>
-    `;
+        <div class="vm-task-count">
+            <span class="vm-task-count-number" style="color: #3498db;">🔄 ${metrics.inProgressCount || 0}</span>
+            <span>Progress</span>
+        </div>
+        <div class="vm-task-count">
+            <span class="vm-task-count-number" style="color: #95a5a6;">⏳ ${metrics.readyCount || 0}</span>
+            <span>Ready</span>
+        </div>
+        <div class="vm-task-count">
+            <span class="vm-task-count-number" style="color: #e74c3c;">🚫 ${metrics.blockedCount || 0}</span>
+            <span>Blocked</span>
+        </div>
+    </div>
+`;
     
     // Milestone (if enabled and exists)
     if (vmSettings.displayOptions.showMilestone && metrics.upcomingMilestone) {
