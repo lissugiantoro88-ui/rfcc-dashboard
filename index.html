@@ -7146,9 +7146,21 @@ Object.keys(equipmentGroups).forEach(equipment => {
     });
     
     // Now calculate with ALL tasks (same as VM)
-    const completedTasks = allTasks.filter(t => t.status === 'completed' || t.progress === 100);
-    const inProgressTasks = allTasks.filter(t => t.status === 'inprogress' || (t.progress > 0 && t.progress < 100));
-    const pendingTasks = allTasks.filter(t => (!t.status || t.status === 'pending') && (!t.progress || t.progress === 0));
+    // ✅ FIX: Prioritize progress value over status field (match VM card logic)
+const completedTasks = allTasks.filter(t => {
+    const progress = parseInt(t.progress) || 0;
+    return progress === 100;  // Completed = 100% regardless of status
+});
+
+const inProgressTasks = allTasks.filter(t => {
+    const progress = parseInt(t.progress) || 0;
+    return progress > 0 && progress < 100;  // InProgress = 1-99% regardless of status
+});
+
+const pendingTasks = allTasks.filter(t => {
+    const progress = parseInt(t.progress) || 0;
+    return progress === 0;  // Pending = 0% regardless of status
+});
     
     // Separate blocked vs ready
     const blockedTasks = [];
