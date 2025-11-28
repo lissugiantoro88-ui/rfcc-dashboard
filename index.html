@@ -6806,14 +6806,16 @@ if (afterParens) {
     document.getElementById('reportDate').value = today;
     
     // Find and display related groups
-    populateRelatedGroups(baseName);
+populateRelatedGroups(baseName);
 
- // ✅ Initialize milestones
+// ✅ Initialize milestones (preserve existing data)
+if (!reportMilestones) {
     reportMilestones = [];
-    renderMilestones();
+}
+renderMilestones();
 
 // ✅ LOAD Previous Highlights & Action Plan
-    loadPreviousReportSettings(baseName);
+loadPreviousReportSettings(baseName);
     
     // Show modal
     document.getElementById('reportModal').style.display = 'block';
@@ -7792,39 +7794,88 @@ ${data.milestones && data.milestones.length > 0 ? `
             </tr>
         </thead>
         <tbody>
-            ${data.milestones.map(milestone => {
-                const targetDate = new Date(milestone.targetDate);
-                const today = new Date();
-                const daysUntil = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
-                
-                // Use smart status calculation
-const smartStatus = calculateSmartStatus(
-    milestone.progress,
-    null,  // ✅ No start date for milestones
-    milestone.targetDate
-);
+                ${data.milestones.map(milestone => {
+    const targetDate = new Date(milestone.targetDate);
+    const today = new Date();
+    const daysUntil = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
+    const progress = parseInt(milestone.progress) || 0;
+    
+    const smartStatus = calculateSmartStatus(
+        milestone.progress,
+        null,
+        milestone.targetDate
+    );
+    
+    const status = smartStatus.status;
+    const statusColor = smartStatus.color;
+    
+    // ✅ DETERMINE DATE DISPLAY
+    let dateDisplay = '';
+    
+    if (progress === 100) {
+        // COMPLETED - Show completion date OR placeholder
+        if (milestone.completedDate && milestone.completedDate !== '' && milestone.completedDate !== 'null') {
+            dateDisplay = `
+                <div style="font-weight: 600; color: #2c3e50;">
+                    ${formatDateForDisplay(milestone.targetDate)}
+                </div>
+                <div style="font-size: 11px; color: #27ae60; font-weight: 600; margin-top: 4px;">
+                    ✅ Completed on ${formatDateForDisplay(milestone.completedDate)}
+                </div>
+            `;
+        } else {
+            dateDisplay = `
+                <div style="font-weight: 600; color: #2c3e50;">
+                    ${formatDateForDisplay(milestone.targetDate)}
+                </div>
+                <div style="font-size: 10px; color: #95a5a6; font-style: italic; margin-top: 4px;">
+                    ✅ Completed (date not recorded)
+                </div>
+            `;
+        }
+    } else {
+        // NOT COMPLETED - Show target date with days info
+        if (daysUntil >= 0) {
+            dateDisplay = `
+                <div style="font-weight: 600; color: #2c3e50;">
+                    ${formatDateForDisplay(milestone.targetDate)}
+                </div>
+                <div style="font-size: 10px; color: #3498db; margin-top: 4px;">
+                    📅 in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}
+                </div>
+            `;
+        } else {
+            dateDisplay = `
+                <div style="font-weight: 600; color: #2c3e50;">
+                    ${formatDateForDisplay(milestone.targetDate)}
+                </div>
+                <div style="font-size: 10px; color: #e74c3c; font-weight: 600; margin-top: 4px;">
+                    ⚠️ ${Math.abs(daysUntil)} day${Math.abs(daysUntil) !== 1 ? 's' : ''} overdue
+                </div>
+            `;
+        }
+    }
+    
+    return `
+        <tr style="border-bottom: 1px solid #ddd;">
+            <td style="padding: 10px; border: 1px solid #ddd;">
+                <strong>${milestone.name}</strong>
+            </td>
+            <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">
+                ${dateDisplay}
+            </td>
+            <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">
+                <strong style="color: #3498db; font-size: 14px;">${milestone.progress}%</strong>
+            </td>
+            <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">
+                <strong style="color: ${statusColor};">${status}</strong>
+            </td>
+        </tr>
+    `;
+}).join('')}
 
-const status = smartStatus.status;
-const statusColor = smartStatus.color;
-                
-                return `
-                    <tr style="border-bottom: 1px solid #ddd;">
-                        <td style="padding: 10px; border: 1px solid #ddd;">
-                            <strong>${milestone.name}</strong>
-                        </td>
-                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">
-                            ${formatDateForDisplay(milestone.targetDate)}
-                            ${daysUntil >= 0 ? `<div style="font-size: 10px; color: #7f8c8d;">(in ${daysUntil} days)</div>` : `<div style="font-size: 10px; color: #e74c3c;">(${Math.abs(daysUntil)} days overdue)</div>`}
-                        </td>
-                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">
-                            <strong style="color: #3498db; font-size: 14px;">${milestone.progress}%</strong>
-                        </td>
-                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">
-                            <strong style="color: ${statusColor};">${status}</strong>
-                        </td>
-                    </tr>
-                `;
-            }).join('')}
+
+		
         </tbody>
     </table>
 </div>
@@ -8207,7 +8258,7 @@ function loadPreviousReportSettings(baseName) {
 }
 
 // Global array to store milestones
-let reportMilestones = [];
+window.reportMilestones = [];  // ✅ EXPLICITLY GLOBAL!
 
 // Add milestone
 function addMilestone() {
@@ -8216,7 +8267,8 @@ function addMilestone() {
         id: milestoneId,
         name: '',
         targetDate: '',
-        progress: 0
+        progress: 0,
+        completedDate: null  // ✅ ADD completion date field
     });
     renderMilestones();
 }
@@ -8244,7 +8296,14 @@ function renderMilestones() {
         return;
     }
     
-    container.innerHTML = reportMilestones.map((milestone, index) => `
+    container.innerHTML = reportMilestones.map((milestone, index) => {
+        const progress = parseInt(milestone.progress) || 0;
+        const isCompleted = progress === 100;
+        
+        // Determine grid columns based on completion status
+        const gridColumns = isCompleted ? '2fr 1fr 1fr 1fr' : '2fr 1fr 1fr';
+        
+        return `
         <div style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; padding: 12px; margin-bottom: 10px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <strong style="color: #2c3e50; font-size: 12px;">Milestone ${index + 1}</strong>
@@ -8253,7 +8312,7 @@ function renderMilestones() {
                     Remove
                 </button>
             </div>
-            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 8px;">
+            <div style="display: grid; grid-template-columns: ${gridColumns}; gap: 8px;">
                 <input type="text" 
                        placeholder="Milestone name (e.g., Installation Complete)" 
                        value="${milestone.name}"
@@ -8262,7 +8321,8 @@ function renderMilestones() {
                 <input type="date" 
                        value="${milestone.targetDate}"
                        onchange="updateMilestone(${milestone.id}, 'targetDate', this.value)"
-                       style="padding: 6px; border: 1px solid #ddd; border-radius: 3px; font-size: 11px;">
+                       style="padding: 6px; border: 1px solid #ddd; border-radius: 3px; font-size: 11px;"
+                       title="Target completion date">
                 <div style="display: flex; align-items: center; gap: 5px;">
                     <input type="number" 
                            min="0" max="100" 
@@ -8271,9 +8331,23 @@ function renderMilestones() {
                            style="padding: 6px; border: 1px solid #ddd; border-radius: 3px; font-size: 11px; width: 60px;">
                     <span style="font-size: 11px;">%</span>
                 </div>
+                ${isCompleted ? `
+                    <input type="date" 
+                           value="${milestone.completedDate || ''}"
+                           onchange="updateMilestone(${milestone.id}, 'completedDate', this.value)"
+                           style="padding: 6px; border: 1px solid #27ae60; border-radius: 3px; font-size: 11px; background: #f0fff4;"
+                           placeholder="Completed on..."
+                           title="Actual completion date">
+                ` : ''}
             </div>
+            ${isCompleted && !milestone.completedDate ? `
+                <div style="margin-top: 8px; padding: 8px; background: #fff3cd; border-left: 3px solid #f39c12; border-radius: 3px; font-size: 11px; color: #856404;">
+                    ⚠️ Please enter the actual completion date for this milestone
+                </div>
+            ` : ''}
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // Calculate weighted progress from tasks
@@ -12478,6 +12552,13 @@ function renderVMCards() {
     }
     
     console.log(`✅ Rendered ${renderedCount} equipment card(s)`);
+// ✅ FIX: Update subtitle to show ACTUAL rendered count
+const subtitle = document.getElementById('vmSubtitle');
+if (subtitle) {
+    const columns = vmSettings.layout || 3;
+    const maxRows = vmSettings.maxRows || 2;
+    subtitle.textContent = `Showing ${renderedCount} equipment (${columns} columns × ${maxRows} rows max)`;
+}
     
     // ✅ Save state for next comparison
     savePreviousVMState();
@@ -12952,7 +13033,7 @@ function populateEquipmentList() {
         return;
     }
     
-    // Group by EQUIPMENT ONLY (combine all vendors)
+    // Group by EQUIPMENT and count ACTUAL subtasks
     const equipmentMap = new Map();
     
     projectData.forEach(item => {
@@ -12962,13 +13043,19 @@ function populateEquipmentList() {
             equipmentMap.set(equipment, {
                 equipment: equipment,
                 vendors: new Set(),
-                count: 0
+                parentCount: 0,
+                subtaskCount: 0  // ✅ ADD: Count actual subtasks
             });
         }
         
         const group = equipmentMap.get(equipment);
         group.vendors.add(item.vendor || 'Unknown');
-        group.count++;
+        group.parentCount++;
+        
+        // ✅ ADD: Count subtasks from onsiteTasks
+        const firebaseKey = item.firebaseKey || item.id;
+        const subtasks = onsiteTasks[firebaseKey] || [];
+        group.subtaskCount += subtasks.length;
     });
     
     // Convert to array and sort
@@ -12985,27 +13072,42 @@ function populateEquipmentList() {
     listContainer.innerHTML = '';
     
     groupArray.forEach((group, index) => {
-        const equipmentId = group.equipment; // Just equipment name, no vendor
-        // Only mark as selected if it exists in settings AND has loaded data
-const isSelected = vmSettings.selectedEquipment.includes(equipmentId) && 
-                   vmEquipmentData[equipmentId] && 
-                   vmEquipmentData[equipmentId].tasks && 
-                   vmEquipmentData[equipmentId].tasks.length > 0;
+        const equipmentId = group.equipment;
+        
+        // ✅ FIX: Check if already selected AND has tasks
+        const isSelected = vmSettings.selectedEquipment.includes(equipmentId) && 
+                           vmEquipmentData[equipmentId] && 
+                           vmEquipmentData[equipmentId].tasks && 
+                           vmEquipmentData[equipmentId].tasks.length > 0;
+        
+        // ✅ FIX: Disable if no subtasks
+        const hasNoTasks = group.subtaskCount === 0;
+        const isDisabled = isSelected || hasNoTasks;
+        
         const vendorList = Array.from(group.vendors).join(', ');
         
         const item = document.createElement('div');
         item.className = 'vm-equipment-item';
+        
+        // ✅ FIX: Style differently if disabled due to no tasks
+        if (hasNoTasks && !isSelected) {
+            item.style.opacity = '0.5';
+            item.style.background = '#f8f9fa';
+        }
+        
         item.innerHTML = `
             <input type="checkbox" 
                    id="vm_eq_${index}" 
-                   ${isSelected ? 'checked disabled' : ''} 
+                   ${isDisabled ? 'disabled' : ''} 
+                   ${isSelected ? 'checked' : ''}
                    data-equipment="${group.equipment}"
                    data-equipmentid="${equipmentId}">
             <div class="vm-equipment-item-info">
                 <div class="vm-equipment-item-name">${group.equipment}</div>
                 <div class="vm-equipment-item-meta">
-                    ${vendorList} | ${group.count} tasks
+                    ${vendorList} | ${group.subtaskCount} task${group.subtaskCount !== 1 ? 's' : ''}
                     ${isSelected ? ' | ✅ Already added' : ''}
+                    ${hasNoTasks && !isSelected ? ' | ⚠️ No data available' : ''}
                 </div>
             </div>
         `;
