@@ -13072,48 +13072,47 @@ function populateEquipmentList() {
     listContainer.innerHTML = '';
     
     groupArray.forEach((group, index) => {
-        const equipmentId = group.equipment;
-        
-        // ✅ FIX: Check if already selected AND has tasks
-        const isSelected = vmSettings.selectedEquipment.includes(equipmentId) && 
-                           vmEquipmentData[equipmentId] && 
-                           vmEquipmentData[equipmentId].tasks && 
-                           vmEquipmentData[equipmentId].tasks.length > 0;
-        
-        // ✅ FIX: Disable if no subtasks
-        const hasNoTasks = group.subtaskCount === 0;
-        const isDisabled = isSelected || hasNoTasks;
-        
-        const vendorList = Array.from(group.vendors).join(', ');
-        
-        const item = document.createElement('div');
-        item.className = 'vm-equipment-item';
-        
-        // ✅ FIX: Style differently if disabled due to no tasks
-        if (hasNoTasks && !isSelected) {
-            item.style.opacity = '0.5';
-            item.style.background = '#f8f9fa';
-        }
-        
-        item.innerHTML = `
-            <input type="checkbox" 
-                   id="vm_eq_${index}" 
-                   ${isDisabled ? 'disabled' : ''} 
-                   ${isSelected ? 'checked' : ''}
-                   data-equipment="${group.equipment}"
-                   data-equipmentid="${equipmentId}">
-            <div class="vm-equipment-item-info">
-                <div class="vm-equipment-item-name">${group.equipment}</div>
-                <div class="vm-equipment-item-meta">
-                    ${vendorList} | ${group.subtaskCount} task${group.subtaskCount !== 1 ? 's' : ''}
-                    ${isSelected ? ' | ✅ Already added' : ''}
-                    ${hasNoTasks && !isSelected ? ' | ⚠️ No data available' : ''}
-                </div>
+    const equipmentId = group.equipment;
+    
+    // ✅ FIX: Normalize for comparison
+    const normalizedId = normalizeEquipmentId(equipmentId);
+    const isSelected = vmSettings.selectedEquipment.some(existing => 
+        normalizeEquipmentId(existing) === normalizedId
+    );
+    const hasData = vmEquipmentData[normalizedId] || vmEquipmentData[equipmentId];
+    const hasTasks = hasData && hasData.tasks && hasData.tasks.length > 0;
+    const shouldDisable = (isSelected && hasTasks) || group.subtaskCount === 0;
+    
+    const vendorList = Array.from(group.vendors).join(', ');
+    
+    const item = document.createElement('div');
+    item.className = 'vm-equipment-item';
+    
+    // Style differently if disabled due to no tasks
+    if (group.subtaskCount === 0 && !isSelected) {
+        item.style.opacity = '0.5';
+        item.style.background = '#f8f9fa';
+    }
+    
+    item.innerHTML = `
+        <input type="checkbox" 
+               id="vm_eq_${index}" 
+               ${shouldDisable ? 'disabled' : ''} 
+               ${isSelected ? 'checked' : ''}
+               data-equipment="${group.equipment}"
+               data-equipmentid="${equipmentId}">
+        <div class="vm-equipment-item-info">
+            <div class="vm-equipment-item-name">${group.equipment}</div>
+            <div class="vm-equipment-item-meta">
+                ${vendorList} | ${group.subtaskCount} task${group.subtaskCount !== 1 ? 's' : ''}
+                ${isSelected ? ' | ✅ Already added' : ''}
+                ${group.subtaskCount === 0 && !isSelected ? ' | ⚠️ No data available' : ''}
             </div>
-        `;
-        
-        listContainer.appendChild(item);
-    });
+        </div>
+    `;
+    
+    listContainer.appendChild(item);
+});
     
     console.log(`✅ Found ${groupArray.length} equipment groups`);
 }
@@ -13133,14 +13132,23 @@ function addSelectedEquipmentBatch() {
     checkboxes.forEach(checkbox => {
         const equipmentId = checkbox.dataset.equipmentid;
         
-        // Add to selected list if not already there
-        if (!vmSettings.selectedEquipment.includes(equipmentId)) {
-            vmSettings.selectedEquipment.push(equipmentId);
-            addedCount++;
-            
-            // Load data for this equipment
-            promises.push(loadSingleEquipmentDataPromise(equipmentId));
+        // ✅ FIX: Strict duplicate check with normalization
+        const normalizedId = normalizeEquipmentId(equipmentId);
+        const isDuplicate = vmSettings.selectedEquipment.some(existing => 
+            normalizeEquipmentId(existing) === normalizedId
+        );
+        
+        if (isDuplicate) {
+            console.log(`⚠️ Skipping duplicate: "${equipmentId}"`);
+            return; // Skip this iteration
         }
+        
+        // Add to selected list
+        vmSettings.selectedEquipment.push(equipmentId);
+        addedCount++;
+        
+        // Load data for this equipment
+        promises.push(loadSingleEquipmentDataPromise(equipmentId));
     });
     
     if (addedCount === 0) {
