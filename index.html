@@ -2951,12 +2951,14 @@ tr {
 
 </div>
 <div class="btn-group">
-    <button class="btn btn-secondary" onclick="closeProgressReportModal()">Cancel</button>
-    <button class="btn btn-primary" onclick="previewReport()" style="background: #2ecc71;">
-        👁️ Preview Report
+    <button class="btn btn-secondary" onclick="closeProgressReportModal()">
+        Cancel
     </button>
-    <button class="btn btn-primary" onclick="generateReport()" style="background: #3498db;">
-        📥 Download PDF
+    <button class="btn btn-primary" onclick="saveReportData()" style="background: #27ae60;">
+        💾 Save
+    </button>
+    <button class="btn btn-primary" onclick="previewReport()" style="background: #3498db;">
+        👁️ Preview Report
     </button>
 </div>
 </div>
@@ -7077,6 +7079,53 @@ function getTaskTimelineStatus(task) {
     };
 }
 
+// ===== SAVE REPORT DATA (WITHOUT PREVIEW) =====
+function saveReportData() {
+    const baseName = document.getElementById('reportEquipmentBase').value.trim();
+    
+    if (!baseName) {
+        showNotification('Please enter equipment base name', 'error');
+        return;
+    }
+    
+    // Validate milestones dengan completion date
+    const incompleteMilestones = reportMilestones.filter(m => {
+        return m.name && m.name.trim() && 
+               m.progress === 100 && 
+               (!m.completedDate || m.completedDate === '' || m.completedDate === 'null');
+    });
+    
+    if (incompleteMilestones.length > 0) {
+        showNotification(`Please enter completion dates for ${incompleteMilestones.length} completed milestone(s)`, 'error');
+        return;
+    }
+    
+    // Get report settings
+    const highlights = document.getElementById('reportHighlights').value.trim();
+    const actionPlan = document.getElementById('reportActionPlan').value.trim();
+    
+    // Filter valid milestones (must have name)
+    const validMilestones = reportMilestones.filter(m => m.name && m.name.trim());
+    
+    // ✅ SAVE to Firebase (same pattern as previewReport)
+    const equipmentBase = baseName.replace(/[.#$[\]]/g, '_');
+    
+    database.ref(`reportSettings/${equipmentBase}`).set({
+        highlights: highlights || '',
+        actionPlan: actionPlan || '',
+        milestones: validMilestones || [],
+        timestamp: new Date().toISOString(),
+        updatedBy: 'Manual Save'
+    }).then(() => {
+        console.log('✅ Report settings saved (manual)');
+        showNotification('Report data saved successfully!', 'success');
+        
+    }).catch(error => {
+        console.error('❌ Error saving report settings:', error);
+        showNotification('Failed to save report data', 'error');
+    });
+}
+
 function previewReport() {
     // Get selected groups (same validation as generateReport)
     const selectedCheckboxes = document.querySelectorAll('.report-group-checkbox:checked');
@@ -8283,7 +8332,32 @@ function removeMilestone(id) {
 function updateMilestone(id, field, value) {
     const milestone = reportMilestones.find(m => m.id === id);
     if (milestone) {
+        // ✅ FIX: Save old progress BEFORE updating
+        const oldProgress = parseInt(milestone.progress) || 0;
+        
+        // Update the field
         milestone[field] = value;
+        
+        // ✅ FIX: Re-render immediately if progress changed to/from 100
+        if (field === 'progress') {
+            const newProgress = parseInt(value) || 0;
+            
+            // Re-render if crossing 100% threshold
+            if ((oldProgress !== 100 && newProgress === 100) || (oldProgress === 100 && newProgress !== 100)) {
+                console.log(`🔄 Progress changed from ${oldProgress}% to ${newProgress}% - re-rendering`);
+                renderMilestones();
+                
+                // Auto-focus completion date field if progress = 100
+                if (newProgress === 100) {
+                    setTimeout(() => {
+                        const dateField = document.getElementById(`completedDate_${id}`);
+                        if (dateField) {
+                            dateField.focus();
+                        }
+                    }, 100);
+                }
+            }
+        }
     }
 }
 
@@ -8333,11 +8407,12 @@ function renderMilestones() {
                 </div>
                 ${isCompleted ? `
                     <input type="date" 
-                           value="${milestone.completedDate || ''}"
-                           onchange="updateMilestone(${milestone.id}, 'completedDate', this.value)"
-                           style="padding: 6px; border: 1px solid #27ae60; border-radius: 3px; font-size: 11px; background: #f0fff4;"
-                           placeholder="Completed on..."
-                           title="Actual completion date">
+       id="completedDate_${milestone.id}"
+       value="${milestone.completedDate || ''}"
+       onchange="updateMilestone(${milestone.id}, 'completedDate', this.value)"
+       style="padding: 6px; border: 1px solid #27ae60; border-radius: 3px; font-size: 11px; background: #f0fff4;"
+       placeholder="Completed on..."
+       title="Actual completion date">
                 ` : ''}
             </div>
             ${isCompleted && !milestone.completedDate ? `
@@ -12351,11 +12426,8 @@ function clearAllVMEquipment() {
     }
     
     // Try to clear Firebase (optional - ignore if permission denied)
-    if (database && database.ref) {
-        database.ref('vmSettings/selectedEquipment').set([])
-            .then(() => console.log('✅ Firebase cleared'))
-            .catch(() => console.log('ℹ️ Firebase sync skipped (permission)'));
-    }
+    // ✅ VM Settings only stored in localStorage (not Firebase)
+// No Firebase write needed
     
     // Re-render
     applyVMSettings();
