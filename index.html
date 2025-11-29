@@ -7787,15 +7787,83 @@ body {
     </p>
 </div>
         
-        
-<div class="section">
-    <div class="section-title">EXECUTIVE SUMMARY</div>
-    <p><strong>Overall Progress:</strong> ${data.overallProgress}%</p>
-    <div class="progress-bar">
-        <div class="progress-fill" style="width: ${data.overallProgress}%; background: ${data.overallProgress >= 80 ? '#27ae60' : data.overallProgress >= 50 ? '#f39c12' : '#e74c3c'}">
-            ${data.overallProgress}%
+        <div class="section">
+    <div class="section-title">📊 EXECUTIVE SUMMARY</div>
+    
+    <!-- Overall Progress Card -->
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 30px; margin: 20px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+        <div style="text-align: center;">
+            <div style="font-size: 16px; color: rgba(255,255,255,0.9); margin-bottom: 15px; font-weight: 600; letter-spacing: 1px;">
+                OVERALL PROGRESS
+            </div>
+            <div style="font-size: 64px; font-weight: 700; color: white; margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+                ${data.overallProgress}%
+            </div>
+            <div style="width: 80%; max-width: 600px; margin: 0 auto; background: rgba(255,255,255,0.3); height: 20px; border-radius: 10px; overflow: hidden;">
+                <div style="width: ${data.overallProgress}%; background: linear-gradient(90deg, #2ecc71, #27ae60); height: 100%; border-radius: 10px; transition: width 0.3s; box-shadow: 0 2px 8px rgba(46,204,113,0.5);"></div>
+            </div>
         </div>
     </div>
+    
+    <!-- Task Status Breakdown -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 30px 0;">
+        <!-- Completed -->
+        <div style="background: white; border-radius: 8px; padding: 20px; text-align: center; border-left: 4px solid #27ae60; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+            <div style="font-size: 36px; margin-bottom: 10px;">✅</div>
+            <div style="font-size: 13px; color: #7f8c8d; font-weight: 600; margin-bottom: 8px;">COMPLETED</div>
+            <div style="font-size: 32px; font-weight: 700; color: #27ae60; margin-bottom: 5px;">
+                ${data.completedTasksCount || 0}
+            </div>
+            <div style="font-size: 11px; color: #95a5a6;">
+                ${data.totalTasksCount > 0 ? Math.round((data.completedTasksCount / data.totalTasksCount) * 100) : 0}% of total
+            </div>
+        </div>
+        
+        <!-- In Progress -->
+        <div style="background: white; border-radius: 8px; padding: 20px; text-align: center; border-left: 4px solid #3498db; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+            <div style="font-size: 36px; margin-bottom: 10px;">🔄</div>
+            <div style="font-size: 13px; color: #7f8c8d; font-weight: 600; margin-bottom: 8px;">IN PROGRESS</div>
+            <div style="font-size: 32px; font-weight: 700; color: #3498db; margin-bottom: 5px;">
+                ${data.inProgressTasksCount || 0}
+            </div>
+            <div style="font-size: 11px; color: #95a5a6;">
+                ${data.totalTasksCount > 0 ? Math.round((data.inProgressTasksCount / data.totalTasksCount) * 100) : 0}% of total
+            </div>
+        </div>
+        
+        <!-- Ready to Start -->
+        <div style="background: white; border-radius: 8px; padding: 20px; text-align: center; border-left: 4px solid #f39c12; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+            <div style="font-size: 36px; margin-bottom: 10px;">⏳</div>
+            <div style="font-size: 13px; color: #7f8c8d; font-weight: 600; margin-bottom: 8px;">READY TO START</div>
+            <div style="font-size: 32px; font-weight: 700; color: #f39c12; margin-bottom: 5px;">
+                ${data.readyTasksCount || 0}
+            </div>
+            <div style="font-size: 11px; color: #95a5a6;">
+                ${data.totalTasksCount > 0 ? Math.round((data.readyTasksCount / data.totalTasksCount) * 100) : 0}% of total
+            </div>
+        </div>
+        
+        <!-- Blocked -->
+        <div style="background: white; border-radius: 8px; padding: 20px; text-align: center; border-left: 4px solid #e74c3c; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+            <div style="font-size: 36px; margin-bottom: 10px;">🚫</div>
+            <div style="font-size: 13px; color: #7f8c8d; font-weight: 600; margin-bottom: 8px;">BLOCKED</div>
+            <div style="font-size: 32px; font-weight: 700; color: #e74c3c; margin-bottom: 5px;">
+                ${data.blockedTasksCount || 0}
+            </div>
+            <div style="font-size: 11px; color: #95a5a6;">
+                ${data.totalTasksCount > 0 ? Math.round((data.blockedTasksCount / data.totalTasksCount) * 100) : 0}% of total
+            </div>
+        </div>
+    </div>
+    
+    <!-- Total Tasks Summary -->
+    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px; margin-top: 10px;">
+        <span style="font-size: 14px; color: #7f8c8d; font-weight: 600;">
+            TOTAL TASKS: <strong style="color: #2c3e50; font-size: 16px;">${data.totalTasksCount || 0}</strong>
+        </span>
+    </div>
+</div>
+
     
     
 ${data.timeline ? `
