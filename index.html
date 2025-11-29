@@ -8017,236 +8017,321 @@ ${data.highlights || data.actionPlan ? `
         <div style="margin-top: 20px;">
                 
                 ${group.completedTasks.length > 0 ? `
-    <p style="font-weight: bold; color: #27ae60; margin: 20px 0 10px 0; font-size: 14px;">✅ COMPLETED (${group.completedTasks.length})</p>
-    <table class="gantt-table">
-        <thead>
-    <tr>
-        <th style="width: 7%;">Seq<br>Mode</th>
-        <th style="width: 22%;">Task Name & Description</th>
-        <th style="width: 9%;">Plan<br>Start</th>
-        <th style="width: 9%;">Plan<br>End</th>
-        <th style="width: 9%;">Actual<br>Start</th>
-        <th style="width: 9%;">Actual<br>End</th>
-        <th style="width: 15%;">Timeline<br>Status</th>
-        <th style="width: 20%;">Notes</th>
-    </tr>
-</thead>
-        <tbody>
-            ${group.completedTasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).slice(0, 10).map((task, taskIndex) => {
-                const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
-                                task.executionMode === 'parallel' ? 'Parallel' : 'Independent';
-                const modeClass = 'mode-' + (task.executionMode || 'independent');
+    <h3 style="color: #27ae60; margin: 15px 0 10px 0; font-size: 16px; border-bottom: 2px solid #27ae60; padding-bottom: 5px;">
+        ✅ COMPLETED (${group.completedTasks.length})
+    </h3>
+    
+    ${(() => {
+        // Group completed tasks by parentTask + disc
+        const taskGroups = {};
+        
+        group.completedTasks.forEach(task => {
+            const groupKey = `${task.parentTask || 'N/A'}_${task.disc || 'N/A'}`;
+            if (!taskGroups[groupKey]) {
+                taskGroups[groupKey] = {
+                    parentTask: task.parentTask || 'N/A',
+                    disc: task.disc || 'N/A',
+                    tasks: [],
+                    displaySequence: 999
+                };
+            }
+            taskGroups[groupKey].tasks.push(task);
+        });
+        
+        // Convert to array and sort
+        const sortedGroups = Object.values(taskGroups).sort((a, b) => {
+            return (a.displaySequence || 999) - (b.displaySequence || 999);
+        });
+        
+        // Render each group
+        return sortedGroups.map(taskGroup => `
+            <div style="margin-bottom: 20px;">
+                <h4 style="color: #2c3e50; margin: 10px 0 8px 0; font-size: 13px; background: #ecf0f1; padding: 8px; border-left: 4px solid #27ae60;">
+                    📋 ${taskGroup.parentTask} (${taskGroup.disc}) - ${taskGroup.tasks.length} task${taskGroup.tasks.length > 1 ? 's' : ''}
+                </h4>
                 
-                // ✅ ADD: Get group name for this task
-                const taskGroupName = task.parentTask || 'N/A';
-                
-                return `
-                <tr>
-                    <td style="text-align: center; font-weight: 700; font-size: 13px;">
-                        <div style="color: #3498db; font-size: 11px; margin-bottom: 2px;">#${taskIndex + 1}</div>
-                        <div style="color: #7f8c8d; font-size: 9px;">(Seq ${task.sequence || '?'} - ${taskGroupName})</div>
-                        <span class="mode-badge ${modeClass}">${modeLabel}</span>
-                    </td>
-                    <td>
-                        <strong style="color: #2c3e50;">${task.name}</strong>
-                        ${task.description ? `<div style="font-size: 10px; color: #7f8c8d; margin-top: 3px; font-style: italic;">${task.description.substring(0, 80)}${task.description.length > 80 ? '...' : ''}</div>` : ''}
-                    </td>
-                    <td style="text-align: center; font-size: 10px;">${task.targetStart ? formatDateForDisplay(task.targetStart) : '-'}</td>
-                    <td style="text-align: center; font-size: 10px;">${task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-'}</td>
-                    <td style="text-align: center; font-size: 10px;">${task.startDate ? formatDateForDisplay(task.startDate) : '-'}</td>
-                    <td style="text-align: center; font-size: 10px;">${task.completedDate ? formatDateForDisplay(task.completedDate) : '-'}</td>
-                    <td style="color: ${task.timeline ? task.timeline.color : '#95a5a6'}; font-weight: 600; text-align: center; font-size: 11px;">
-                        ${task.timeline ? `${task.timeline.icon} ${task.timeline.status}` : '-'}
-                    </td>
-<td style="font-size: 10px; color: #555; font-style: italic; padding: 8px; white-space: pre-wrap;">
-    ${task.notes ? (task.notes.length > 100 ? task.notes.substring(0, 100) + '...' : task.notes) : '-'}
-</td>
-                </tr>
-                `;
-            }).join('')}
-        </tbody>
-    </table>
-    ${group.completedTasks.length > 10 ? `<p style="color: #95a5a6; margin: 5px 0; font-style: italic; font-size: 11px;">+ ${group.completedTasks.length - 10} more completed tasks</p>` : ''}
+                <table class="gantt-table" style="width: 100%; margin-bottom: 0;">
+                    <thead>
+                        <tr>
+                            <th style="width: 7%;">Seq<br>Mode</th>
+                            <th style="width: 22%;">Task Name & Description</th>
+                            <th style="width: 9%;">Plan<br>Start</th>
+                            <th style="width: 9%;">Plan<br>End</th>
+                            <th style="width: 9%;">Actual<br>Start</th>
+                            <th style="width: 9%;">Actual<br>End</th>
+                            <th style="width: 15%;">Timeline<br>Status</th>
+                            <th style="width: 20%;">Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${taskGroup.tasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).map((task, taskIndex) => {
+                            const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
+                                            task.executionMode === 'parallel' ? 'Parallel' : 'Independent';
+                            const modeClass = 'mode-' + (task.executionMode || 'independent');
+                            const taskGroupName = task.parentTask || 'N/A';
+                            
+                            return `
+                            <tr>
+                                <td style="text-align: center; font-weight: 700; font-size: 13px;">
+                                    <div style="color: #3498db; font-size: 11px; margin-bottom: 2px;">#${taskIndex + 1}</div>
+                                    <div style="color: #7f8c8d; font-size: 9px;">(Seq ${task.sequence || '?'} - ${taskGroupName})</div>
+                                    <span class="mode-badge ${modeClass}">${modeLabel}</span>
+                                </td>
+                                <td>
+                                    <strong style="color: #2c3e50;">${task.name}</strong>
+                                    ${task.description ? `<div style="font-size: 10px; color: #7f8c8d; margin-top: 3px; font-style: italic;">${task.description.substring(0, 80)}${task.description.length > 80 ? '...' : ''}</div>` : ''}
+                                </td>
+                                <td style="text-align: center; font-size: 10px;">${task.targetStart ? formatDateForDisplay(task.targetStart) : '-'}</td>
+                                <td style="text-align: center; font-size: 10px;">${task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-'}</td>
+                                <td style="text-align: center; font-size: 10px;">${task.startDate ? formatDateForDisplay(task.startDate) : '-'}</td>
+                                <td style="text-align: center; font-size: 10px;">${task.completedDate ? formatDateForDisplay(task.completedDate) : '-'}</td>
+                                <td style="color: ${task.timeline ? task.timeline.color : '#95a5a6'}; font-weight: 600; text-align: center; font-size: 11px;">
+                                    ${task.timeline ? `${task.timeline.icon} ${task.timeline.status}` : '-'}
+                                </td>
+                                <td style="font-size: 10px; color: #555; font-style: italic; padding: 8px; white-space: pre-wrap;">
+                                    ${task.notes ? (task.notes.length > 100 ? task.notes.substring(0, 100) + '...' : task.notes) : '-'}
+                                </td>
+                            </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `).join('');
+    })()}
 ` : ''}
 
 ${group.inProgressTasks.length > 0 ? `
-    <p style="font-weight: bold; color: #f39c12; margin: 20px 0 10px 0; font-size: 14px;">🔄 IN PROGRESS (${group.inProgressTasks.length})</p>
-    <table class="gantt-table">
-        <thead>
-    <tr>
-        <th style="width: 7%;">Seq<br>Mode</th>
-        <th style="width: 23%;">Task Name & Description</th>
-        <th style="width: 9%;">Plan<br>Start</th>
-        <th style="width: 9%;">Plan<br>End</th>
-        <th style="width: 9%;">Actual<br>Start</th>
-        <th style="width: 8%;">Progress</th>
-        <th style="width: 15%;">Timeline<br>Status</th>
-        <th style="width: 20%;">Notes</th>
-    </tr>
-</thead>
-        <tbody>
-            <tbody>
-                ${group.inProgressTasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).map((task, taskIndex) => {
-                const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
-                                task.executionMode === 'parallel' ? 'Parallel' : 'Independent';
-                const modeClass = `mode-${task.executionMode || 'independent'}`;
+    <h3 style="color: #3498db; margin: 15px 0 10px 0; font-size: 16px; border-bottom: 2px solid #3498db; padding-bottom: 5px;">
+        🔄 IN PROGRESS (${group.inProgressTasks.length})
+    </h3>
+    
+    ${(() => {
+        // Group in-progress tasks by parentTask + disc
+        const taskGroups = {};
+        
+        group.inProgressTasks.forEach(task => {
+            const groupKey = `${task.parentTask || 'N/A'}_${task.disc || 'N/A'}`;
+            if (!taskGroups[groupKey]) {
+                taskGroups[groupKey] = {
+                    parentTask: task.parentTask || 'N/A',
+                    disc: task.disc || 'N/A',
+                    tasks: [],
+                    displaySequence: 999
+                };
+            }
+            taskGroups[groupKey].tasks.push(task);
+        });
+        
+        const sortedGroups = Object.values(taskGroups).sort((a, b) => {
+            return (a.displaySequence || 999) - (b.displaySequence || 999);
+        });
+        
+        return sortedGroups.map(taskGroup => `
+            <div style="margin-bottom: 20px;">
+                <h4 style="color: #2c3e50; margin: 10px 0 8px 0; font-size: 13px; background: #ecf0f1; padding: 8px; border-left: 4px solid #3498db;">
+                    📋 ${taskGroup.parentTask} (${taskGroup.disc}) - ${taskGroup.tasks.length} task${taskGroup.tasks.length > 1 ? 's' : ''}
+                </h4>
                 
-                // ✅ ADD: Get group name for this task
-                const taskGroupName = task.parentTask || 'N/A';
-                
-                return `
-                <tr>
-                    <td style="text-align: center; font-weight: 700; font-size: 13px;">
-                        <div style="color: #3498db; font-size: 11px; margin-bottom: 2px;">#${taskIndex + 1}</div>
-                        <div style="color: #7f8c8d; font-size: 9px;">(Seq ${task.sequence || '?'} - ${taskGroupName})</div>
-                        <span class="mode-badge ${modeClass}">${modeLabel}</span>
-                    </td>
-                    <td>
-                        <strong style="color: #2c3e50;">${task.name}</strong>
-                        ${task.description ? `<div style="font-size: 10px; color: #7f8c8d; margin-top: 3px; font-style: italic;">${task.description.substring(0, 80)}${task.description.length > 80 ? '...' : ''}</div>` : ''}
-                    </td>
-                    <td style="text-align: center; font-size: 10px;">${task.targetStart ? formatDateForDisplay(task.targetStart) : '-'}</td>
-                    <td style="text-align: center; font-size: 10px;">${task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-'}</td>
-                    <td style="text-align: center; font-size: 10px;">${task.startDate ? formatDateForDisplay(task.startDate) : '-'}</td>
-                    <td style="text-align: center; font-weight: 700; color: #3498db; font-size: 13px;">${task.progress || 0}%</td>
-                    <td style="color: ${task.timeline ? task.timeline.color : '#95a5a6'}; font-weight: 600; text-align: center; font-size: 11px;">
-    ${task.timeline ? `${task.timeline.icon} ${task.timeline.status}` : '-'}
-</td>
-<td style="font-size: 10px; color: #555; font-style: italic; padding: 8px;">
-    ${task.notes ? (task.notes.length > 100 ? task.notes.substring(0, 100) + '...' : task.notes) : '-'}
-</td>
-                </tr>
-                `;
-            }).join('')}
-        </tbody>
-    </table>
+                <table class="gantt-table" style="width: 100%; margin-bottom: 0;">
+                    <thead>
+                        <tr>
+                            <th style="width: 7%;">Seq<br>Mode</th>
+                            <th style="width: 23%;">Task Name & Description</th>
+                            <th style="width: 9%;">Plan<br>Start</th>
+                            <th style="width: 9%;">Plan<br>End</th>
+                            <th style="width: 9%;">Actual<br>Start</th>
+                            <th style="width: 8%;">Progress</th>
+                            <th style="width: 15%;">Timeline<br>Status</th>
+                            <th style="width: 20%;">Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${taskGroup.tasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).map((task, taskIndex) => {
+                            const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
+                                            task.executionMode === 'parallel' ? 'Parallel' : 'Independent';
+                            const modeClass = 'mode-' + (task.executionMode || 'independent');
+                            const taskGroupName = task.parentTask || 'N/A';
+                            
+                            return `
+                            <tr>
+                                <td style="text-align: center; font-weight: 700; font-size: 13px;">
+                                    <div style="color: #3498db; font-size: 11px; margin-bottom: 2px;">#${taskIndex + 1}</div>
+                                    <div style="color: #7f8c8d; font-size: 9px;">(Seq ${task.sequence || '?'} - ${taskGroupName})</div>
+                                    <span class="mode-badge ${modeClass}">${modeLabel}</span>
+                                </td>
+                                <td>
+                                    <strong style="color: #2c3e50;">${task.name}</strong>
+                                    ${task.description ? `<div style="font-size: 10px; color: #7f8c8d; margin-top: 3px; font-style: italic;">${task.description.substring(0, 80)}${task.description.length > 80 ? '...' : ''}</div>` : ''}
+                                </td>
+                                <td style="text-align: center; font-size: 10px;">${task.targetStart ? formatDateForDisplay(task.targetStart) : '-'}</td>
+                                <td style="text-align: center; font-size: 10px;">${task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-'}</td>
+                                <td style="text-align: center; font-size: 10px;">${task.startDate ? formatDateForDisplay(task.startDate) : '-'}</td>
+                                <td style="text-align: center; font-weight: 700; color: #3498db; font-size: 14px;">${task.progress || 0}%</td>
+                                <td style="color: ${task.timeline ? task.timeline.color : '#95a5a6'}; font-weight: 600; text-align: center; font-size: 11px;">
+                                    ${task.timeline ? `${task.timeline.icon} ${task.timeline.status}` : '-'}
+                                </td>
+                                <td style="font-size: 10px; color: #555; font-style: italic; padding: 8px; white-space: pre-wrap;">
+                                    ${task.notes ? (task.notes.length > 100 ? task.notes.substring(0, 100) + '...' : task.notes) : '-'}
+                                </td>
+                            </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `).join('');
+    })()}
 ` : ''}
 
-${group.readyTasks && group.readyTasks.length > 0 ? `
-    <p style="font-weight: bold; color: #3498db; margin: 20px 0 10px 0; font-size: 14px;">🎯 READY TO START (${group.readyTasks.length})</p>
-    <table class="gantt-table">
-        <thead>
-    <tr>
-        <th style="width: 7%;">Seq<br>Mode</th>
-        <th style="width: 25%;">Task Name & Description</th>
-        <th style="width: 10%;">Plan<br>Start</th>
-        <th style="width: 10%;">Plan<br>End</th>
-        <th style="width: 15%;">Dependencies</th>
-        <th style="width: 13%;">Status</th>
-        <th style="width: 20%;">Notes</th>
-    </tr>
-</thead>
-        <tbody>
-                ${group.readyTasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).map((task, taskIndex) => {
-                const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
-                                task.executionMode === 'parallel' ? 'Parallel' : 'Independent';
-                const modeClass = `mode-${task.executionMode || 'independent'}`;
+${group.readyTasks.length > 0 ? `
+    <h3 style="color: #27ae60; margin: 15px 0 10px 0; font-size: 16px; border-bottom: 2px solid #27ae60; padding-bottom: 5px;">
+        ⏳ READY TO START (${group.readyTasks.length})
+    </h3>
+    
+    ${(() => {
+        const taskGroups = {};
+        
+        group.readyTasks.forEach(task => {
+            const groupKey = `${task.parentTask || 'N/A'}_${task.disc || 'N/A'}`;
+            if (!taskGroups[groupKey]) {
+                taskGroups[groupKey] = {
+                    parentTask: task.parentTask || 'N/A',
+                    disc: task.disc || 'N/A',
+                    tasks: [],
+                    displaySequence: 999
+                };
+            }
+            taskGroups[groupKey].tasks.push(task);
+        });
+        
+        const sortedGroups = Object.values(taskGroups).sort((a, b) => {
+            return (a.displaySequence || 999) - (b.displaySequence || 999);
+        });
+        
+        return sortedGroups.map(taskGroup => `
+            <div style="margin-bottom: 20px;">
+                <h4 style="color: #2c3e50; margin: 10px 0 8px 0; font-size: 13px; background: #ecf0f1; padding: 8px; border-left: 4px solid #27ae60;">
+                    📋 ${taskGroup.parentTask} (${taskGroup.disc}) - ${taskGroup.tasks.length} task${taskGroup.tasks.length > 1 ? 's' : ''}
+                </h4>
                 
-                // ✅ ADD: Get group name for this task
-                const taskGroupName = task.parentTask || 'N/A';
-                
-                // Dependencies info
-                let depsInfo = '<span style="color: #95a5a6;">None</span>';
-                if (task.executionMode === 'sequential' && task.dependencies && task.dependencies.length > 0) {
-                    const depTasks = task.dependencies.map(depId => {
-                        const depTask = group.tasks.find(t => t.id === depId);
-                        return depTask ? `#${depTask.sequence || '?'}` : '?';
-                    }).join(', ');
-                    depsInfo = `<span style="color: #e74c3c; font-weight: 600;">Waits: ${depTasks}</span>`;
-                } else if (task.executionMode === 'parallel' && task.parallelWith && task.parallelWith.length > 0) {
-                    depsInfo = `<span style="color: #f39c12; font-weight: 600;">With: ${task.parallelWith.length} task(s)</span>`;
-                }
-                
-                return `
-                <tr>
-                    <td style="text-align: center; font-weight: 700; font-size: 13px;">
-                        <div style="color: #3498db; font-size: 11px; margin-bottom: 2px;">#${taskIndex + 1}</div>
-                        <div style="color: #7f8c8d; font-size: 9px;">(Seq ${task.sequence || '?'} - ${taskGroupName})</div>
-                        <span class="mode-badge ${modeClass}">${modeLabel}</span>
-                    </td>
-                    <td>
-                        <strong style="color: #2c3e50;">${task.name}</strong>
-                        ${task.description ? `<div style="font-size: 10px; color: #7f8c8d; margin-top: 3px; font-style: italic;">${task.description.substring(0, 80)}${task.description.length > 80 ? '...' : ''}</div>` : ''}
-                    </td>
-                    <td style="text-align: center; font-size: 10px;">${task.targetStart ? formatDateForDisplay(task.targetStart) : '-'}</td>
-                    <td style="text-align: center; font-size: 10px;">${task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-'}</td>
-                    <td style="text-align: center; font-size: 10px;">${depsInfo}</td>
-                    <td style="color: ${task.timeline ? task.timeline.color : '#3498db'}; font-weight: 600; text-align: center; font-size: 11px;">
-                        ${task.timeline ? `${task.timeline.icon} ${task.timeline.status}` : '🎯 Ready'}
-                    </td>
-		<td style="font-size: 10px; color: #555; font-style: italic; padding: 8px; white-space: pre-wrap;">
-    ${task.notes ? (task.notes.length > 100 ? task.notes.substring(0, 100) + '...' : task.notes) : '-'}
-</td>
-                </tr>
-                `;
-            }).join('')}
-        </tbody>
-
-    </table>
+                <table class="gantt-table" style="width: 100%; margin-bottom: 0;">
+                    <thead>
+                        <tr>
+                            <th style="width: 10%;">Seq<br>Mode</th>
+                            <th style="width: 30%;">Task Name & Description</th>
+                            <th style="width: 12%;">Plan Start</th>
+                            <th style="width: 12%;">Plan End</th>
+                            <th style="width: 36%;">Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${taskGroup.tasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).map((task, taskIndex) => {
+                            const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
+                                            task.executionMode === 'parallel' ? 'Parallel' : 'Independent';
+                            const modeClass = 'mode-' + (task.executionMode || 'independent');
+                            const taskGroupName = task.parentTask || 'N/A';
+                            
+                            return `
+                            <tr>
+                                <td style="text-align: center; font-weight: 700; font-size: 13px;">
+                                    <div style="color: #3498db; font-size: 11px; margin-bottom: 2px;">#${taskIndex + 1}</div>
+                                    <div style="color: #7f8c8d; font-size: 9px;">(Seq ${task.sequence || '?'} - ${taskGroupName})</div>
+                                    <span class="mode-badge ${modeClass}">${modeLabel}</span>
+                                </td>
+                                <td>
+                                    <strong style="color: #2c3e50;">${task.name}</strong>
+                                    ${task.description ? `<div style="font-size: 10px; color: #7f8c8d; margin-top: 3px; font-style: italic;">${task.description.substring(0, 80)}${task.description.length > 80 ? '...' : ''}</div>` : ''}
+                                </td>
+                                <td style="text-align: center; font-size: 10px;">${task.targetStart ? formatDateForDisplay(task.targetStart) : '-'}</td>
+                                <td style="text-align: center; font-size: 10px;">${task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-'}</td>
+                                <td style="font-size: 10px; color: #555; font-style: italic; padding: 8px; white-space: pre-wrap;">
+                                    ${task.notes ? (task.notes.length > 100 ? task.notes.substring(0, 100) + '...' : task.notes) : '-'}
+                                </td>
+                            </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `).join('');
+    })()}
 ` : ''}
 
 ${group.blockedTasks.length > 0 ? `
-    <p style="font-weight: bold; color: #e74c3c; margin: 20px 0 10px 0; font-size: 14px;">🔒 BLOCKED (${group.blockedTasks.length})</p>
-    <table class="gantt-table">
-        <thead>
-    <tr>
-        <th style="width: 7%;">Seq<br>Mode</th>
-        <th style="width: 25%;">Task Name & Description</th>
-        <th style="width: 10%;">Plan<br>Start</th>
-        <th style="width: 10%;">Plan<br>End</th>
-        <th style="width: 20%;">Blocking Issue</th>
-        <th style="width: 28%;">Notes</th>
-    </tr>
-</thead>
-        <tbody>
-                ${group.blockedTasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).map((task, taskIndex) => {
-                const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
-                                task.executionMode === 'parallel' ? 'Parallel' : 'Independent';
-                const modeClass = `mode-${task.executionMode || 'independent'}`;
+    <h3 style="color: #e74c3c; margin: 15px 0 10px 0; font-size: 16px; border-bottom: 2px solid #e74c3c; padding-bottom: 5px;">
+        🚫 BLOCKED (${group.blockedTasks.length})
+    </h3>
+    
+    ${(() => {
+        const taskGroups = {};
+        
+        group.blockedTasks.forEach(task => {
+            const groupKey = `${task.parentTask || 'N/A'}_${task.disc || 'N/A'}`;
+            if (!taskGroups[groupKey]) {
+                taskGroups[groupKey] = {
+                    parentTask: task.parentTask || 'N/A',
+                    disc: task.disc || 'N/A',
+                    tasks: [],
+                    displaySequence: 999
+                };
+            }
+            taskGroups[groupKey].tasks.push(task);
+        });
+        
+        const sortedGroups = Object.values(taskGroups).sort((a, b) => {
+            return (a.displaySequence || 999) - (b.displaySequence || 999);
+        });
+        
+        return sortedGroups.map(taskGroup => `
+            <div style="margin-bottom: 20px;">
+                <h4 style="color: #2c3e50; margin: 10px 0 8px 0; font-size: 13px; background: #ecf0f1; padding: 8px; border-left: 4px solid #e74c3c;">
+                    📋 ${taskGroup.parentTask} (${taskGroup.disc}) - ${taskGroup.tasks.length} task${taskGroup.tasks.length > 1 ? 's' : ''}
+                </h4>
                 
-                // ✅ ADD: Get group name for this task
-                const taskGroupName = task.parentTask || 'N/A';
-                
-                // Get blocking tasks info
-                let blockingInfo = '<span style="color: #e74c3c; font-style: italic;">Waiting dependencies</span>';
-                if (task.dependencies && task.dependencies.length > 0) {
-                    const blockingTasks = task.dependencies.map(depId => {
-                        const depTask = group.tasks.find(t => t.id === depId);
-                        if (!depTask) return null;
-                        const progress = parseInt(depTask.progress) || 0;
-                        if (progress < 100) {
-                            return '<span style="font-weight: 600;">#' + (depTask.sequence || '?') + '</span> ' + depTask.name + ' (' + progress + '%)';
-                        }
-                        return null;
-                    }).filter(t => t !== null);
-                    
-                    if (blockingTasks.length > 0) {
-                        blockingInfo = '<span style="color: #c0392b; font-weight: 600;">Waiting:</span><br>' + blockingTasks.join('<br>');
-                    }
-                }
-                
-                return `
-                <tr>
-                    <td style="text-align: center; font-weight: 700; font-size: 13px;">
-                        <div style="color: #3498db; font-size: 11px; margin-bottom: 2px;">#${taskIndex + 1}</div>
-                        <div style="color: #7f8c8d; font-size: 9px;">(Seq ${task.sequence || '?'} - ${taskGroupName})</div>
-                        <span class="mode-badge ${modeClass}">${modeLabel}</span>
-                    </td>
-                    <td>
-                        <strong style="color: #2c3e50;">${task.name}</strong>
-                        ${task.description ? `<div style="font-size: 10px; color: #7f8c8d; margin-top: 3px; font-style: italic;">${task.description.substring(0, 80)}${task.description.length > 80 ? '...' : ''}</div>` : ''}
-                    </td>
-                    <td style="text-align: center; font-size: 10px;">${task.targetStart ? formatDateForDisplay(task.targetStart) : '-'}</td>
-                    <td style="text-align: center; font-size: 10px;">${task.targetEnd ? formatDateForDisplay(task.targetEnd) : '-'}</td>
-                    <td style="font-size: 10px; color: #e74c3c;">${blockingInfo}</td>
-		<td style="font-size: 10px; color: #555; font-style: italic; padding: 8px; white-space: pre-wrap;">
-    ${task.notes ? (task.notes.length > 150 ? task.notes.substring(0, 150) + '...' : task.notes) : '-'}
-</td>
-                </tr>
-                `;
-            }).join('')}
-        </tbody>
-    </table>
+                <table class="gantt-table" style="width: 100%; margin-bottom: 0;">
+                    <thead>
+                        <tr>
+                            <th style="width: 10%;">Seq<br>Mode</th>
+                            <th style="width: 25%;">Task Name & Description</th>
+                            <th style="width: 20%;">Blocked By</th>
+                            <th style="width: 10%;">Plan Start</th>
+                            <th style="width: 35%;">Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${taskGroup.tasks.sort((a, b) => (a.sequence || 999) - (b.sequence || 999)).map((task, taskIndex) => {
+                            const modeLabel = task.executionMode === 'sequential' ? 'Sequential' : 
+                                            task.executionMode === 'parallel' ? 'Parallel' : 'Independent';
+                            const modeClass = 'mode-' + (task.executionMode || 'independent');
+                            const taskGroupName = task.parentTask || 'N/A';
+                            
+                            return `
+                            <tr>
+                                <td style="text-align: center; font-weight: 700; font-size: 13px;">
+                                    <div style="color: #3498db; font-size: 11px; margin-bottom: 2px;">#${taskIndex + 1}</div>
+                                    <div style="color: #7f8c8d; font-size: 9px;">(Seq ${task.sequence || '?'} - ${taskGroupName})</div>
+                                    <span class="mode-badge ${modeClass}">${modeLabel}</span>
+                                </td>
+                                <td>
+                                    <strong style="color: #2c3e50;">${task.name}</strong>
+                                    ${task.description ? `<div style="font-size: 10px; color: #7f8c8d; margin-top: 3px; font-style: italic;">${task.description.substring(0, 60)}${task.description.length > 60 ? '...' : ''}</div>` : ''}
+                                </td>
+                                <td style="font-size: 10px; color: #e74c3c;">
+                                    ${task.dependencies && task.dependencies.length > 0 ? task.dependencies.join(', ') : 'Unknown'}
+                                </td>
+                                <td style="text-align: center; font-size: 10px;">${task.targetStart ? formatDateForDisplay(task.targetStart) : '-'}</td>
+                                <td style="font-size: 10px; color: #555; font-style: italic; padding: 8px; white-space: pre-wrap;">
+                                    ${task.notes ? (task.notes.length > 80 ? task.notes.substring(0, 80) + '...' : task.notes) : '-'}
+                                </td>
+                            </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `).join('');
+    })()}
 ` : ''}
             `).join('')}
         </div>
